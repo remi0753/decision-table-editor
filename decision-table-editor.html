@@ -52,11 +52,101 @@
         .toolbar {
             display: flex;
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             flex-wrap: wrap;
             align-items: center;
         }
         .toolbar-tip { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+        /* ── Field Definition Panel ──────────────────── */
+        .field-panel {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+        .field-panel-head {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .field-panel-head h2 { font-size: 14px; font-weight: 700; color: #1f2937; }
+        .field-panel-hint { font-size: 12px; color: #9ca3af; }
+        .field-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+            min-height: 32px;
+            align-items: center;
+        }
+        .field-list-empty { font-size: 13px; color: #d1d5db; font-style: italic; }
+        .field-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 6px 4px 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .field-chip-name { font-weight: 600; color: #1f2937; }
+        .field-chip-type {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+            letter-spacing: .3px;
+        }
+        .field-type-number { background: #dbeafe; color: #1e40af; }
+        .field-type-string { background: #dcfce7; color: #15803d; }
+        .field-type-bool   { background: #fef3c7; color: #92400e; }
+        .field-type-any    { background: #f3f4f6; color: #6b7280; }
+        .field-chip-del {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #d1d5db;
+            font-size: 14px;
+            padding: 0 3px;
+            line-height: 1;
+            font-weight: 700;
+            transition: color .15s;
+        }
+        .field-chip-del:hover:not(:disabled) { color: #ef4444; }
+        .field-chip-del:disabled { cursor: not-allowed; color: #e5e7eb; }
+        .field-add-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .field-add-row input {
+            flex: 1;
+            max-width: 200px;
+            min-width: 120px;
+            padding: 7px 10px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color .15s;
+        }
+        .field-add-row input:focus { border-color: #3b82f6; }
+        .field-add-row select {
+            padding: 7px 10px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            background: #fff;
+            color: #1f2937;
+            transition: border-color .15s;
+        }
+        .field-add-row select:focus { border-color: #3b82f6; }
 
         /* ── Table card ──────────────────────────────── */
         .table-wrap {
@@ -93,7 +183,8 @@
             padding: 10px 16px 4px;
             gap: 6px;
         }
-        .th-cond-inner input {
+        /* Field selector inside column header */
+        .col-field-select {
             flex: 1;
             border: none;
             background: transparent;
@@ -101,24 +192,22 @@
             font-size: 13px;
             color: #1d4ed8;
             outline: none;
-            min-width: 80px;
-        }
-        .th-cond-inner input::placeholder { color: #93c5fd; font-weight: 400; }
-
-        /* Type selector in column header */
-        .th-cond-type { padding: 0 16px 8px; }
-        .th-cond-type select {
-            width: 100%;
-            padding: 3px 6px;
-            font-size: 11px;
-            border: 1px solid #bfdbfe;
-            border-radius: 4px;
-            background: #f0f9ff;
-            color: #1e40af;
+            min-width: 60px;
+            max-width: 140px;
             cursor: pointer;
-            outline: none;
         }
-        .th-cond-type select:focus { border-color: #3b82f6; }
+        .col-field-select.unset { color: #93c5fd; font-weight: 400; }
+
+        /* Type badge below field selector */
+        .th-cond-type { padding: 0 16px 8px; min-height: 22px; }
+        .col-type-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 3px;
+            letter-spacing: .3px;
+        }
 
         th.th-result {
             background: #f0fdf4;
@@ -228,6 +317,14 @@
             border: 1.5px dashed #e5e7eb;
         }
         .chip.empty:hover { background: #f0f9ff; border-color: #93c5fd; color: #93c5fd; }
+        .chip.no-field {
+            background: transparent;
+            color: #e5e7eb;
+            font-style: italic;
+            font-size: 12px;
+            border: 1.5px dashed #f3f4f6;
+            cursor: default;
+        }
         .chip-op { font-weight: 700; font-size: 15px; }
 
         /* Delete buttons */
@@ -469,6 +566,25 @@
         <span class="toolbar-tip">💡 条件セルをクリックして演算子と値を設定します</span>
     </div>
 
+    <!-- Field Definition Panel -->
+    <div class="field-panel">
+        <div class="field-panel-head">
+            <h2>フィールド定義</h2>
+            <span class="field-panel-hint">条件列に設定できる項目と型の一覧</span>
+        </div>
+        <div class="field-list" id="field-list"></div>
+        <div class="field-add-row">
+            <input type="text" id="field-add-name" placeholder="フィールド名" />
+            <select id="field-add-type">
+                <option value="number">数値</option>
+                <option value="string">文字列</option>
+                <option value="bool">bool</option>
+                <option value="any">任意</option>
+            </select>
+            <button class="btn btn-blue" onclick="addField()">＋ 追加</button>
+        </div>
+    </div>
+
     <!-- Table -->
     <div class="table-wrap">
         <table id="dt"></table>
@@ -549,18 +665,96 @@
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const S = {
-    cols:  [],   // [{ id, name, type }]  type: 'any'|'number'|'string'|'bool'
-    rows:  [],   // [{ id, cells: { [colId]: { op, val } }, result }]
-    nCol: 1,
-    nRow: 1,
+    fields: [],  // [{ id, name, type }]  type: 'any'|'number'|'string'|'bool'
+    cols:   [],  // [{ id, fieldId }]
+    rows:   [],  // [{ id, cells: { [colId]: { op, val } }, result }]
+    nField: 1,
+    nCol:   1,
+    nRow:   1,
 };
 
 const COMPARISON_OPS = ['<', '<=', '>', '>='];
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getField(fieldId) {
+    return fieldId ? S.fields.find(f => f.id === fieldId) ?? null : null;
+}
+
+function colField(col) {
+    return col ? getField(col.fieldId) : null;
+}
+
+function typeLabel(type) {
+    return { any: '任意', number: '数値', string: '文字列', bool: 'bool' }[type] ?? type;
+}
+
+function sym(op) {
+    return { '=': '=', '<': '<', '<=': '≤', '>': '>', '>=': '≥' }[op] || op;
+}
+
+function x(s) {
+    return (s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Field Operations ─────────────────────────────────────────────────────────
+
+function mkField(name, type) {
+    const f = { id: 'f' + S.nField++, name, type: type ?? 'any' };
+    S.fields.push(f);
+    return f;
+}
+
+function addField() {
+    const nameEl = document.getElementById('field-add-name');
+    const typeEl = document.getElementById('field-add-type');
+    const name   = nameEl.value.trim();
+    if (!name) { nameEl.focus(); return; }
+    if (S.fields.some(f => f.name === name)) {
+        alert(`フィールド「${name}」は既に存在します`);
+        nameEl.focus();
+        return;
+    }
+    mkField(name, typeEl.value);
+    nameEl.value = '';
+    renderFieldPanel();
+    render(); // update column header dropdowns
+}
+
+function removeField(fieldId) {
+    if (S.cols.some(c => c.fieldId === fieldId)) {
+        alert('このフィールドは使用中の列があります。\n列を削除するか別のフィールドに切り替えてから再試行してください。');
+        return;
+    }
+    S.fields = S.fields.filter(f => f.id !== fieldId);
+    renderFieldPanel();
+    render();
+}
+
+function renderFieldPanel() {
+    const list = document.getElementById('field-list');
+    if (!list) return;
+    if (S.fields.length === 0) {
+        list.innerHTML = '<span class="field-list-empty">フィールドがまだ定義されていません</span>';
+        return;
+    }
+    list.innerHTML = S.fields.map(f => {
+        const inUse = S.cols.some(c => c.fieldId === f.id);
+        return `<div class="field-chip">
+            <span class="field-chip-name">${x(f.name)}</span>
+            <span class="field-chip-type field-type-${f.type}">${typeLabel(f.type)}</span>
+            <button class="field-chip-del"
+                onclick="removeField('${f.id}')"
+                title="${inUse ? '使用中のため削除できません' : 'フィールドを削除'}"
+                ${inUse ? 'disabled' : ''}>×</button>
+        </div>`;
+    }).join('');
+}
+
 // ─── Column & Row Operations ──────────────────────────────────────────────────
 
-function mkCol(name, type) {
-    const col = { id: 'c' + S.nCol++, name: name ?? ('条件 ' + (S.cols.length + 1)), type: type ?? 'any' };
+function mkCol(fieldId) {
+    const col = { id: 'c' + S.nCol++, fieldId: fieldId ?? null };
     S.cols.push(col);
     return col;
 }
@@ -571,7 +765,7 @@ function mkRow() {
     return row;
 }
 
-function addConditionCol() { mkCol(); render(); }
+function addConditionCol() { mkCol(null); render(); }
 function addRowHandler()   { mkRow(); render(); }
 
 function removeCol(colId) {
@@ -579,6 +773,7 @@ function removeCol(colId) {
     if (!confirm('この条件列をすべての行から削除しますか？')) return;
     S.cols = S.cols.filter(c => c.id !== colId);
     S.rows.forEach(r => delete r.cells[colId]);
+    renderFieldPanel(); // refresh "in-use" badge on field chips
     render();
 }
 
@@ -598,9 +793,22 @@ function insertRowAt(rowId, position) {
 function insertColAt(colId, position) {
     const idx = S.cols.findIndex(c => c.id === colId);
     if (idx === -1) return;
-    const newCol = { id: 'c' + S.nCol++, name: '条件 ' + (S.cols.length + 1), type: 'any' };
+    const newCol = { id: 'c' + S.nCol++, fieldId: null };
     S.cols.splice(position === 'before' ? idx : idx + 1, 0, newCol);
     render();
+}
+
+function onColField(select) {
+    const col = S.cols.find(c => c.id === select.dataset.colid);
+    if (!col) return;
+    col.fieldId = select.value || null;
+    renderFieldPanel(); // refresh "in-use" badge on field chips
+    render();
+}
+
+function onResult(input) {
+    const row = S.rows.find(r => r.id === input.dataset.rowid);
+    if (row) row.result = input.value;
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
@@ -613,22 +821,23 @@ function render() {
     h += '<th class="th-num">#</th>';
 
     S.cols.forEach(col => {
-        const t = col.type ?? 'any';
+        const field   = colField(col);
+        const unsetCls = col.fieldId ? '' : 'unset';
+        const options  = S.fields.map(f =>
+            `<option value="${f.id}" ${col.fieldId===f.id?'selected':''}>${x(f.name)}</option>`
+        ).join('');
+
         h += `<th class="th-condition">
             <button class="col-ins-btn col-ins-left" onclick="insertColAt('${col.id}','before')" title="左に列を挿入">＋</button>
             <div class="th-cond-inner">
-                <input type="text" value="${x(col.name)}" placeholder="列名"
-                    data-colid="${col.id}"
-                    oninput="onColName(this)" onchange="onColName(this)" />
+                <select class="col-field-select ${unsetCls}" data-colid="${col.id}" onchange="onColField(this)">
+                    <option value="">(フィールドを選択)</option>
+                    ${options}
+                </select>
                 <button class="del-col-btn" onclick="removeCol('${col.id}')" title="この列を削除">×</button>
             </div>
             <div class="th-cond-type">
-                <select data-colid="${col.id}" onchange="onColType(this)">
-                    <option value="any"    ${t==='any'   ?'selected':''}>型: 任意</option>
-                    <option value="number" ${t==='number'?'selected':''}>型: 数値</option>
-                    <option value="string" ${t==='string'?'selected':''}>型: 文字列</option>
-                    <option value="bool"   ${t==='bool'  ?'selected':''}>型: bool</option>
-                </select>
+                ${field ? `<span class="col-type-badge field-type-${field.type}">${typeLabel(field.type)}</span>` : ''}
             </div>
             <button class="col-ins-btn col-ins-right" onclick="insertColAt('${col.id}','after')" title="右に列を挿入">＋</button>
         </th>`;
@@ -651,8 +860,13 @@ function render() {
         </td>`;
 
         S.cols.forEach(col => {
-            const cell = row.cells[col.id];
-            if (cell) {
+            const field = colField(col);
+            const cell  = row.cells[col.id];
+            if (!field) {
+                h += `<td class="td-condition">
+                    <div class="chip no-field">フィールド未選択</div>
+                </td>`;
+            } else if (cell) {
                 h += `<td class="td-condition">
                     <div class="chip filled" onclick="openEditor('${row.id}','${col.id}',event)">
                         <span class="chip-op">${sym(cell.op)}</span><span>${x(cell.val)}</span>
@@ -678,29 +892,6 @@ function render() {
 
     table.innerHTML = h;
     renderEvalFields();
-}
-
-function onColName(input) {
-    const col = S.cols.find(c => c.id === input.dataset.colid);
-    if (col) { col.name = input.value; renderEvalFields(); }
-}
-
-function onColType(select) {
-    const col = S.cols.find(c => c.id === select.dataset.colid);
-    if (col) { col.type = select.value; renderEvalFields(); }
-}
-
-function onResult(input) {
-    const row = S.rows.find(r => r.id === input.dataset.rowid);
-    if (row) row.result = input.value;
-}
-
-function sym(op) {
-    return { '=': '=', '<': '<', '<=': '≤', '>': '>', '>=': '≥' }[op] || op;
-}
-
-function x(s) {
-    return (s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ─── Cell Editor ──────────────────────────────────────────────────────────────
@@ -734,18 +925,23 @@ function updateEdValueField(colType, op) {
 }
 
 function openEditor(rowId, colId, ev) {
+    const col   = S.cols.find(c => c.id === colId);
+    const field = colField(col);
+    if (!field) {
+        alert('先に列ヘッダーでフィールドを選択してください');
+        return;
+    }
+
     edTarget = { rowId, colId };
-    const col  = S.cols.find(c => c.id === colId);
     const row  = S.rows.find(r => r.id === rowId);
     const cell = row?.cells[colId];
     const op   = cell?.op  ?? '';
     const val  = cell?.val ?? '';
 
-    document.getElementById('ed-title').textContent =
-        col ? `「${col.name}」の条件を設定` : '条件を設定';
+    document.getElementById('ed-title').textContent = `「${field.name}」の条件を設定`;
     document.getElementById('ed-op').value = op;
 
-    updateEdValueField(col?.type ?? 'any', op);
+    updateEdValueField(field.type, op);
 
     const boolSel = document.getElementById('ed-val-bool');
     const input   = document.getElementById('ed-val');
@@ -778,12 +974,13 @@ function openEditor(rowId, colId, ev) {
 
 document.getElementById('ed-op').addEventListener('change', function () {
     const col   = edTarget ? S.cols.find(c => c.id === edTarget.colId) : null;
+    const field = colField(col);
     const op    = this.value;
     const input   = document.getElementById('ed-val');
     const boolSel = document.getElementById('ed-val-bool');
     const prev  = boolSel.style.display !== 'none' ? boolSel.value : input.value;
 
-    updateEdValueField(col?.type ?? 'any', op);
+    updateEdValueField(field?.type ?? 'any', op);
 
     const newInput   = document.getElementById('ed-val');
     const newBoolSel = document.getElementById('ed-val-bool');
@@ -852,15 +1049,17 @@ function renderEvalFields() {
     });
 
     cont.innerHTML = S.cols.map(col => {
+        const field = colField(col);
+        if (!field) return ''; // skip columns without a field
         const pv = prev[col.id] || '';
         let fieldHtml;
-        if (col.type === 'bool') {
+        if (field.type === 'bool') {
             fieldHtml = `<select data-evalcol="${col.id}">
                 <option value=""     ${pv===''     ?'selected':''}>（未指定）</option>
                 <option value="true" ${pv==='true' ?'selected':''}>true</option>
                 <option value="false"${pv==='false'?'selected':''}>false</option>
             </select>`;
-        } else if (col.type === 'number') {
+        } else if (field.type === 'number') {
             fieldHtml = `<input type="number" step="any" data-evalcol="${col.id}"
                 placeholder="数値を入力" value="${x(pv)}" />`;
         } else {
@@ -868,7 +1067,7 @@ function renderEvalFields() {
                 placeholder="値を入力" value="${x(pv)}" />`;
         }
         return `<div class="eval-field">
-            <label>${x(col.name)}</label>
+            <label>${x(field.name)}</label>
             ${fieldHtml}
         </div>`;
     }).join('');
@@ -948,19 +1147,42 @@ function toggleJson(btn) {
 
 function exportJson() {
     document.getElementById('json-area').value = JSON.stringify(
-        { cols: S.cols, rows: S.rows }, null, 2);
+        { fields: S.fields, cols: S.cols, rows: S.rows }, null, 2);
 }
 
 function importJson() {
     try {
         const d = JSON.parse(document.getElementById('json-area').value);
         if (!Array.isArray(d.cols) || !Array.isArray(d.rows)) throw new Error('cols, rows が必要です');
-        S.cols = d.cols.map(c => ({ ...c, type: c.type ?? 'any' }));
+
+        if (Array.isArray(d.fields)) {
+            // Current format
+            S.fields = d.fields;
+            S.cols   = d.cols;
+            const fieldNums = S.fields.map(f => parseInt(f.id.replace('f','')) || 0);
+            S.nField = (fieldNums.length ? Math.max(...fieldNums) : 0) + 1;
+        } else {
+            // Legacy format: cols had name + type — auto-migrate to fields
+            S.fields = [];
+            S.nField = 1;
+            const fieldMap = {};
+            d.cols.forEach(c => {
+                const name = c.name ?? 'Unknown';
+                const type = c.type ?? 'any';
+                let f = S.fields.find(ff => ff.name === name && ff.type === type);
+                if (!f) { f = { id: 'f' + S.nField++, name, type }; S.fields.push(f); }
+                fieldMap[c.id] = f.id;
+            });
+            S.cols = d.cols.map(c => ({ id: c.id, fieldId: fieldMap[c.id] ?? null }));
+        }
+
         S.rows = d.rows;
-        const colNums = S.cols.map(c => parseInt(c.id.replace('c','')) || 0);
-        const rowNums = S.rows.map(r => parseInt(r.id.replace('r','')) || 0);
+        const colNums  = S.cols.map(c => parseInt(c.id.replace('c','')) || 0);
+        const rowNums  = S.rows.map(r => parseInt(r.id.replace('r','')) || 0);
         S.nCol = (colNums.length ? Math.max(...colNums) : 0) + 1;
         S.nRow = (rowNums.length ? Math.max(...rowNums) : 0) + 1;
+
+        renderFieldPanel();
         render();
         alert('インポートが完了しました');
     } catch (e) {
@@ -968,32 +1190,42 @@ function importJson() {
     }
 }
 
+// ─── Field add — Enter key ────────────────────────────────────────────────────
+
+document.getElementById('field-add-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addField();
+});
+
 // ─── Initial Data ─────────────────────────────────────────────────────────────
 
 (function init() {
-    mkCol('購入金額', 'number');
-    mkCol('会員種別', 'string');
+    const f1 = mkField('購入金額', 'number');
+    const f2 = mkField('会員種別', 'string');
+
+    const c1 = mkCol(f1.id);
+    const c2 = mkCol(f2.id);
 
     const r1 = mkRow();
-    r1.cells[S.cols[0].id] = { op: '>=', val: '10000' };
-    r1.cells[S.cols[1].id] = { op: '=',  val: 'premium' };
+    r1.cells[c1.id] = { op: '>=', val: '10000' };
+    r1.cells[c2.id] = { op: '=',  val: 'premium' };
     r1.result = '20%割引';
 
     const r2 = mkRow();
-    r2.cells[S.cols[0].id] = { op: '>=', val: '10000' };
+    r2.cells[c1.id] = { op: '>=', val: '10000' };
     r2.result = '15%割引';
 
     const r3 = mkRow();
-    r3.cells[S.cols[0].id] = { op: '>=', val: '5000' };
+    r3.cells[c1.id] = { op: '>=', val: '5000' };
     r3.result = '10%割引';
 
     const r4 = mkRow();
-    r4.cells[S.cols[0].id] = { op: '>=', val: '1000' };
+    r4.cells[c1.id] = { op: '>=', val: '1000' };
     r4.result = '5%割引';
 
     const r5 = mkRow();
     r5.result = '割引なし';
 
+    renderFieldPanel();
     render();
 })();
 </script>
