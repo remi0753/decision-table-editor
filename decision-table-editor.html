@@ -90,7 +90,7 @@
         .th-cond-inner {
             display: flex;
             align-items: center;
-            padding: 10px 16px;
+            padding: 10px 16px 4px;
             gap: 6px;
         }
         .th-cond-inner input {
@@ -104,6 +104,21 @@
             min-width: 80px;
         }
         .th-cond-inner input::placeholder { color: #93c5fd; font-weight: 400; }
+
+        /* Type selector in column header */
+        .th-cond-type { padding: 0 16px 8px; }
+        .th-cond-type select {
+            width: 100%;
+            padding: 3px 6px;
+            font-size: 11px;
+            border: 1px solid #bfdbfe;
+            border-radius: 4px;
+            background: #f0f9ff;
+            color: #1e40af;
+            cursor: pointer;
+            outline: none;
+        }
+        .th-cond-type select:focus { border-color: #3b82f6; }
 
         th.th-result {
             background: #f0fdf4;
@@ -313,7 +328,7 @@
             letter-spacing: .5px;
             margin-bottom: 6px;
         }
-        .ed-field select, .ed-field input {
+        .ed-field select, .ed-field input[type="text"], .ed-field input[type="number"] {
             width: 100%;
             padding: 9px 10px;
             border: 1.5px solid #e5e7eb;
@@ -324,7 +339,15 @@
             background: #fff;
             transition: border-color .15s;
         }
-        .ed-field select:focus, .ed-field input:focus { border-color: #3b82f6; }
+        .ed-field select:focus,
+        .ed-field input[type="text"]:focus,
+        .ed-field input[type="number"]:focus { border-color: #3b82f6; }
+        .ed-val-error {
+            color: #ef4444;
+            font-size: 11px;
+            margin-top: 5px;
+            display: none;
+        }
         .ed-actions { display: flex; gap: 8px; margin-top: 14px; }
         .ed-actions .btn { flex: 1; justify-content: center; }
 
@@ -348,7 +371,7 @@
         }
         .eval-field { display: flex; flex-direction: column; gap: 5px; }
         .eval-field label { font-size: 12px; font-weight: 600; color: #374151; }
-        .eval-field input {
+        .eval-field input, .eval-field select {
             padding: 8px 12px;
             border: 1.5px solid #e5e7eb;
             border-radius: 7px;
@@ -356,8 +379,10 @@
             width: 160px;
             outline: none;
             transition: border-color .15s;
+            background: #fff;
+            color: #1f2937;
         }
-        .eval-field input:focus { border-color: #3b82f6; }
+        .eval-field input:focus, .eval-field select:focus { border-color: #3b82f6; }
 
         .eval-actions { display: flex; gap: 10px; margin-bottom: 14px; }
 
@@ -452,7 +477,7 @@
     <p class="help-note">
         ※ 空のセル＝条件なし（任意の値に一致）&nbsp;&nbsp;
         ※ 行は上から優先度順に評価されます&nbsp;&nbsp;
-        ※ 演算子：＝（等しい）、＜（未満）、≤（以下）、＞（超過）、≥（以上）
+        ※ 大小比較演算子（＜ ≤ ＞ ≥）は数値のみ有効
     </p>
 
     <!-- Evaluation Panel -->
@@ -506,7 +531,12 @@
     </div>
     <div class="ed-field">
         <label>値</label>
-        <input type="text" id="ed-val" placeholder="数値 / 文字列 / true / false" />
+        <input type="text" id="ed-val" placeholder="値を入力" />
+        <select id="ed-val-bool" style="display:none">
+            <option value="true">true</option>
+            <option value="false">false</option>
+        </select>
+        <div class="ed-val-error" id="ed-val-error"></div>
     </div>
     <div class="ed-actions">
         <button class="btn btn-blue"  onclick="applyEditor()">適用</button>
@@ -519,16 +549,18 @@
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const S = {
-    cols:  [],   // [{ id, name }]
+    cols:  [],   // [{ id, name, type }]  type: 'any'|'number'|'string'|'bool'
     rows:  [],   // [{ id, cells: { [colId]: { op, val } }, result }]
     nCol: 1,
     nRow: 1,
 };
 
+const COMPARISON_OPS = ['<', '<=', '>', '>='];
+
 // ─── Column & Row Operations ──────────────────────────────────────────────────
 
-function mkCol(name) {
-    const col = { id: 'c' + S.nCol++, name: name ?? ('条件 ' + (S.cols.length + 1)) };
+function mkCol(name, type) {
+    const col = { id: 'c' + S.nCol++, name: name ?? ('条件 ' + (S.cols.length + 1)), type: type ?? 'any' };
     S.cols.push(col);
     return col;
 }
@@ -566,7 +598,7 @@ function insertRowAt(rowId, position) {
 function insertColAt(colId, position) {
     const idx = S.cols.findIndex(c => c.id === colId);
     if (idx === -1) return;
-    const newCol = { id: 'c' + S.nCol++, name: '条件 ' + (S.cols.length + 1) };
+    const newCol = { id: 'c' + S.nCol++, name: '条件 ' + (S.cols.length + 1), type: 'any' };
     S.cols.splice(position === 'before' ? idx : idx + 1, 0, newCol);
     render();
 }
@@ -581,6 +613,7 @@ function render() {
     h += '<th class="th-num">#</th>';
 
     S.cols.forEach(col => {
+        const t = col.type ?? 'any';
         h += `<th class="th-condition">
             <button class="col-ins-btn col-ins-left" onclick="insertColAt('${col.id}','before')" title="左に列を挿入">＋</button>
             <div class="th-cond-inner">
@@ -588,6 +621,14 @@ function render() {
                     data-colid="${col.id}"
                     oninput="onColName(this)" onchange="onColName(this)" />
                 <button class="del-col-btn" onclick="removeCol('${col.id}')" title="この列を削除">×</button>
+            </div>
+            <div class="th-cond-type">
+                <select data-colid="${col.id}" onchange="onColType(this)">
+                    <option value="any"    ${t==='any'   ?'selected':''}>型: 任意</option>
+                    <option value="number" ${t==='number'?'selected':''}>型: 数値</option>
+                    <option value="string" ${t==='string'?'selected':''}>型: 文字列</option>
+                    <option value="bool"   ${t==='bool'  ?'selected':''}>型: bool</option>
+                </select>
             </div>
             <button class="col-ins-btn col-ins-right" onclick="insertColAt('${col.id}','after')" title="右に列を挿入">＋</button>
         </th>`;
@@ -644,6 +685,11 @@ function onColName(input) {
     if (col) { col.name = input.value; renderEvalFields(); }
 }
 
+function onColType(select) {
+    const col = S.cols.find(c => c.id === select.dataset.colid);
+    if (col) { col.type = select.value; renderEvalFields(); }
+}
+
 function onResult(input) {
     const row = S.rows.find(r => r.id === input.dataset.rowid);
     if (row) row.result = input.value;
@@ -661,21 +707,58 @@ function x(s) {
 
 let edTarget = null; // { rowId, colId }
 
+function updateEdValueField(colType, op) {
+    const input   = document.getElementById('ed-val');
+    const boolSel = document.getElementById('ed-val-bool');
+    const errDiv  = document.getElementById('ed-val-error');
+    const isComp  = COMPARISON_OPS.includes(op);
+
+    errDiv.style.display = 'none';
+
+    if (isComp || colType === 'number') {
+        boolSel.style.display = 'none';
+        input.style.display   = 'block';
+        input.type            = 'number';
+        input.step            = 'any';
+        input.placeholder     = '数値を入力';
+    } else if (colType === 'bool') {
+        input.style.display   = 'none';
+        boolSel.style.display = 'block';
+    } else {
+        boolSel.style.display = 'none';
+        input.style.display   = 'block';
+        input.type            = 'text';
+        input.step            = '';
+        input.placeholder     = colType === 'string' ? '文字列を入力' : '値を入力';
+    }
+}
+
 function openEditor(rowId, colId, ev) {
     edTarget = { rowId, colId };
     const col  = S.cols.find(c => c.id === colId);
     const row  = S.rows.find(r => r.id === rowId);
     const cell = row?.cells[colId];
+    const op   = cell?.op  ?? '';
+    const val  = cell?.val ?? '';
 
     document.getElementById('ed-title').textContent =
         col ? `「${col.name}」の条件を設定` : '条件を設定';
-    document.getElementById('ed-op').value  = cell?.op  ?? '';
-    document.getElementById('ed-val').value = cell?.val ?? '';
+    document.getElementById('ed-op').value = op;
+
+    updateEdValueField(col?.type ?? 'any', op);
+
+    const boolSel = document.getElementById('ed-val-bool');
+    const input   = document.getElementById('ed-val');
+    if (boolSel.style.display !== 'none') {
+        boolSel.value = val || 'true';
+    } else {
+        input.value = val;
+    }
 
     // Position near the clicked cell
     const td   = ev.target.closest('td');
     const rect = td.getBoundingClientRect();
-    const W = 288, H = 228;
+    const W = 288, H = 260;
     let top  = rect.bottom + 6;
     let left = rect.left;
     if (top  + H > window.innerHeight) top  = rect.top - H - 6;
@@ -688,13 +771,46 @@ function openEditor(rowId, colId, ev) {
     ed.style.left = left + 'px';
     ed.classList.add('open');
     document.getElementById('overlay').classList.add('open');
-    setTimeout(() => document.getElementById('ed-val').focus(), 40);
+    setTimeout(() => {
+        if (input.style.display !== 'none') input.focus();
+    }, 40);
 }
+
+document.getElementById('ed-op').addEventListener('change', function () {
+    const col   = edTarget ? S.cols.find(c => c.id === edTarget.colId) : null;
+    const op    = this.value;
+    const input   = document.getElementById('ed-val');
+    const boolSel = document.getElementById('ed-val-bool');
+    const prev  = boolSel.style.display !== 'none' ? boolSel.value : input.value;
+
+    updateEdValueField(col?.type ?? 'any', op);
+
+    const newInput   = document.getElementById('ed-val');
+    const newBoolSel = document.getElementById('ed-val-bool');
+    if (newBoolSel.style.display !== 'none') {
+        newBoolSel.value = ['true','false'].includes(prev) ? prev : 'true';
+    } else {
+        newInput.value = prev;
+    }
+});
 
 function applyEditor() {
     if (!edTarget) return;
-    const op  = document.getElementById('ed-op').value;
-    const val = document.getElementById('ed-val').value;
+    const op      = document.getElementById('ed-op').value;
+    const boolSel = document.getElementById('ed-val-bool');
+    const input   = document.getElementById('ed-val');
+    const val     = boolSel.style.display !== 'none' ? boolSel.value : input.value;
+
+    if (COMPARISON_OPS.includes(op) && val.trim() !== '') {
+        if (isNaN(Number(val))) {
+            const errDiv = document.getElementById('ed-val-error');
+            errDiv.textContent = '大小比較（＜ ≤ ＞ ≥）には数値を入力してください';
+            errDiv.style.display = 'block';
+            input.focus();
+            return;
+        }
+    }
+
     const row = S.rows.find(r => r.id === edTarget.rowId);
     if (row) {
         if (op) {
@@ -731,16 +847,31 @@ document.getElementById('ed-val').addEventListener('keydown', e => {
 function renderEvalFields() {
     const cont = document.getElementById('eval-fields');
     const prev = {};
-    cont.querySelectorAll('input[data-evalcol]').forEach(el => {
+    cont.querySelectorAll('[data-evalcol]').forEach(el => {
         prev[el.dataset.evalcol] = el.value;
     });
-    cont.innerHTML = S.cols.map(col => `
-        <div class="eval-field">
+
+    cont.innerHTML = S.cols.map(col => {
+        const pv = prev[col.id] || '';
+        let fieldHtml;
+        if (col.type === 'bool') {
+            fieldHtml = `<select data-evalcol="${col.id}">
+                <option value=""     ${pv===''     ?'selected':''}>（未指定）</option>
+                <option value="true" ${pv==='true' ?'selected':''}>true</option>
+                <option value="false"${pv==='false'?'selected':''}>false</option>
+            </select>`;
+        } else if (col.type === 'number') {
+            fieldHtml = `<input type="number" step="any" data-evalcol="${col.id}"
+                placeholder="数値を入力" value="${x(pv)}" />`;
+        } else {
+            fieldHtml = `<input type="text" data-evalcol="${col.id}"
+                placeholder="値を入力" value="${x(pv)}" />`;
+        }
+        return `<div class="eval-field">
             <label>${x(col.name)}</label>
-            <input type="text" data-evalcol="${col.id}"
-                placeholder="値を入力"
-                value="${x(prev[col.id] || '')}" />
-        </div>`).join('');
+            ${fieldHtml}
+        </div>`;
+    }).join('');
 }
 
 function coerce(s) {
@@ -753,8 +884,8 @@ function coerce(s) {
 }
 
 function matches(cell, rawInput) {
-    if (!cell || !cell.op) return true; // wildcard
-    if (rawInput == null) return true;  // 未入力はワイルドカード扱い
+    if (!cell || !cell.op) return true;
+    if (rawInput == null || rawInput === '') return true;
     const a = coerce(rawInput);
     const b = coerce(cell.val);
     switch (cell.op) {
@@ -769,14 +900,12 @@ function matches(cell, rawInput) {
 
 function runEval() {
     const inputs = {};
-    document.querySelectorAll('#eval-fields input[data-evalcol]').forEach(el => {
+    document.querySelectorAll('#eval-fields [data-evalcol]').forEach(el => {
         inputs[el.dataset.evalcol] = el.value;
     });
 
-    // Clear previous highlight
     document.querySelectorAll('tbody tr.matched').forEach(tr => tr.classList.remove('matched'));
 
-    // Find first matching row
     let found = null;
     for (const row of S.rows) {
         if (S.cols.every(col => matches(row.cells[col.id], inputs[col.id] ?? ''))) {
@@ -804,7 +933,7 @@ function runEval() {
 }
 
 function clearEval() {
-    document.querySelectorAll('#eval-fields input').forEach(el => el.value = '');
+    document.querySelectorAll('#eval-fields input, #eval-fields select').forEach(el => el.value = '');
     document.querySelectorAll('tbody tr.matched').forEach(tr => tr.classList.remove('matched'));
     const el = document.getElementById('eval-result');
     el.className = 'eval-result';
@@ -826,7 +955,7 @@ function importJson() {
     try {
         const d = JSON.parse(document.getElementById('json-area').value);
         if (!Array.isArray(d.cols) || !Array.isArray(d.rows)) throw new Error('cols, rows が必要です');
-        S.cols = d.cols;
+        S.cols = d.cols.map(c => ({ ...c, type: c.type ?? 'any' }));
         S.rows = d.rows;
         const colNums = S.cols.map(c => parseInt(c.id.replace('c','')) || 0);
         const rowNums = S.rows.map(r => parseInt(r.id.replace('r','')) || 0);
@@ -842,10 +971,9 @@ function importJson() {
 // ─── Initial Data ─────────────────────────────────────────────────────────────
 
 (function init() {
-    mkCol('購入金額');
-    mkCol('会員種別');
+    mkCol('購入金額', 'number');
+    mkCol('会員種別', 'string');
 
-    // Sample rows: customer discount rules
     const r1 = mkRow();
     r1.cells[S.cols[0].id] = { op: '>=', val: '10000' };
     r1.cells[S.cols[1].id] = { op: '=',  val: 'premium' };
