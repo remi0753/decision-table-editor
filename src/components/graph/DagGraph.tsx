@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
-  ReactFlow, Background, Controls, Handle, Position, type Node, type Edge,
+  ReactFlow, Background, Controls, Handle, Position, useReactFlow, type Node, type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
@@ -56,6 +56,15 @@ function TableNode({ data }: TableNodeProps) {
 
 const nodeTypes = { tableNode: TableNode };
 
+function FitViewWatcher({ nodeCount }: { nodeCount: number }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    const id = setTimeout(() => fitView({ padding: 0.15, duration: 200 }), 50);
+    return () => clearTimeout(id);
+  }, [nodeCount, fitView]);
+  return null;
+}
+
 export function DagGraph() {
   const logic = useLogicStore(s => s.logic);
   const selectedTableId = useUiStore(s => s.selectedTableId);
@@ -110,11 +119,13 @@ export function DagGraph() {
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ padding: 0.15 }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
         proOptions={{ hideAttribution: true }}
       >
+        <FitViewWatcher nodeCount={layoutedNodes.length} />
         <Background />
         <Controls showInteractive={false} />
       </ReactFlow>
