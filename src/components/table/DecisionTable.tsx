@@ -91,15 +91,6 @@ export function DecisionTable({ tableId }: Props) {
                   />
                 )}
               </th>
-              <th className="border-b bg-gray-50 w-8">
-                <button
-                  onClick={() => addCol(tableId)}
-                  className="w-full h-full flex items-center justify-center text-gray-400 hover:text-blue-600"
-                  title="条件列を追加"
-                >
-                  <Plus size={14} />
-                </button>
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -124,7 +115,13 @@ export function DecisionTable({ tableId }: Props) {
         </table>
       </div>
 
-      <div className="px-4 py-2 border-t">
+      <div className="px-4 py-2 border-t flex items-center gap-2">
+        <button
+          onClick={() => addCol(tableId)}
+          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-2 py-1"
+        >
+          <Plus size={12} /> 条件列を追加
+        </button>
         <button
           onClick={() => addRow(tableId)}
           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-2 py-1"

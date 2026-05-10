@@ -51,7 +51,7 @@ export function OutputColsPanel({ tableId, outputCols, onClose }: Props) {
         <input
           value={newName}
           onChange={e => setNewName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+          onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd(); }}
           placeholder="列名"
           className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
         />

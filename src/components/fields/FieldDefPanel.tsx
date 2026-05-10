@@ -111,7 +111,7 @@ export function FieldDefPanel() {
             <input
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+              onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd(); }}
               placeholder="フィールド名"
               className="text-sm border rounded px-2 py-1 flex-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
             />

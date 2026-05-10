@@ -29,7 +29,7 @@ export function TagInput({ values, onChange }: TagInputProps) {
       <input
         value={input}
         onChange={e => setInput(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }}
+        onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }}
         placeholder="入力してEnter"
         className="flex-1 min-w-16 text-sm outline-none"
       />

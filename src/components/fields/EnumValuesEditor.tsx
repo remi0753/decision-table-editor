@@ -42,7 +42,7 @@ export function EnumValuesEditor({ fieldId, enumValues }: Props) {
             contentEditable
             suppressContentEditableWarning
             onBlur={e => handleRename(v, e.currentTarget.textContent ?? v)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
+            onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
             className="outline-none min-w-4"
           >
             {v}
@@ -55,7 +55,7 @@ export function EnumValuesEditor({ fieldId, enumValues }: Props) {
       <input
         value={newValue}
         onChange={e => setNewValue(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+        onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd(); }}
         placeholder="追加..."
         className="border rounded px-1.5 py-0.5 text-xs w-20 focus:outline-none focus:ring-1 focus:ring-blue-400"
       />
