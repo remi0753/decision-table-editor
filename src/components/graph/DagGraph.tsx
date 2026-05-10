@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import {
-  ReactFlow, Background, Controls, type Node, type Edge,
+  ReactFlow, Background, Controls, Handle, Position, type Node, type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
@@ -38,15 +38,19 @@ interface TableNodeProps {
 
 function TableNode({ data }: TableNodeProps) {
   return (
-    <div className={cn(
-      'px-3 py-2 rounded border-2 text-sm font-medium cursor-pointer select-none w-40 text-center',
-      data.isEntry ? 'border-blue-500 bg-blue-50 text-blue-800' : 'border-gray-300 bg-white text-gray-700',
-      data.isOrphan ? 'opacity-50' : '',
-      data.isSelected ? 'ring-2 ring-blue-400 ring-offset-1' : '',
-    )}>
-      {data.isEntry && <span className="text-xs mr-1">▶</span>}
-      {data.label}
-    </div>
+    <>
+      <Handle type="target" position={Position.Top} />
+      <div className={cn(
+        'px-3 py-2 rounded border-2 text-sm font-medium cursor-pointer select-none w-40 text-center',
+        data.isEntry ? 'border-blue-500 bg-blue-50 text-blue-800' : 'border-gray-300 bg-white text-gray-700',
+        data.isOrphan ? 'opacity-50' : '',
+        data.isSelected ? 'ring-2 ring-blue-400 ring-offset-1' : '',
+      )}>
+        {data.isEntry && <span className="text-xs mr-1">▶</span>}
+        {data.label}
+      </div>
+      <Handle type="source" position={Position.Bottom} />
+    </>
   );
 }
 
