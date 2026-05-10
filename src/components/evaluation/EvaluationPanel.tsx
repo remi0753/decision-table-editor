@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Play, RotateCcw } from 'lucide-react';
-import { type EvalResult } from '@/types/logic';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { evaluateTable } from '@/engine/evaluate';
@@ -9,10 +8,12 @@ import { TraceView } from './TraceView';
 
 export function EvaluationPanel() {
   const [collapsed, setCollapsed] = useState(false);
-  const [result, setResult] = useState<EvalResult | null>(null);
   const logic = useLogicStore(s => s.logic);
   const evalInputs = useUiStore(s => s.evalInputs);
   const clearEvalInputs = useUiStore(s => s.clearEvalInputs);
+  const result = useUiStore(s => s.evalResult);
+  const setResult = useUiStore(s => s.setEvalResult);
+  const clearResult = useUiStore(s => s.clearEvalResult);
 
   const handleEvaluate = () => {
     const res = evaluateTable(logic.entryTableId, evalInputs, logic);
@@ -21,7 +22,7 @@ export function EvaluationPanel() {
 
   const handleReset = () => {
     clearEvalInputs();
-    setResult(null);
+    clearResult();
   };
 
   return (

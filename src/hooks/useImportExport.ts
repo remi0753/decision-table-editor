@@ -2,6 +2,7 @@ import { toast } from 'sonner';
 import { type Logic } from '@/types/logic';
 import { LogicSchema } from '@/lib/schema';
 import { useLogicStore } from '@/store/logicStore';
+import { useUiStore } from '@/store/uiStore';
 
 function getAllColIds(logic: Logic): string[] {
   return Object.values(logic.tables).flatMap(t => t.cols.map(c => c.id));
@@ -67,6 +68,7 @@ export function exportLogic(logic: Logic): void {
 
 export function useImportLogic() {
   const importLogic = useLogicStore(s => s.importLogic);
+  const clearEvalResult = useUiStore(s => s.clearEvalResult);
 
   return () => {
     const input = document.createElement('input');
@@ -85,6 +87,7 @@ export function useImportLogic() {
         }
         const { logic: repaired, messages } = repairLogic(result.data as Logic);
         importLogic(repaired);
+        clearEvalResult();
         if (messages.length > 0) {
           toast.warning('インポート時に自動修復を行いました: ' + messages.join(' / '));
         } else {
