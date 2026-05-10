@@ -44,6 +44,7 @@ export function DecisionTable({ tableId }: Props) {
   };
 
   return (
+    <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
         <div className="flex items-center gap-2">
@@ -94,7 +95,6 @@ export function DecisionTable({ tableId }: Props) {
             </tr>
           </thead>
           <tbody>
-            <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
               <SortableContext items={rowIds} strategy={verticalListSortingStrategy}>
                 {table.rows.map((row, i) => (
                   <SortableRow
@@ -110,7 +110,6 @@ export function DecisionTable({ tableId }: Props) {
                   />
                 ))}
               </SortableContext>
-            </DndContext>
           </tbody>
         </table>
       </div>
@@ -136,5 +135,6 @@ export function DecisionTable({ tableId }: Props) {
         </div>
       )}
     </div>
+    </DndContext>
   );
 }
