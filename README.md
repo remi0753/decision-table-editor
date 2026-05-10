@@ -1,101 +1,232 @@
 # Decision Table Editor
 
-A single-file, dependency-free decision table editor that runs entirely in the browser.
+A browser-based editor for building and evaluating **decision logic** as interconnected tables — no code required.
 
-## Usage
+## Concept
 
-Open `decision-table-editor.html` in any browser. No server required.
+Decision logic ("if X and Y then Z, else if …") is often expressed as flowcharts or nested if-statements. Both forms are hard to read, maintain, and verify for correctness. This tool lets you describe the same logic as **Excel-style tables** and automatically checks them for gaps and contradictions.
 
-## Features
+### How it works
 
-### Field Definitions
+A **Logic** is a directed acyclic graph (DAG) of **Tables**. Evaluation starts at the entry table and follows *Continue* references until a *Terminal* conclusion is reached.
 
-The **フィールド定義** panel is always visible between the toolbar and the table. It acts as the master list of items that can be assigned to condition columns.
+Each table is evaluated row by row from top to bottom. The **first row whose every condition cell matches** the input is selected (first-match semantics). A condition cell that is left blank acts as a **wildcard** and matches any value.
 
-Each field definition has a **name** and a **type**:
+```
+Input values
+     │
+     ▼
+┌─────────────────────────┐
+│  Entry Table            │  ← evaluation starts here
+│  row 1: cond A  → Terminal "Result A"
+│  row 2: cond B  → Continue ──────────────────┐
+│  row 3: (wildcard) → Terminal "Result C"     │
+└─────────────────────────┘                    │
+                                               ▼
+                                  ┌─────────────────────────┐
+                                  │  Next Table             │
+                                  │  row 1: cond X → Terminal "Result X"
+                                  └─────────────────────────┘
+```
 
-| Type | Cell editor input | Evaluation panel input |
-|------|-------------------|------------------------|
-| **数値** (number) | Numeric field | Numeric field |
-| **文字列** (string) | Free text | Free text |
-| **bool** | `true` / `false` dropdown | `true` / `false` dropdown |
-| **任意** (any) | Free text | Free text |
+### Core concepts
 
-To add a field, enter a name, choose a type, and click **＋ 追加** (or press Enter). Fields in use by a column cannot be deleted until the column is removed or reassigned.
+| Concept | Description |
+|---------|-------------|
+| **Logic** | One complete decision flow. Saved and shared as a single JSON file. |
+| **Table** | An individual decision table — a grid of condition columns and rule rows. |
+| **Field** | A named, typed data item (number, string, bool, enum, date, datetime). Defined once at the logic level and shared across all tables. |
+| **Condition cell** | The intersection of a row and a column. Holds an operator (`=`, `>=`, `in`, `between`, …) and a value. An empty cell is a wildcard. |
+| **Terminal conclusion** | The final output of the logic. Sets one or more named output columns. |
+| **Continue conclusion** | Hands off evaluation to another table, passing the original inputs unchanged. |
 
-### Table Editing
+### Quality checks
+
+The editor continuously checks each table and highlights problems:
+
+| Badge | Meaning |
+|-------|---------|
+| 🟡 Yellow `!` | **Duplicate** — this row has identical conditions to an earlier row and will never be reached first. |
+| 🔴 Red `!` | **Unreachable** — an earlier row's conditions fully cover this row's conditions. |
+| ⚠️ Banner | **No default row** — no row with all-wildcard conditions exists; some inputs may produce no result. |
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 18+
+
+### Install and run
+
+```bash
+git clone <repo-url>
+cd decision-table-editor
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173** in your browser.
+
+### Build for production
+
+```bash
+npm run build
+# Output is in dist/
+```
+
+---
+
+## How to use
+
+### 1. Define fields
+
+The **フィールド定義** (Field Definition) panel is at the top of the right pane.
+
+1. Type a field name in the text box.
+2. Choose a type from the dropdown.
+3. Click **＋ 追加** (or press Enter).
+
+| Type | Description |
+|------|-------------|
+| `テキスト` (string) | Free-form text. Supports `=`, `!=`, `in`, `contains`, `starts_with`, `ends_with`. |
+| `数値` (number) | Numeric. Supports `=`, `!=`, `<`, `<=`, `>`, `>=`, `between`. |
+| `真偽値` (bool) | `true` / `false`. |
+| `選択肢` (enum) | A predefined list of values. Add choices inline using the tag editor. |
+| `日付` (date) | ISO 8601 date. Supports relative operators like `before_today`, `after_today`. |
+| `日時` (datetime) | ISO 8601 date-time. |
+
+**Changing a field's type** resets all condition cells that reference it (a confirmation dialog is shown).  
+**Deleting a field** is blocked if any condition column still references it.
+
+---
+
+### 2. Build a table
+
+#### Add a condition column
+
+Click the **＋** button at the top-right of the table header. Then choose a field from the dropdown in the column header.
+
+#### Add a row
+
+Click **＋ 行を追加** below the table.
+
+#### Edit a condition cell
+
+Click any cell in the condition area to open a popup:
+
+1. Choose an **operator** from the dropdown (the list is filtered by the column's field type).
+2. Enter a **value** using the appropriate input (text, number, date picker, checkbox list, etc.).
+3. Click **設定** to save, or **条件なし（ワイルドカード）** to make the cell match anything.
+
+The cell displays a compact summary (`>= 100`, `法人, 個人`, `（条件なし）`, etc.).
+
+#### Edit a conclusion
+
+Click the **結論** cell to open a popup:
+
+- **終端結論 (Terminal)** — fill in the output value for each output column.
+- **継続参照 (Continue)** — pick the target table from the dropdown. Tables that would create a cycle are marked and disabled.
+
+#### Reorder rows
+
+Drag the grip handle (⠿) on the left of each row, or use the ▲ / ▼ arrow buttons.
+
+#### Manage output columns
+
+Click the ⚙ icon in the conclusion column header to add, rename, or delete output columns. A table must always have at least one output column.
+
+---
+
+### 3. Manage tables
+
+The **left pane** shows the table list and a DAG graph of how tables reference each other.
 
 | Action | How |
 |--------|-----|
-| Add condition column | "＋ 条件列を追加" toolbar button, or hover a column header and click the left/right "＋" button |
-| Assign field to column | Use the dropdown in the column header to select from the field definition list |
-| Add row | "＋ 行を追加" toolbar button, or hover a row number and click the top/bottom "＋" button |
-| Edit a condition cell | Click the cell to open a popup and set the operator and value |
-| Set a result | Type directly into the "Result" cell of each row |
-| Delete a column | Click the "×" button in the column header |
-| Delete a row | Click the "✕" button at the right end of the row |
+| Add a table | Click **＋ テーブルを追加** at the bottom of the list. |
+| Switch to a table | Click its name in the list, or click its node in the DAG graph. |
+| Rename a table | Click the table name in the editor header (inline edit). |
+| Set as entry table | Click **入口に設定** next to the table name in the editor header. |
+| Delete a table | Hover the table name in the list and click 🗑. Blocked if other tables reference it or if it is the entry table. |
 
-A column must have a field assigned before its condition cells can be edited. The cell editor and evaluation panel inputs adapt automatically to the assigned field's type.
+The DAG graph shows:
+- **Blue border** — the entry table (▶ badge).
+- **Faded** — tables not reachable from the entry table.
+- Directed edges — *Continue* references between tables.
 
-### Condition Operators
+---
 
-| Operator | Meaning | Allowed value types |
-|----------|---------|---------------------|
-| `=` | Equal to | any |
-| `<` | Less than | **number only** |
-| `≤` | Less than or equal to | **number only** |
-| `>` | Greater than | **number only** |
-| `≥` | Greater than or equal to | **number only** |
+### 4. Evaluate
 
-An empty cell acts as a **wildcard** and matches any value. Entering a non-numeric value with a comparison operator will show a validation error and prevent saving.
+The **評価パネル** (Evaluation Panel) is at the bottom of the right pane.
 
-### Evaluation
+1. Enter values for each field in the input form.
+2. Click **▶ 評価実行**.
+3. The result is displayed along with a step-by-step **trace** showing which rows were checked, which were skipped, and why.
 
-Enter values for each condition in the "Evaluate" panel and click "Evaluate". Rules are checked top-to-bottom and the result of the first matching row is shown. The matched row is highlighted in the table.
+Click **↺ リセット** to clear all inputs and the result.
 
-### JSON Export / Import
+---
 
-Use the "Export / Import JSON" panel to save and restore the table state.
+### 5. Save, export, and import
+
+- **Auto-save** — the logic is saved to `localStorage` on every change. It is restored automatically on next load.
+- **Export** — click **エクスポート** in the header to download a `.json` file.
+- **Import** — click **インポート** to load a `.json` file. The file is validated with a schema check. Minor issues (broken references, missing output columns) are repaired automatically with a notification.
+
+#### JSON format (v2)
 
 ```json
 {
-  "fields": [
-    { "id": "f1", "name": "購入金額", "type": "number" }
-  ],
-  "cols": [
-    { "id": "c1", "fieldId": "f1" }
-  ],
-  "rows": [{
-    "id": "r1",
-    "cells": { "c1": { "op": ">=", "val": "10000" } },
-    "result": "15%割引"
-  }]
+  "version": "2",
+  "name": "ローン審査ロジック",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": { "id": "f1", "name": "顧客種別", "type": "enum", "enumValues": ["法人", "個人"] },
+    "f2": { "id": "f2", "name": "申請金額", "type": "number" }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "初期審査",
+      "cols": [{ "id": "c1", "fieldId": "f1" }, { "id": "c2", "fieldId": "f2" }],
+      "outputCols": [{ "id": "oc1", "name": "結果" }],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": { "c1": { "op": "=", "val": "法人" }, "c2": { "op": ">=", "val": "1000000" } },
+          "conclusion": { "type": "terminal", "outputs": { "oc1": "承認" } }
+        },
+        {
+          "id": "r2",
+          "cells": {},
+          "conclusion": { "type": "terminal", "outputs": { "oc1": "否認" } }
+        }
+      ]
+    }
+  },
+  "nField": 3, "nTable": 2, "nCol": 3, "nOCol": 2, "nRow": 3
 }
 ```
 
-**Legacy import**: JSON exported before the field-definition feature was introduced (where `cols` contained `name` and `type` directly) is automatically migrated — fields are reconstructed from the column definitions on import.
+---
 
-## Sample Data
+## Tech stack
 
-The editor loads with a sample customer discount ruleset. "Purchase Amount" is typed as **number** and "Member Type" as **string**.
+| Category | Library |
+|----------|---------|
+| Framework | React 18 |
+| Language | TypeScript 5 |
+| Build tool | Vite 6 |
+| Styling | Tailwind CSS 3 |
+| State management | Zustand 4 |
+| Graph visualization | ReactFlow + dagre |
+| Drag & drop | @dnd-kit |
+| Schema validation | Zod |
 
-| # | Purchase Amount (number) | Member Type (string) | Result |
-|---|--------------------------|----------------------|--------|
-| 1 | ≥ 10000 | = premium | 20% discount |
-| 2 | ≥ 10000 | — | 15% discount |
-| 3 | ≥ 5000 | — | 10% discount |
-| 4 | ≥ 1000 | — | 5% discount |
-| 5 | — | — | No discount |
-
-## Technical Notes
-
-- **Single file**: HTML, CSS, and JavaScript only — no external dependencies
-- **Field definitions**: A master list of named, typed fields drives what can be assigned to condition columns; column names and types are not editable free-form
-- **First-match evaluation**: Rows are evaluated top-to-bottom; the first matching rule wins
-- **Type-aware inputs**: Cell editor and evaluation panel inputs adapt to the field's declared type (`number` / `string` / `bool` / `any`)
-- **Operator validation**: Comparison operators (`<` `≤` `>` `≥`) require numeric values and reject non-numeric input at the cell editor level
-- **Type coercion**: `true`/`false` are treated as booleans; numeric strings are compared as numbers
-- **Generated by**: LLM
+---
 
 ## License
 
