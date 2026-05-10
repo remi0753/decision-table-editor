@@ -1,0 +1,182 @@
+import { useCallback, useMemo } from 'react';
+import {
+  ReactFlow, Background, Controls, Handle, Position, type Node, type NodeProps,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { useLogicStore } from '@/store/logicStore';
+import { useUiStore } from '@/store/uiStore';
+import { buildFlowChart } from '@/utils/buildFlowChart';
+import { cn } from '@/lib/utils';
+
+// ---- Custom node data types ----
+
+interface BaseNodeData extends Record<string, unknown> {
+  label: string;
+  rowIds: string[];
+  highlighted: boolean;
+}
+interface ConditionNodeData extends BaseNodeData { fieldName?: string }
+interface ContinueNodeData extends BaseNodeData { targetTableId?: string }
+
+// ---- Custom Node components ----
+
+function RootNode({ data }: NodeProps) {
+  const d = data as BaseNodeData;
+  return (
+    <>
+      <div className={cn(
+        'px-4 py-2 rounded-full border-2 border-gray-400 bg-white text-gray-600 text-xs font-semibold text-center select-none',
+        d.highlighted && 'border-blue-500 ring-2 ring-blue-300',
+      )}>
+        {d.label}
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" />
+    </>
+  );
+}
+
+function ConditionNode({ data }: NodeProps) {
+  const d = data as ConditionNodeData;
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="!bg-gray-400" />
+      <div
+        className={cn(
+          'rounded border-2 border-gray-300 bg-white text-xs select-none overflow-hidden',
+          d.highlighted && 'border-blue-400 ring-1 ring-blue-300',
+        )}
+        style={{ width: 160 }}
+      >
+        {d.fieldName && (
+          <div className="bg-gray-100 px-2 py-0.5 text-gray-500 font-medium truncate border-b border-gray-200 text-center">
+            {d.fieldName}
+          </div>
+        )}
+        <div className="px-2 py-1.5 text-gray-700 text-center font-mono truncate">
+          {d.label}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" />
+    </>
+  );
+}
+
+function TerminalNode({ data }: NodeProps) {
+  const d = data as BaseNodeData;
+  const lines = d.label.split('\n');
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="!bg-green-400" />
+      <div
+        className={cn(
+          'rounded border-2 border-green-400 bg-green-50 text-xs select-none overflow-hidden',
+          d.highlighted && 'ring-2 ring-green-600',
+        )}
+        style={{ width: 180 }}
+      >
+        <div className="bg-green-100 px-2 py-0.5 text-green-700 font-medium text-center border-b border-green-200">
+          ✓ 結論
+        </div>
+        <div className="px-2 py-1.5 space-y-0.5">
+          {lines.map((line, i) => (
+            <div key={i} className="text-green-800 truncate">{line}</div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ContinueNode({ data }: NodeProps) {
+  const d = data as ContinueNodeData;
+  const setSelectedTable = useUiStore(s => s.setSelectedTable);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (d.targetTableId) setSelectedTable(d.targetTableId);
+  };
+
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="!bg-indigo-400" />
+      <div
+        onClick={handleClick}
+        className={cn(
+          'px-3 py-2.5 rounded border-2 border-indigo-400 bg-indigo-50 text-xs text-indigo-700 font-medium text-center cursor-pointer hover:bg-indigo-100 select-none',
+          d.highlighted && 'ring-2 ring-indigo-600',
+        )}
+        style={{ width: 180 }}
+      >
+        {d.label}
+      </div>
+    </>
+  );
+}
+
+const nodeTypes = {
+  rootNode: RootNode,
+  conditionNode: ConditionNode,
+  terminalNode: TerminalNode,
+  continueNode: ContinueNode,
+};
+
+// ---- FlowChart component ----
+
+interface Props {
+  tableId: string;
+  highlightedRowIds: Set<string>;
+  onNodeClick: (rowIds: string[], nodeType: string) => void;
+}
+
+export function FlowChart({ tableId, highlightedRowIds, onNodeClick }: Props) {
+  const logic = useLogicStore(s => s.logic);
+  const table = logic.tables[tableId];
+
+  const { nodes: rawNodes, edges } = useMemo(() => {
+    if (!table) return { nodes: [], edges: [] };
+    return buildFlowChart(table, logic);
+  }, [table, logic]);
+
+  const nodes = useMemo(() => rawNodes.map(n => ({
+    ...n,
+    data: {
+      ...n.data,
+      highlighted: (n.data.rowIds as string[]).some(id => highlightedRowIds.has(id)),
+    },
+  })), [rawNodes, highlightedRowIds]);
+
+  const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    if (node.type === 'continueNode') return; // handled internally
+    onNodeClick(node.data.rowIds as string[], node.type ?? '');
+  }, [onNodeClick]);
+
+  if (!table) return null;
+
+  if (table.rows.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+        行を追加するとフローチャートが表示されます
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[480px]">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodeClick={handleNodeClick}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={{ padding: 0.2 }}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background />
+        <Controls showInteractive={false} />
+      </ReactFlow>
+    </div>
+  );
+}

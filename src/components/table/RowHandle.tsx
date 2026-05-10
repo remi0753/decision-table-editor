@@ -16,10 +16,11 @@ interface Props {
   duplicateWarning: boolean;
   unreachableWarning: boolean;
   fieldDefs: Record<string, FieldDef>;
+  highlighted?: boolean;
 }
 
 export function SortableRow({
-  tableId, table, row, rowIndex, totalRows, duplicateWarning, unreachableWarning, fieldDefs,
+  tableId, table, row, rowIndex, totalRows, duplicateWarning, unreachableWarning, fieldDefs, highlighted,
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
   const setCell = useLogicStore(s => s.setCell);
@@ -34,7 +35,7 @@ export function SortableRow({
   };
 
   return (
-    <tr ref={setNodeRef} style={style} className={cn('group hover:bg-gray-50', isDragging && 'bg-blue-50')}>
+    <tr ref={setNodeRef} style={style} className={cn('group hover:bg-gray-50', isDragging && 'bg-blue-50', highlighted && 'bg-yellow-50')}>
       <td className="border-b border-r px-1 py-0.5 w-8 text-center">
         <div className="flex flex-col items-center gap-0.5">
           {(duplicateWarning || unreachableWarning) && (

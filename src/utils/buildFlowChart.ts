@@ -1,0 +1,171 @@
+import { type Table, type Cell, type Logic } from '@/types/logic';
+import { type Node, type Edge } from '@xyflow/react';
+import dagre from 'dagre';
+
+// ---- Trie types ----
+
+interface TrieNode {
+  id: string;
+  parentId: string | null;
+  nodeType: 'root' | 'condition' | 'terminal' | 'continue';
+  colId?: string;
+  cell?: Cell;
+  outputs?: Record<string, string>;
+  targetTableId?: string;
+  rowIds: string[];
+  children: Map<string, TrieNode>;
+}
+
+let _counter = 0;
+
+function makeTrieNode(parentId: string | null, nodeType: TrieNode['nodeType'], extra: Partial<TrieNode> = {}): TrieNode {
+  return { id: `fn${_counter++}`, parentId, nodeType, rowIds: [], children: new Map(), ...extra };
+}
+
+function cellKey(colId: string, cell: Cell): string {
+  return `${colId}|${cell.op}|${JSON.stringify(cell.val ?? null)}`;
+}
+
+function buildTrie(table: Table): TrieNode {
+  _counter = 0;
+  const root = makeTrieNode(null, 'root');
+
+  for (const row of table.rows) {
+    let cur = root;
+    cur.rowIds.push(row.id);
+
+    for (const col of table.cols) {
+      const cell = row.cells[col.id];
+      if (!cell) continue; // wildcard - skip
+
+      const key = cellKey(col.id, cell);
+      if (!cur.children.has(key)) {
+        cur.children.set(key, makeTrieNode(cur.id, 'condition', { colId: col.id, cell }));
+      }
+      cur = cur.children.get(key)!;
+      cur.rowIds.push(row.id);
+    }
+
+    // Conclusion leaf (always unique per row)
+    const conclusionNode = makeTrieNode(
+      cur.id,
+      row.conclusion.type === 'terminal' ? 'terminal' : 'continue',
+      {
+        outputs: row.conclusion.type === 'terminal' ? row.conclusion.outputs : undefined,
+        targetTableId: row.conclusion.type === 'continue' ? row.conclusion.tableId : undefined,
+        rowIds: [row.id],
+      },
+    );
+    cur.children.set(`conclusion|${row.id}`, conclusionNode);
+  }
+
+  return root;
+}
+
+// ---- Format helpers ----
+
+export function formatCellLabel(cell: Cell): string {
+  if (cell.op === 'null') return '(空)';
+  if (cell.op === 'before_today') return '今日より前';
+  if (cell.op === 'today_or_before') return '今日以前';
+  if (cell.op === 'after_today') return '今日より後';
+  if (cell.op === 'today_or_after') return '今日以降';
+  if (cell.op === 'between' && Array.isArray(cell.val) && cell.val.length === 2) {
+    return `${cell.val[0]} ～ ${cell.val[1]}`;
+  }
+  const opStr: Record<string, string> = {
+    '=': '=', '!=': '≠', '<': '<', '<=': '≤', '>': '>', '>=': '≥',
+    'contains': '含む', 'starts_with': '先頭一致', 'ends_with': '末尾一致', 'in': 'in',
+  };
+  const op = opStr[cell.op] ?? cell.op;
+  if (Array.isArray(cell.val)) return `${op} [${cell.val.join(', ')}]`;
+  return `${op} ${cell.val ?? ''}`.trim();
+}
+
+// ---- Collect all trie nodes (DFS) ----
+
+function collectAll(node: TrieNode, result: TrieNode[] = []): TrieNode[] {
+  result.push(node);
+  for (const child of node.children.values()) collectAll(child, result);
+  return result;
+}
+
+// ---- Dagre layout ----
+
+const NODE_W: Record<TrieNode['nodeType'], number> = { root: 100, condition: 160, terminal: 180, continue: 180 };
+const NODE_H: Record<TrieNode['nodeType'], number> = { root: 40, condition: 60, terminal: 56, continue: 44 };
+
+function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 50 });
+  g.setDefaultEdgeLabel(() => ({}));
+  nodes.forEach(n => g.setNode(n.id, { width: n.data._w as number, height: n.data._h as number }));
+  edges.forEach(e => g.setEdge(e.source, e.target));
+  dagre.layout(g);
+  return nodes.map(n => {
+    const { x, y } = g.node(n.id);
+    const w = n.data._w as number;
+    const h = n.data._h as number;
+    return { ...n, position: { x: x - w / 2, y: y - h / 2 } };
+  });
+}
+
+// ---- Public API ----
+
+export interface FlowChartData {
+  nodes: Node[];
+  edges: Edge[];
+}
+
+export function buildFlowChart(table: Table, logic: Logic): FlowChartData {
+  const root = buildTrie(table);
+  const allNodes = collectAll(root);
+
+  const rfNodes: Node[] = allNodes.map(tn => {
+    const nt = tn.nodeType;
+    const w = NODE_W[nt];
+    const h = NODE_H[nt];
+
+    let label = '';
+    let fieldName: string | undefined;
+
+    if (nt === 'root') {
+      label = '開始';
+    } else if (nt === 'condition') {
+      const col = table.cols.find(c => c.id === tn.colId);
+      fieldName = col?.fieldId ? (logic.fieldDefs[col.fieldId]?.name ?? '?') : '?';
+      label = tn.cell ? formatCellLabel(tn.cell) : '';
+    } else if (nt === 'terminal') {
+      const parts = table.outputCols.map(oc => {
+        const val = tn.outputs?.[oc.id] ?? '';
+        return `${oc.name}: ${val}`;
+      });
+      label = parts.length > 0 ? parts.join('\n') : '(出力なし)';
+    } else if (nt === 'continue') {
+      const name = tn.targetTableId ? (logic.tables[tn.targetTableId]?.name ?? '?') : '?';
+      label = `→ ${name}`;
+    }
+
+    return {
+      id: tn.id,
+      type: `${nt}Node`,
+      position: { x: 0, y: 0 },
+      data: { label, fieldName, rowIds: tn.rowIds, targetTableId: tn.targetTableId, _w: w, _h: h },
+    };
+  });
+
+  const rfEdges: Edge[] = [];
+  for (const tn of allNodes) {
+    for (const child of tn.children.values()) {
+      rfEdges.push({
+        id: `e-${tn.id}-${child.id}`,
+        source: tn.id,
+        target: child.id,
+        style: { stroke: '#9ca3af' },
+        markerEnd: { type: 'arrowclosed' as const, color: '#9ca3af' },
+      });
+    }
+  }
+
+  return { nodes: layoutNodes(rfNodes, rfEdges), edges: rfEdges };
+}
