@@ -1,0 +1,130 @@
+{
+  "version": "2",
+  "name": "TC-01: 基本フィールド型テスト",
+  "description": "number / string / bool / enum / date / datetime の各フィールド型を使った基本的な動作確認。単一テーブル構成。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "年齢",
+      "type": "number"
+    },
+    "f2": {
+      "id": "f2",
+      "name": "氏名",
+      "type": "string"
+    },
+    "f3": {
+      "id": "f3",
+      "name": "会員フラグ",
+      "type": "bool"
+    },
+    "f4": {
+      "id": "f4",
+      "name": "プラン",
+      "type": "enum",
+      "enumValues": ["basic", "standard", "premium"]
+    },
+    "f5": {
+      "id": "f5",
+      "name": "登録日",
+      "type": "date"
+    },
+    "f6": {
+      "id": "f6",
+      "name": "最終ログイン",
+      "type": "datetime"
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "顧客分類テーブル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f3" },
+        { "id": "c3", "fieldId": "f4" },
+        { "id": "c4", "fieldId": "f5" },
+        { "id": "c5", "fieldId": "f6" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "分類" },
+        { "id": "oc2", "name": "備考" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": ">=", "val": "65" },
+            "c2": { "op": "=", "val": "true" },
+            "c3": { "op": "=", "val": "premium" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "シニアプレミアム会員",
+              "oc2": "65歳以上・会員・premiumプランの組み合わせ"
+            }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c2": { "op": "=", "val": "true" },
+            "c3": { "op": "=", "val": "premium" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "プレミアム会員",
+              "oc2": "会員・premiumプランの組み合わせ"
+            }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c2": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "一般会員",
+              "oc2": "会員だがpremiumプランではない"
+            }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "c4": { "op": ">=", "val": "2024-01-01" },
+            "c5": { "op": ">=", "val": "2024-06-01T00:00:00" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "新規ユーザー（日付条件）",
+              "oc2": "2024年以降に登録し、2024-06-01以降にログイン済み"
+            }
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "未分類",
+              "oc2": "いずれの条件にも該当しない（デフォルト行）"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 7,
+  "nTable": 2,
+  "nCol": 6,
+  "nOCol": 3,
+  "nRow": 6
+}

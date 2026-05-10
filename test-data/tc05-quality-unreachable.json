@@ -1,0 +1,112 @@
+{
+  "version": "2",
+  "name": "TC-05: 品質チェック — 到達不能行",
+  "description": "上位にある行が下位の行を「包含（cover）」しているケース。checks.tsのcoversRow判定により、UIが「到達不能」警告を正しく表示するかを確認する。r1のワイルドカードがr2・r3を完全に包含。r4の条件がr5を包含。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "地域",
+      "type": "enum",
+      "enumValues": ["東京", "大阪", "名古屋", "福岡"]
+    },
+    "f2": {
+      "id": "f2",
+      "name": "優先度",
+      "type": "enum",
+      "enumValues": ["high", "medium", "low"]
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "到達不能行サンプル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "担当チーム" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "東京" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "東京チーム全般（c2がワイルドカード）" }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "=", "val": "東京" },
+            "c2": { "op": "=", "val": "high" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "東京VIPチーム（r1に到達不能：r1がc2ワイルドカードで先にマッチ）" }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "東京" },
+            "c2": { "op": "=", "val": "low" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "東京エコノミーチーム（r1に到達不能）" }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "c1": { "op": "=", "val": "大阪" },
+            "c2": { "op": "=", "val": "medium" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "大阪標準チーム（c2=medium）" }
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "c1": { "op": "=", "val": "大阪" },
+            "c2": { "op": "=", "val": "medium" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "大阪別担当（r4と同条件で到達不能）" }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "c1": { "op": "=", "val": "名古屋" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "名古屋チーム（到達可能）" }
+          }
+        },
+        {
+          "id": "r7",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "その他地域チーム（デフォルト行）" }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 3,
+  "nTable": 2,
+  "nCol": 3,
+  "nOCol": 2,
+  "nRow": 8
+}

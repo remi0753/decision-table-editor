@@ -1,0 +1,117 @@
+{
+  "version": "2",
+  "name": "TC-07: 網羅性チェック（enum/bool）",
+  "description": "enum型2フィールド（地域×プラン）とbool型1フィールドを持つテーブル。一部の組み合わせを意図的に未定義にし、UIが網羅性チェックで「未カバーの組み合わせ」を正しく表示するか確認する。地域(3値) × プラン(3値) × 本人確認済(2値) = 18通りのうち、いくつかが未カバー。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "地域",
+      "type": "enum",
+      "enumValues": ["東日本", "西日本", "九州"]
+    },
+    "f2": {
+      "id": "f2",
+      "name": "プラン",
+      "type": "enum",
+      "enumValues": ["ライト", "スタンダード", "プレミアム"]
+    },
+    "f3": {
+      "id": "f3",
+      "name": "本人確認済",
+      "type": "bool"
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "網羅性チェックサンプル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" },
+        { "id": "c3", "fieldId": "f3" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "サービス提供可否" },
+        { "id": "oc2", "name": "担当窓口" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "東日本" },
+            "c2": { "op": "=", "val": "プレミアム" },
+            "c3": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "提供可", "oc2": "東日本VIP窓口" }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "=", "val": "東日本" },
+            "c2": { "op": "=", "val": "スタンダード" },
+            "c3": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "提供可", "oc2": "東日本一般窓口" }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "東日本" },
+            "c2": { "op": "=", "val": "ライト" },
+            "c3": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "提供可（制限あり）", "oc2": "東日本一般窓口" }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "c1": { "op": "=", "val": "西日本" },
+            "c2": { "op": "=", "val": "プレミアム" },
+            "c3": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "提供可", "oc2": "西日本VIP窓口" }
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "c1": { "op": "=", "val": "西日本" },
+            "c2": { "op": "=", "val": "スタンダード" },
+            "c3": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "提供可", "oc2": "西日本一般窓口" }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "c3": { "op": "=", "val": "false" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "保留", "oc2": "本人確認センター" }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 4,
+  "nTable": 2,
+  "nCol": 4,
+  "nOCol": 3,
+  "nRow": 7
+}

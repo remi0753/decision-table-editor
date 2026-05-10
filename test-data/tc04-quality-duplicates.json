@@ -1,0 +1,99 @@
+{
+  "version": "2",
+  "name": "TC-04: 品質チェック — 重複行",
+  "description": "意図的に重複した条件を持つ行を含むテーブル。UIが「重複」警告を正しく表示するか確認する。r1とr3、r2とr4がそれぞれ全条件一致する重複ペア。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "顧客ランク",
+      "type": "enum",
+      "enumValues": ["gold", "silver", "bronze"]
+    },
+    "f2": {
+      "id": "f2",
+      "name": "購入金額",
+      "type": "number"
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "重複行サンプル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "対応方針" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "gold" },
+            "c2": { "op": ">=", "val": "10000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "VIP対応（1行目）" }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "=", "val": "silver" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "標準対応（2行目）" }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "gold" },
+            "c2": { "op": ">=", "val": "10000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "VIP対応（3行目・r1と完全重複）" }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "c1": { "op": "=", "val": "silver" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "標準対応（4行目・r2と完全重複）" }
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "c1": { "op": "=", "val": "bronze" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "一般対応（重複なし）" }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "デフォルト対応" }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 3,
+  "nTable": 2,
+  "nCol": 3,
+  "nOCol": 2,
+  "nRow": 7
+}

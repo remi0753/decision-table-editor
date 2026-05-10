@@ -1,0 +1,95 @@
+{
+  "version": "2",
+  "name": "TC-06: 品質チェック — デフォルト行なし",
+  "description": "すべての行に何らかの条件が設定されており、ワイルドカード行（全セルが空＝どんな入力にもマッチするデフォルト行）が存在しないテーブル。UIが「デフォルト行なし」警告を正しく表示するか確認する。評価時に入力がどの行にもマッチしないと no_match になる。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "商品カテゴリ",
+      "type": "enum",
+      "enumValues": ["食品", "衣類", "電化製品", "書籍"]
+    },
+    "f2": {
+      "id": "f2",
+      "name": "注文金額",
+      "type": "number"
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "デフォルト行なしサンプル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "送料" },
+        { "id": "oc2", "name": "配送日数" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "食品" },
+            "c2": { "op": ">=", "val": "3000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "無料",
+              "oc2": "翌日"
+            }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "=", "val": "食品" },
+            "c2": { "op": "<", "val": "3000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "390円",
+              "oc2": "2〜3日"
+            }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "電化製品" },
+            "c2": { "op": ">=", "val": "10000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "無料",
+              "oc2": "2〜3日"
+            }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "c1": { "op": "=", "val": "書籍" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "メール便250円",
+              "oc2": "3〜5日"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 3,
+  "nTable": 2,
+  "nCol": 3,
+  "nOCol": 3,
+  "nRow": 5
+}

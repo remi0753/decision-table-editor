@@ -1,0 +1,381 @@
+{
+  "version": "2",
+  "name": "TC-02: 全演算子テスト",
+  "description": "各フィールド型で使用できるすべての演算子（=, !=, <, <=, >, >=, between, in, contains, starts_with, ends_with, null）を1テーブルに網羅したサンプル。各行の条件は独立しており、マッチ検証用の入力値コメントをdescriptionに記載。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "スコア",
+      "type": "number"
+    },
+    "f2": {
+      "id": "f2",
+      "name": "メモ",
+      "type": "string"
+    },
+    "f3": {
+      "id": "f3",
+      "name": "有効フラグ",
+      "type": "bool"
+    },
+    "f4": {
+      "id": "f4",
+      "name": "ステータス",
+      "type": "enum",
+      "enumValues": ["active", "inactive", "pending", "banned"]
+    },
+    "f5": {
+      "id": "f5",
+      "name": "申請日",
+      "type": "date"
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "演算子サンプルテーブル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" },
+        { "id": "c3", "fieldId": "f3" },
+        { "id": "c4", "fieldId": "f4" },
+        { "id": "c5", "fieldId": "f5" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "適用ルール" },
+        { "id": "oc2", "name": "マッチする入力例" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "100" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "number: = 100",
+              "oc2": "スコア=100"
+            }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "!=", "val": "0" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "number: != 0",
+              "oc2": "スコア≠0（例: 1, -5, 99）"
+            }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "<", "val": "50" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "number: < 50",
+              "oc2": "スコア<50（例: 49, 0, -1）"
+            }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "c1": { "op": "<=", "val": "50" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "number: <= 50",
+              "oc2": "スコア≦50（例: 50, 49）"
+            }
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "c1": { "op": ">", "val": "80" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "number: > 80",
+              "oc2": "スコア>80（例: 81, 100）"
+            }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "c1": { "op": ">=", "val": "80" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "number: >= 80",
+              "oc2": "スコア≧80（例: 80, 90）"
+            }
+          }
+        },
+        {
+          "id": "r7",
+          "cells": {
+            "c1": { "op": "between", "val": ["60", "79"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "number: between 60〜79",
+              "oc2": "スコアが60以上79以下（例: 60, 70, 79）"
+            }
+          }
+        },
+        {
+          "id": "r8",
+          "cells": {
+            "c1": { "op": "null" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "number: null（値なし）",
+              "oc2": "スコアが空欄"
+            }
+          }
+        },
+        {
+          "id": "r9",
+          "cells": {
+            "c2": { "op": "=", "val": "テスト" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "string: = \"テスト\"",
+              "oc2": "メモ=\"テスト\"（完全一致）"
+            }
+          }
+        },
+        {
+          "id": "r10",
+          "cells": {
+            "c2": { "op": "contains", "val": "エラー" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "string: contains \"エラー\"",
+              "oc2": "メモに\"エラー\"を含む（例: \"エラー発生\", \"重大エラー\"）"
+            }
+          }
+        },
+        {
+          "id": "r11",
+          "cells": {
+            "c2": { "op": "starts_with", "val": "警告" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "string: starts_with \"警告\"",
+              "oc2": "メモが\"警告\"で始まる（例: \"警告: 残高不足\"）"
+            }
+          }
+        },
+        {
+          "id": "r12",
+          "cells": {
+            "c2": { "op": "ends_with", "val": "完了" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "string: ends_with \"完了\"",
+              "oc2": "メモが\"完了\"で終わる（例: \"処理完了\", \"送信完了\"）"
+            }
+          }
+        },
+        {
+          "id": "r13",
+          "cells": {
+            "c2": { "op": "in", "val": ["承認", "却下", "保留"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "string: in [承認, 却下, 保留]",
+              "oc2": "メモが\"承認\"\"却下\"\"保留\"のいずれか"
+            }
+          }
+        },
+        {
+          "id": "r14",
+          "cells": {
+            "c2": { "op": "null" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "string: null（値なし）",
+              "oc2": "メモが空欄"
+            }
+          }
+        },
+        {
+          "id": "r15",
+          "cells": {
+            "c3": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "bool: = true",
+              "oc2": "有効フラグ=true"
+            }
+          }
+        },
+        {
+          "id": "r16",
+          "cells": {
+            "c3": { "op": "=", "val": "false" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "bool: = false",
+              "oc2": "有効フラグ=false"
+            }
+          }
+        },
+        {
+          "id": "r17",
+          "cells": {
+            "c3": { "op": "null" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "bool: null（値なし）",
+              "oc2": "有効フラグが空欄"
+            }
+          }
+        },
+        {
+          "id": "r18",
+          "cells": {
+            "c4": { "op": "=", "val": "active" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "enum: = \"active\"",
+              "oc2": "ステータス=\"active\""
+            }
+          }
+        },
+        {
+          "id": "r19",
+          "cells": {
+            "c4": { "op": "!=", "val": "banned" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "enum: != \"banned\"",
+              "oc2": "ステータスが\"banned\"でない（active/inactive/pending）"
+            }
+          }
+        },
+        {
+          "id": "r20",
+          "cells": {
+            "c4": { "op": "in", "val": ["active", "pending"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "enum: in [active, pending]",
+              "oc2": "ステータスが\"active\"または\"pending\""
+            }
+          }
+        },
+        {
+          "id": "r21",
+          "cells": {
+            "c4": { "op": "null" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "enum: null（値なし）",
+              "oc2": "ステータスが空欄"
+            }
+          }
+        },
+        {
+          "id": "r22",
+          "cells": {
+            "c5": { "op": "=", "val": "2024-04-01" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "date: = 2024-04-01",
+              "oc2": "申請日が2024-04-01"
+            }
+          }
+        },
+        {
+          "id": "r23",
+          "cells": {
+            "c5": { "op": "between", "val": ["2024-01-01", "2024-03-31"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "date: between 2024-01-01〜2024-03-31",
+              "oc2": "申請日が2024年第1四半期（1月〜3月）"
+            }
+          }
+        },
+        {
+          "id": "r24",
+          "cells": {
+            "c5": { "op": "null" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "date: null（値なし）",
+              "oc2": "申請日が空欄"
+            }
+          }
+        },
+        {
+          "id": "r25",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "（デフォルト行）",
+              "oc2": "いずれの演算子条件にも該当しないケース"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 6,
+  "nTable": 2,
+  "nCol": 6,
+  "nOCol": 3,
+  "nRow": 26
+}

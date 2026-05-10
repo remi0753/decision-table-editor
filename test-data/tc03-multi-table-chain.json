@@ -1,0 +1,239 @@
+{
+  "version": "2",
+  "name": "TC-03: 複数テーブル連鎖（継続参照）",
+  "description": "3つのテーブルが継続参照でつながるロジック。申請種別でt2/t3へ振り分け、各テーブルで追加条件を判定する。入力コンテキストがそのまま次テーブルに引き継がれることの確認に使う。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "申請種別",
+      "type": "enum",
+      "enumValues": ["新規", "更新", "解約"]
+    },
+    "f2": {
+      "id": "f2",
+      "name": "契約年数",
+      "type": "number"
+    },
+    "f3": {
+      "id": "f3",
+      "name": "延滞歴あり",
+      "type": "bool"
+    },
+    "f4": {
+      "id": "f4",
+      "name": "解約理由",
+      "type": "enum",
+      "enumValues": ["価格", "機能", "乗り換え", "その他"]
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "申請振り分けテーブル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "対応フロー" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "新規" }
+          },
+          "conclusion": { "type": "continue", "tableId": "t2" }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "=", "val": "更新" }
+          },
+          "conclusion": { "type": "continue", "tableId": "t3" }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "解約" }
+          },
+          "conclusion": { "type": "continue", "tableId": "t4" }
+        },
+        {
+          "id": "r4",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "不明な申請種別 — 受付窓口へ転送"
+            }
+          }
+        }
+      ]
+    },
+    "t2": {
+      "id": "t2",
+      "name": "新規審査テーブル",
+      "cols": [
+        { "id": "c2", "fieldId": "f3" }
+      ],
+      "outputCols": [
+        { "id": "oc2", "name": "審査結果" },
+        { "id": "oc3", "name": "次のアクション" }
+      ],
+      "rows": [
+        {
+          "id": "r5",
+          "cells": {
+            "c2": { "op": "=", "val": "false" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc2": "承認",
+              "oc3": "契約書を送付してください"
+            }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "c2": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc2": "審査中",
+              "oc3": "与信部門にエスカレーションしてください"
+            }
+          }
+        },
+        {
+          "id": "r7",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc2": "保留",
+              "oc3": "延滞歴の確認が必要です"
+            }
+          }
+        }
+      ]
+    },
+    "t3": {
+      "id": "t3",
+      "name": "更新審査テーブル",
+      "cols": [
+        { "id": "c3", "fieldId": "f2" }
+      ],
+      "outputCols": [
+        { "id": "oc4", "name": "更新処理" }
+      ],
+      "rows": [
+        {
+          "id": "r8",
+          "cells": {
+            "c3": { "op": ">=", "val": "3" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc4": "自動更新 — 書類不要"
+            }
+          }
+        },
+        {
+          "id": "r9",
+          "cells": {
+            "c3": { "op": "between", "val": ["1", "2"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc4": "手動更新 — 更新申請書を提出してください"
+            }
+          }
+        },
+        {
+          "id": "r10",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc4": "初回更新 — 担当者が連絡します"
+            }
+          }
+        }
+      ]
+    },
+    "t4": {
+      "id": "t4",
+      "name": "解約処理テーブル",
+      "cols": [
+        { "id": "c4", "fieldId": "f4" }
+      ],
+      "outputCols": [
+        { "id": "oc5", "name": "解約対応" },
+        { "id": "oc6", "name": "引き止め施策" }
+      ],
+      "rows": [
+        {
+          "id": "r11",
+          "cells": {
+            "c4": { "op": "=", "val": "価格" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc5": "解約受付",
+              "oc6": "割引プランを案内してください（最大30%オフ）"
+            }
+          }
+        },
+        {
+          "id": "r12",
+          "cells": {
+            "c4": { "op": "=", "val": "機能" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc5": "解約受付",
+              "oc6": "ロードマップを共有して引き止めを試みてください"
+            }
+          }
+        },
+        {
+          "id": "r13",
+          "cells": {
+            "c4": { "op": "in", "val": ["乗り換え", "その他"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc5": "解約受付",
+              "oc6": "引き止めなし — 解約手続きを案内してください"
+            }
+          }
+        },
+        {
+          "id": "r14",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc5": "解約受付（理由未入力）",
+              "oc6": "理由を確認してください"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 5,
+  "nTable": 5,
+  "nCol": 5,
+  "nOCol": 7,
+  "nRow": 15
+}

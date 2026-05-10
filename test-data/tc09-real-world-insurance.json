@@ -1,0 +1,296 @@
+{
+  "version": "2",
+  "name": "TC-09: 保険金請求ルーティング（実務シナリオ）",
+  "description": "3テーブルが連鎖する実務に近い保険金請求ルーティングロジック。請求種別→損害査定→支払判定の流れ。複数の出力列・複数フィールド型・継続参照の複合ケースを検証する。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "請求種別",
+      "type": "enum",
+      "enumValues": ["医療費", "入院", "手術", "死亡", "後遺障害"]
+    },
+    "f2": {
+      "id": "f2",
+      "name": "請求金額",
+      "type": "number"
+    },
+    "f3": {
+      "id": "f3",
+      "name": "契約年数",
+      "type": "number"
+    },
+    "f4": {
+      "id": "f4",
+      "name": "免責期間内",
+      "type": "bool"
+    },
+    "f5": {
+      "id": "f5",
+      "name": "診断書提出済",
+      "type": "bool"
+    },
+    "f6": {
+      "id": "f6",
+      "name": "事故発生日",
+      "type": "date"
+    },
+    "f7": {
+      "id": "f7",
+      "name": "顧客メモ",
+      "type": "string"
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "請求受付テーブル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f4" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "受付結果" },
+        { "id": "oc2", "name": "担当部門" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c2": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "受付不可",
+              "oc2": "免責期間のため支払い対象外です。契約から所定期間経過後に再請求ください。"
+            }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "in", "val": ["死亡", "後遺障害"] },
+            "c2": { "op": "=", "val": "false" }
+          },
+          "conclusion": { "type": "continue", "tableId": "t2" }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "in", "val": ["医療費", "入院", "手術"] },
+            "c2": { "op": "=", "val": "false" }
+          },
+          "conclusion": { "type": "continue", "tableId": "t3" }
+        },
+        {
+          "id": "r4",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "要確認",
+              "oc2": "請求種別が未入力です。受付窓口で詳細を確認してください。"
+            }
+          }
+        }
+      ]
+    },
+    "t2": {
+      "id": "t2",
+      "name": "高額査定テーブル（死亡・後遺障害）",
+      "cols": [
+        { "id": "c3", "fieldId": "f5" },
+        { "id": "c4", "fieldId": "f3" },
+        { "id": "c5", "fieldId": "f6" }
+      ],
+      "outputCols": [
+        { "id": "oc3", "name": "査定結果" },
+        { "id": "oc4", "name": "支払限度額" },
+        { "id": "oc5", "name": "必要書類" }
+      ],
+      "rows": [
+        {
+          "id": "r5",
+          "cells": {
+            "c3": { "op": "=", "val": "false" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "書類不備",
+              "oc4": "0円",
+              "oc5": "診断書・死亡診断書・後遺障害診断書のいずれかを提出してください"
+            }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "c3": { "op": "=", "val": "true" },
+            "c4": { "op": ">=", "val": "5" },
+            "c5": { "op": "before_today" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "支払承認（優良契約者）",
+              "oc4": "保険金額の100%",
+              "oc5": "査定完了。支払処理を開始します。"
+            }
+          }
+        },
+        {
+          "id": "r7",
+          "cells": {
+            "c3": { "op": "=", "val": "true" },
+            "c4": { "op": "between", "val": ["1", "4"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "支払承認（標準）",
+              "oc4": "保険金額の80%",
+              "oc5": "査定完了。"
+            }
+          }
+        },
+        {
+          "id": "r8",
+          "cells": {
+            "c3": { "op": "=", "val": "true" },
+            "c4": { "op": "<", "val": "1" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "追加審査",
+              "oc4": "未定",
+              "oc5": "契約1年未満のため上位審査が必要です。"
+            }
+          }
+        },
+        {
+          "id": "r9",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "保留",
+              "oc4": "未定",
+              "oc5": "情報が不足しています。担当者にお問い合わせください。"
+            }
+          }
+        }
+      ]
+    },
+    "t3": {
+      "id": "t3",
+      "name": "一般医療査定テーブル",
+      "cols": [
+        { "id": "c6", "fieldId": "f5" },
+        { "id": "c7", "fieldId": "f2" },
+        { "id": "c8", "fieldId": "f7" }
+      ],
+      "outputCols": [
+        { "id": "oc6", "name": "査定結果" },
+        { "id": "oc7", "name": "支払金額" },
+        { "id": "oc8", "name": "備考" }
+      ],
+      "rows": [
+        {
+          "id": "r10",
+          "cells": {
+            "c6": { "op": "=", "val": "false" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc6": "書類不備",
+              "oc7": "0円",
+              "oc8": "診断書を提出してください"
+            }
+          }
+        },
+        {
+          "id": "r11",
+          "cells": {
+            "c6": { "op": "=", "val": "true" },
+            "c7": { "op": ">=", "val": "1000000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc6": "高額審査",
+              "oc7": "審査中",
+              "oc8": "100万円以上のため特別審査チームが担当します"
+            }
+          }
+        },
+        {
+          "id": "r12",
+          "cells": {
+            "c6": { "op": "=", "val": "true" },
+            "c7": { "op": "between", "val": ["100000", "999999"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc6": "支払承認",
+              "oc7": "請求額の全額",
+              "oc8": "10〜99万円の標準審査完了"
+            }
+          }
+        },
+        {
+          "id": "r13",
+          "cells": {
+            "c6": { "op": "=", "val": "true" },
+            "c7": { "op": "<", "val": "100000" },
+            "c8": { "op": "contains", "val": "緊急" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc6": "即日支払",
+              "oc7": "請求額の全額",
+              "oc8": "緊急案件のため即日対応"
+            }
+          }
+        },
+        {
+          "id": "r14",
+          "cells": {
+            "c6": { "op": "=", "val": "true" },
+            "c7": { "op": "<", "val": "100000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc6": "支払承認",
+              "oc7": "請求額の全額",
+              "oc8": "10万円未満の少額案件"
+            }
+          }
+        },
+        {
+          "id": "r15",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc6": "要確認",
+              "oc7": "未定",
+              "oc8": "情報不足のため窓口で確認が必要です（デフォルト）"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 8,
+  "nTable": 4,
+  "nCol": 9,
+  "nOCol": 9,
+  "nRow": 16
+}

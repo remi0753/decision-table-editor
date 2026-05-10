@@ -1,0 +1,219 @@
+{
+  "version": "2",
+  "name": "TC-08: 日付・日時演算子テスト",
+  "description": "date型の相対比較演算子（before_today / today_or_before / after_today / today_or_after）と固定日付演算子（=, <, <=, >, >=, between）、datetime型の演算子を検証する。相対演算子は評価実行時の現在日付を基準とする。",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "有効期限",
+      "type": "date"
+    },
+    "f2": {
+      "id": "f2",
+      "name": "申請日時",
+      "type": "datetime"
+    },
+    "f3": {
+      "id": "f3",
+      "name": "書類種別",
+      "type": "enum",
+      "enumValues": ["パスポート", "運転免許証", "マイナンバーカード"]
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "有効期限確認テーブル",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f3" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "有効期限ステータス" },
+        { "id": "oc2", "name": "対応" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "before_today" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "期限切れ",
+              "oc2": "書類の再発行が必要です（今日より前の日付）"
+            }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "today_or_before" },
+            "c2": { "op": "=", "val": "パスポート" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "本日期限（パスポート）",
+              "oc2": "本日中に更新手続きが必要です"
+            }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "after_today" },
+            "c2": { "op": "in", "val": ["パスポート", "運転免許証"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "有効（公的書類）",
+              "oc2": "有効期限内のパスポートまたは運転免許証"
+            }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "c1": { "op": "today_or_after" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "有効",
+              "oc2": "本日以降まで有効"
+            }
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "c1": { "op": "between", "val": ["2024-01-01", "2024-12-31"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "2024年度発行",
+              "oc2": "2024年中に有効期限が設定されている書類"
+            }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "c1": { "op": "<", "val": "2020-01-01" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "旧書類（2020年以前失効）",
+              "oc2": "2020年より前に有効期限が切れた書類"
+            }
+          }
+        },
+        {
+          "id": "r7",
+          "cells": {
+            "c1": { "op": "null" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "有効期限未入力",
+              "oc2": "書類の有効期限を確認してください"
+            }
+          }
+        },
+        {
+          "id": "r8",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "確認中",
+              "oc2": "担当者による目視確認が必要です（デフォルト）"
+            }
+          }
+        }
+      ]
+    },
+    "t2": {
+      "id": "t2",
+      "name": "申請日時確認テーブル",
+      "cols": [
+        { "id": "c3", "fieldId": "f2" }
+      ],
+      "outputCols": [
+        { "id": "oc3", "name": "申請区分" }
+      ],
+      "rows": [
+        {
+          "id": "r9",
+          "cells": {
+            "c3": { "op": "<", "val": "2024-04-01T09:00:00" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "旧システム申請（2024-04-01 09:00 より前）"
+            }
+          }
+        },
+        {
+          "id": "r10",
+          "cells": {
+            "c3": { "op": "between", "val": ["2024-04-01T09:00:00", "2024-09-30T18:00:00"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "上期申請（2024-04-01〜2024-09-30）"
+            }
+          }
+        },
+        {
+          "id": "r11",
+          "cells": {
+            "c3": { "op": ">=", "val": "2024-10-01T00:00:00+09:00" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "下期申請（2024年10月以降・タイムゾーン付き）"
+            }
+          }
+        },
+        {
+          "id": "r12",
+          "cells": {
+            "c3": { "op": "null" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "申請日時未入力"
+            }
+          }
+        },
+        {
+          "id": "r13",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "日時範囲外（デフォルト）"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 4,
+  "nTable": 3,
+  "nCol": 4,
+  "nOCol": 4,
+  "nRow": 14
+}
