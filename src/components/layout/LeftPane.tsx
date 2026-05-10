@@ -5,6 +5,7 @@ import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { DagGraph } from '@/components/graph/DagGraph';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { InlineEdit } from '@/components/ui/InlineEdit';
 import { cn } from '@/lib/utils';
 
 export function LeftPane() {
@@ -12,6 +13,7 @@ export function LeftPane() {
   const logic = useLogicStore(s => s.logic);
   const addTable = useLogicStore(s => s.addTable);
   const deleteTable = useLogicStore(s => s.deleteTable);
+  const setLogicName = useLogicStore(s => s.setLogicName);
   const selectedTableId = useUiStore(s => s.selectedTableId);
   const setSelectedTable = useUiStore(s => s.setSelectedTable);
 
@@ -26,6 +28,17 @@ export function LeftPane() {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="border-b bg-white px-3 pt-3 pb-2.5 shrink-0">
+        <div className="text-xs text-gray-400 mb-1 font-medium tracking-wide">ロジック名</div>
+        <InlineEdit
+          value={logic.name}
+          onSave={setLogicName}
+          className="font-semibold text-gray-800 text-sm block w-full"
+          inputClassName="text-sm w-full"
+          placeholder="ロジック名"
+        />
+      </div>
+
       <DagGraph />
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
