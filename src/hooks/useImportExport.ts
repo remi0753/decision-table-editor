@@ -55,6 +55,47 @@ function repairLogic(logic: Logic): { logic: Logic; messages: string[] } {
   return { logic, messages };
 }
 
+function csvQuote(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+export function downloadBatchTemplate(logic: Logic): void {
+  const fields = Object.values(logic.fieldDefs);
+  const seenOColIds = new Set<string>();
+  const outputCols: { id: string; name: string }[] = [];
+  for (const table of Object.values(logic.tables)) {
+    for (const oc of table.outputCols) {
+      if (!seenOColIds.has(oc.id)) {
+        seenOColIds.add(oc.id);
+        outputCols.push(oc);
+      }
+    }
+  }
+
+  const headers = [
+    'ケース名',
+    ...fields.map(f => f.name),
+    ...outputCols.map(oc => `期待:${oc.name}`),
+  ];
+  const emptyRow = new Array(headers.length).fill('');
+  const csvContent = [headers, emptyRow]
+    .map(row => row.map(csvQuote).join(','))
+    .join('\r\n');
+
+  const bom = '﻿';
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8' });
+  const safeName = logic.name.replace(/[/\\?%*:|"<>]/g, '_') || 'logic';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${safeName}_テストケース.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function exportLogic(logic: Logic): void {
   const safeName = logic.name.replace(/[/\\?%*:|"<>]/g, '_') || 'logic';
   const blob = new Blob([JSON.stringify(logic, null, 2)], { type: 'application/json' });
@@ -69,6 +110,7 @@ export function exportLogic(logic: Logic): void {
 export function useImportLogic() {
   const importLogic = useLogicStore(s => s.importLogic);
   const clearEvalResult = useUiStore(s => s.clearEvalResult);
+  const clearBatch = useUiStore(s => s.clearBatch);
 
   return () => {
     const input = document.createElement('input');
@@ -88,6 +130,7 @@ export function useImportLogic() {
         const { logic: repaired, messages } = repairLogic(result.data as Logic);
         importLogic(repaired);
         clearEvalResult();
+        clearBatch();
         if (messages.length > 0) {
           toast.warning('インポート時に自動修復を行いました: ' + messages.join(' / '));
         } else {

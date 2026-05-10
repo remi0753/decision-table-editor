@@ -1,0 +1,96 @@
+import { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { type Logic } from '@/types/logic';
+import { type BatchCaseResult } from '@/types/batch';
+import { TraceView } from './TraceView';
+
+interface Props {
+  results: BatchCaseResult[];
+  logic: Logic;
+}
+
+export function BatchResultTable({ results, logic }: Props) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  const totalCount = results.length;
+  const matchCount = results.filter(r => r.result.status === 'ok').length;
+  const noMatchCount = totalCount - matchCount;
+  const withExpected = results.filter(r => r.pass !== null);
+  const passCount = withExpected.filter(r => r.pass === true).length;
+  const failCount = withExpected.filter(r => r.pass === false).length;
+
+  const toggle = (i: number) => setExpandedIndex(prev => (prev === i ? null : i));
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        <span className="text-gray-600">合計 {totalCount}件</span>
+        <span className="text-green-600">✓ マッチ {matchCount}件</span>
+        {noMatchCount > 0 && <span className="text-red-500">✗ 不一致 {noMatchCount}件</span>}
+        {withExpected.length > 0 && (
+          <>
+            <span className="text-gray-400">|</span>
+            <span className="text-gray-600">期待値あり {withExpected.length}件</span>
+            <span className="text-green-600">Pass {passCount}件</span>
+            {failCount > 0 && <span className="text-red-500">Fail {failCount}件</span>}
+          </>
+        )}
+      </div>
+
+      <div className="border rounded overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 text-gray-500 text-xs">
+              <th className="px-2 py-1.5 text-left w-6"></th>
+              <th className="px-2 py-1.5 text-left w-8">#</th>
+              <th className="px-2 py-1.5 text-left">ケース名</th>
+              <th className="px-2 py-1.5 text-left">結果</th>
+              <th className="px-2 py-1.5 text-left">期待値</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((r, i) => (
+              <>
+                <tr
+                  key={i}
+                  onClick={() => toggle(i)}
+                  className="cursor-pointer hover:bg-gray-50 border-t"
+                >
+                  <td className="px-2 py-1.5 text-gray-400">
+                    {expandedIndex === i ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  </td>
+                  <td className="px-2 py-1.5 text-gray-400">{i + 1}</td>
+                  <td className="px-2 py-1.5 text-gray-800">{r.batchCase.name}</td>
+                  <td className="px-2 py-1.5">
+                    {r.result.status === 'ok' ? (
+                      <span className="text-green-600">✓ マッチ</span>
+                    ) : (
+                      <span className="text-red-500">✗ 不一致</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-1.5">
+                    {r.pass === null ? (
+                      <span className="text-gray-400">-</span>
+                    ) : r.pass ? (
+                      <span className="text-green-600">✓ Pass</span>
+                    ) : (
+                      <span className="text-red-500">✗ Fail</span>
+                    )}
+                  </td>
+                </tr>
+                {expandedIndex === i && (
+                  <tr key={`trace-${i}`}>
+                    <td colSpan={5} className="px-4 py-3 bg-gray-50 border-t">
+                      <TraceView result={r.result} logic={logic} />
+                    </td>
+                  </tr>
+                )}
+              </>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-gray-400">行をクリックするとトレースを表示</p>
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { type EvalResult } from '@/types/logic';
+import { type BatchCase, type BatchCaseResult } from '@/types/batch';
 
 interface UiStore {
   selectedTableId: string | null;
@@ -12,6 +13,13 @@ interface UiStore {
   evalResult: EvalResult | null;
   setEvalResult: (result: EvalResult | null) => void;
   clearEvalResult: () => void;
+
+  batchFileName: string | null;
+  batchCases: BatchCase[];
+  batchResults: BatchCaseResult[] | null;
+  setBatchData: (fileName: string, cases: BatchCase[]) => void;
+  setBatchResults: (results: BatchCaseResult[]) => void;
+  clearBatch: () => void;
 }
 
 export const useUiStore = create<UiStore>((set) => ({
@@ -25,4 +33,11 @@ export const useUiStore = create<UiStore>((set) => ({
   evalResult: null,
   setEvalResult: (evalResult) => set({ evalResult }),
   clearEvalResult: () => set({ evalResult: null }),
+
+  batchFileName: null,
+  batchCases: [],
+  batchResults: null,
+  setBatchData: (batchFileName, batchCases) => set({ batchFileName, batchCases, batchResults: null }),
+  setBatchResults: (batchResults) => set({ batchResults }),
+  clearBatch: () => set({ batchFileName: null, batchCases: [], batchResults: null }),
 }));
