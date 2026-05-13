@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 194 48" width="194" height="48" role="img" aria-label="LEVERIE">
+  <defs>
+    <style>
+      @font-face {
+        font-family: 'Zen Maru Gothic';
+        font-weight: 300;
+        src: url('data:font/woff2;base64,d09GMgABAAAAAANEABEAAAAABwAAAALpAAEAQgAAAAAAAAAAAAAAAAAAAAAAAAAAGYFSGhYbIBwgBmAAVBEICoJAgg4BNgIkAxgLDgAEIAWDQgcgFyQYDhuXBSCuBmNwr1HiLNpBCVqBbNmN5WW57UcE1VqVNTMHBOruCR2yMACoXu67AyceQVgADk/Q/7fW/p7qIL6nmkQdtznxhCaaaMkkHilQAiScE2v/I97uLT/wugS+Ok03GAoF8MQzIQ1QrLTvzR6ktC78HqFvWrkDNdDSCP95Glssh7YiJXM8bkqg0g6baMqXrchUQL1z3DkHx97OwRk49u1cnoD64M7lDqgP7fQuwYEBMoV+cmqPykGuUKsRciXSRb4YkVJoR9u/83A3dfa+mDCKDr64dEevh1ncTLi8NYSTCNQCQsiEEKjWaxnh/NVYCkgAlflFfjuM6GRjWQNYy2qJLVAMICL8LTYsz8kgIKqWH0tRjAQJBMSr7AeDqMiQoxVVoBXNIqBWpUxhuaSMklrCxNmkG+lqupzOpdMCAIRIVINyUIty7ABOAFAA4sJ+0VVd31nVWDMW9FM1/HGlal7GSWucQBSlSuT6+IdQelBpvjxzOGPtq5yslM9GPiauH3F4dS1j85P70Lax9cZs2rn+jFvRM0ITJBajc3kKSSQoZRsjsQTBedOiQYwhwK2S536ST/WC0NT+1lqxuL66Q1xYvdrLKpoOf5ffh+6Z5fXheDwbKjPNrN/653nQIt7692dLLB2M0BYIFZzWkts3mbeE876xavIv8Ox17jEAL59vrafSQP47P4NyGQiKkf/JvyRWg/y3QIZyUxHZQmt+B55NwUr3224OgfI4q1MDbWtuLlBhg1BUVOECFYVJvlCm3iuUm+evs1BDZbpjwg2WG4olwrCWsY4TR471kOys7GxIFccOkFYduETK2tHRR4rDeo6d2EMK6us5hnV0kbSO9fS0dLlYWBw5AVvTt8tsD3bB4giGHTl34BB2qafLYuKSNLnoPILhdAeyZsLJLzlwpO9ceTEbMysrG7dVUTkyboMyVAPVBDUxvOAJ7F4trTDhpCLGNEh8NCK+/q99QOwpikBAhPOWrx447wIAAAA=') format('woff2');
+      }
+    </style>
+  </defs>
+  <text
+    x="97" y="38"
+    font-family="'Zen Maru Gothic', sans-serif"
+    font-size="32"
+    font-weight="300"
+    letter-spacing="11"
+    fill="#6d28d9"
+    text-anchor="middle"
+  >LEVERIE</text>
+</svg>

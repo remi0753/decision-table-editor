@@ -31,7 +31,7 @@ export function InlineEdit({ value, onSave, className, inputClassName, placehold
         onChange={e => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(value); setEditing(false); } }}
-        className={cn('border rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400', inputClassName)}
+        className={cn('border rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400', inputClassName)}
         placeholder={placeholder}
       />
     );

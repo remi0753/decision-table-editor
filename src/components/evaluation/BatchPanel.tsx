@@ -85,7 +85,7 @@ export function BatchPanel({ logic }: Props) {
         <div className="flex gap-2">
           <button
             onClick={handleRunAll}
-            className="flex items-center gap-1.5 bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700"
+            className="flex items-center gap-1.5 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
           >
             <Play size={14} /> すべて評価実行
           </button>

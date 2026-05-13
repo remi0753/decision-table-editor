@@ -1,10 +1,22 @@
-# LEVERIE
+<p align="center">
+  <img src="src/assets/logo.svg" alt="LEVERIE" height="56" />
+  <h1 align="center">LEVERIE</h1>
+  <p align="center">
+    A browser-based editor for building and evaluating <strong>decision logic</strong> as interconnected tables — no code required.
+  </p>
+</p>
 
-**Pronunciation:** /lɛvəˈrie/ · レヴァリエ *(the Japanese reading is a respectful nod to ZUN of [Team Shanghai Alice](https://www16.big.or.jp/~zun/))*
+---
+
+## Name
+
+**Pronunciation:** /lɛvəˈrie/ · レヴァリエ
 
 The name is inspired by *reverie* — a state of pleasant, effortless thought. The leading **L** reflects the tool's core purpose: **Logic**. Together, LEVERIE evokes the idea of navigating complex decision logic as naturally as a train of thought.
 
-A browser-based editor for building and evaluating **decision logic** as interconnected tables — no code required.
+The Japanese reading is a respectful nod to ZUN of [Team Shanghai Alice](https://www16.big.or.jp/~zun/).
+
+---
 
 ## Concept
 

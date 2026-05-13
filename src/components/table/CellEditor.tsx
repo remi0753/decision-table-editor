@@ -59,7 +59,7 @@ function ValueInput({
       <select
         value={strVal}
         onChange={e => onChange(e.target.value)}
-        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
       >
         <option value="">選択してください</option>
         {(field.enumValues ?? []).map(v => <option key={v} value={v}>{v}</option>)}
@@ -68,11 +68,11 @@ function ValueInput({
   }
 
   if (field.type === 'date') {
-    return <input type="date" value={strVal} onChange={e => onChange(e.target.value)} className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />;
+    return <input type="date" value={strVal} onChange={e => onChange(e.target.value)} className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400" />;
   }
 
   if (field.type === 'datetime') {
-    return <input type="datetime-local" value={strVal} onChange={e => onChange(e.target.value)} className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />;
+    return <input type="datetime-local" value={strVal} onChange={e => onChange(e.target.value)} className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400" />;
   }
 
   return <ScalarInput value={strVal} onChange={onChange} type={field.type === 'number' ? 'number' : 'text'} />;
@@ -129,7 +129,7 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
                 <select
                   value={op}
                   onChange={e => handleOpChange(e.target.value as Operator)}
-                  className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
                 >
                   {OPERATORS_BY_TYPE[field.type].map(o => (
                     <option key={o} value={o}>{OPERATOR_LABELS[o]}</option>
@@ -142,7 +142,7 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
-                  className="flex-1 bg-blue-600 text-white text-xs rounded px-3 py-1.5 hover:bg-blue-700"
+                  className="flex-1 bg-violet-600 text-white text-xs rounded px-3 py-1.5 hover:bg-violet-700"
                 >
                   設定
                 </button>

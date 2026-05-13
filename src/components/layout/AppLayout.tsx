@@ -1,4 +1,5 @@
 import { Download, Upload, FilePlus } from 'lucide-react';
+import logoUrl from '@/assets/logo.svg';
 import { Toaster } from 'sonner';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
@@ -28,27 +29,26 @@ export function AppLayout() {
     <div className="h-screen flex flex-col overflow-hidden">
       <Toaster position="top-right" richColors />
 
-      <header className="h-14 border-b bg-white flex items-center justify-between px-4 shrink-0 gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-blue-600 text-base">📋</span>
-          <span className="font-semibold text-gray-800 text-sm tracking-tight">LEVERIE</span>
+      <header className="h-20 border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white flex items-center justify-between px-5 shrink-0 gap-4">
+        <div className="flex items-center">
+          <img src={logoUrl} alt="LEVERIE" height={40} />
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleNew}
-            className="flex items-center gap-1 text-sm border rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600"
+            className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >
             <FilePlus size={14} /> 新規作成
           </button>
           <button
             onClick={importFn}
-            className="flex items-center gap-1 text-sm border rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600"
+            className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >
             <Upload size={14} /> インポート
           </button>
           <button
             onClick={() => exportLogic(logic)}
-            className="flex items-center gap-1 text-sm border rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600"
+            className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >
             <Download size={14} /> エクスポート
           </button>

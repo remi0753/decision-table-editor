@@ -47,7 +47,7 @@ export function EvaluationPanel() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 pb-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab
-                    ? 'border-blue-600 text-blue-600'
+                    ? 'border-violet-600 text-violet-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -62,7 +62,7 @@ export function EvaluationPanel() {
               <div className="flex gap-2">
                 <button
                   onClick={handleEvaluate}
-                  className="flex items-center gap-1 bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700"
+                  className="flex items-center gap-1 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
                 >
                   <Play size={14} /> 評価実行
                 </button>

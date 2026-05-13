@@ -20,7 +20,7 @@ export function ColumnHeader({ tableId, colId, fieldId }: Props) {
         <select
           value={fieldId ?? ''}
           onChange={e => setColField(tableId, colId, e.target.value || null)}
-          className="flex-1 text-xs border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+          className="flex-1 text-xs border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-400 bg-white"
         >
           <option value="">（未選択）</option>
           {fields.map(f => (

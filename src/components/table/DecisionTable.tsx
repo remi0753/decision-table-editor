@@ -73,12 +73,12 @@ export function DecisionTable({ tableId }: Props) {
         <div className="flex items-center gap-2">
           <InlineEdit value={table.name} onSave={handleRename} className="font-semibold text-sm" />
           {logic.entryTableId === tableId && (
-            <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded">▶ 入口</span>
+            <span className="bg-violet-100 text-violet-700 text-xs px-1.5 py-0.5 rounded">▶ 入口</span>
           )}
           {logic.entryTableId !== tableId && (
             <button
               onClick={() => setEntryTable(tableId)}
-              className="text-xs text-gray-400 hover:text-blue-600"
+              className="text-xs text-gray-400 hover:text-violet-600"
               title="このテーブルをエントリーポイントに設定"
             >
               入口に設定
@@ -170,13 +170,13 @@ export function DecisionTable({ tableId }: Props) {
           <div className="px-4 py-2 border-t flex items-center gap-2">
             <button
               onClick={() => addCol(tableId)}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-2 py-1"
+              className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-2 py-1"
             >
               <Plus size={12} /> 条件列を追加
             </button>
             <button
               onClick={() => addRow(tableId)}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-2 py-1"
+              className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-2 py-1"
             >
               <Plus size={12} /> 行を追加
             </button>

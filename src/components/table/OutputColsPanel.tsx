@@ -53,9 +53,9 @@ export function OutputColsPanel({ tableId, outputCols, onClose }: Props) {
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd(); }}
           placeholder="列名"
-          className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
         />
-        <button onClick={handleAdd} className="text-blue-600 hover:text-blue-800">
+        <button onClick={handleAdd} className="text-violet-600 hover:text-violet-800">
           <Plus size={14} />
         </button>
       </div>

@@ -50,12 +50,12 @@ export function LeftPane() {
             className={cn(
               'flex items-center justify-between px-3 py-2 rounded cursor-pointer text-sm group',
               selectedTableId === table.id
-                ? 'bg-blue-100 text-blue-800'
+                ? 'bg-violet-100 text-violet-800'
                 : 'hover:bg-gray-100 text-gray-700',
             )}
           >
             <div className="flex items-center gap-1 min-w-0">
-              {logic.entryTableId === table.id && <span className="text-blue-500 text-xs shrink-0">▶</span>}
+              {logic.entryTableId === table.id && <span className="text-violet-500 text-xs shrink-0">▶</span>}
               <span className="truncate">{table.name}</span>
             </div>
             <button
@@ -69,7 +69,7 @@ export function LeftPane() {
 
         <button
           onClick={addTable}
-          className="w-full flex items-center gap-1 px-3 py-2 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-dashed border-blue-300"
+          className="w-full flex items-center gap-1 px-3 py-2 text-xs text-violet-600 hover:text-violet-800 hover:bg-violet-50 rounded border border-dashed border-violet-300"
         >
           <Plus size={12} /> テーブルを追加
         </button>

@@ -91,7 +91,7 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
                     <input
                       value={outputs[oc.id] ?? ''}
                       onChange={e => setOutputs(p => ({ ...p, [oc.id]: e.target.value }))}
-                      className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
                       placeholder="出力値"
                     />
                   </div>
@@ -105,7 +105,7 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
                 <select
                   value={targetTableId}
                   onChange={e => setTargetTableId(e.target.value)}
-                  className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
                 >
                   <option value="">選択してください</option>
                   {tables.map(t => {
@@ -123,7 +123,7 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
             <button
               onClick={handleSave}
               disabled={type === 'continue' && !targetTableId}
-              className="w-full bg-blue-600 text-white text-xs rounded px-3 py-1.5 hover:bg-blue-700 disabled:opacity-50"
+              className="w-full bg-violet-600 text-white text-xs rounded px-3 py-1.5 hover:bg-violet-700 disabled:opacity-50"
             >
               設定
             </button>

@@ -39,7 +39,7 @@ export function InputForm({ logic }: Props) {
               <select
                 value={value}
                 onChange={e => setEvalInput(field.id, e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
               >
                 <option value="">（未選択）</option>
                 {(field.enumValues ?? []).map(v => <option key={v} value={v}>{v}</option>)}
@@ -49,21 +49,21 @@ export function InputForm({ logic }: Props) {
                 type="date"
                 value={value}
                 onChange={e => setEvalInput(field.id, e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
               />
             ) : field.type === 'datetime' ? (
               <input
                 type="datetime-local"
                 value={value}
                 onChange={e => setEvalInput(field.id, e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
               />
             ) : (
               <input
                 type={field.type === 'number' ? 'number' : 'text'}
                 value={value}
                 onChange={e => setEvalInput(field.id, e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
                 placeholder={`${field.name}を入力`}
               />
             )}

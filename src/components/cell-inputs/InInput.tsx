@@ -19,7 +19,7 @@ export function TagInput({ values, onChange }: TagInputProps) {
   return (
     <div className="flex flex-wrap gap-1 border rounded p-1 min-h-8">
       {values.map(v => (
-        <span key={v} className="inline-flex items-center gap-0.5 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 text-xs">
+        <span key={v} className="inline-flex items-center gap-0.5 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5 text-xs">
           {v}
           <button onClick={() => onChange(values.filter(x => x !== v))} className="text-gray-400 hover:text-red-500">
             <X size={10} />

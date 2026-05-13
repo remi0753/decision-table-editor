@@ -26,7 +26,7 @@ function RootNode({ data }: NodeProps) {
     <>
       <div className={cn(
         'px-4 py-2 rounded-full border-2 border-gray-400 bg-white text-gray-600 text-xs font-semibold text-center select-none',
-        d.highlighted && 'border-blue-500 ring-2 ring-blue-300',
+        d.highlighted && 'border-violet-500 ring-2 ring-violet-300',
       )}>
         {d.label}
       </div>
@@ -43,7 +43,7 @@ function ConditionNode({ data }: NodeProps) {
       <div
         className={cn(
           'rounded border-2 border-gray-300 bg-white text-xs select-none overflow-hidden',
-          d.highlighted && 'border-blue-400 ring-1 ring-blue-300',
+          d.highlighted && 'border-violet-400 ring-1 ring-violet-300',
         )}
         style={{ width: 160 }}
       >
@@ -98,12 +98,12 @@ function ContinueNode({ data }: NodeProps) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-indigo-400" />
+      <Handle type="target" position={Position.Top} className="!bg-violet-400" />
       <div
         onClick={handleClick}
         className={cn(
-          'px-3 py-2.5 rounded border-2 border-indigo-400 bg-indigo-50 text-xs text-indigo-700 font-medium text-center cursor-pointer hover:bg-indigo-100 select-none',
-          d.highlighted && 'ring-2 ring-indigo-600',
+          'px-3 py-2.5 rounded border-2 border-violet-400 bg-violet-50 text-xs text-violet-700 font-medium text-center cursor-pointer hover:bg-violet-100 select-none',
+          d.highlighted && 'ring-2 ring-violet-600',
         )}
         style={{ width: 180 }}
       >

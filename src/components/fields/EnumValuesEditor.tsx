@@ -37,7 +37,7 @@ export function EnumValuesEditor({ fieldId, enumValues }: Props) {
   return (
     <div className="flex flex-wrap gap-1 items-center">
       {enumValues.map(v => (
-        <span key={v} className="inline-flex items-center gap-0.5 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 text-xs">
+        <span key={v} className="inline-flex items-center gap-0.5 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5 text-xs">
           <span
             contentEditable
             suppressContentEditableWarning
@@ -57,9 +57,9 @@ export function EnumValuesEditor({ fieldId, enumValues }: Props) {
         onChange={e => setNewValue(e.target.value)}
         onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd(); }}
         placeholder="追加..."
-        className="border rounded px-1.5 py-0.5 text-xs w-20 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        className="border rounded px-1.5 py-0.5 text-xs w-20 focus:outline-none focus:ring-1 focus:ring-violet-400"
       />
-      <button onClick={handleAdd} className="text-xs text-blue-600 hover:underline">＋</button>
+      <button onClick={handleAdd} className="text-xs text-violet-600 hover:underline">＋</button>
     </div>
   );
 }

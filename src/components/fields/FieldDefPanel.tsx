@@ -89,7 +89,7 @@ export function FieldDefPanel() {
               <select
                 value={field.type}
                 onChange={e => handleTypeChange(field.id, e.target.value as FieldType)}
-                className="text-xs border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="text-xs border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-400"
               >
                 {FIELD_TYPES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -113,12 +113,12 @@ export function FieldDefPanel() {
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd(); }}
               placeholder="フィールド名"
-              className="text-sm border rounded px-2 py-1 flex-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="text-sm border rounded px-2 py-1 flex-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
             />
             <select
               value={newType}
               onChange={e => setNewType(e.target.value as FieldType)}
-              className="text-xs border rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="text-xs border rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
             >
               {FIELD_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -126,7 +126,7 @@ export function FieldDefPanel() {
             </select>
             <button
               onClick={handleAdd}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 rounded px-2 py-1"
+              className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-2 py-1"
             >
               <Plus size={12} /> 追加
             </button>
