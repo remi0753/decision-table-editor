@@ -31,7 +31,7 @@ export function AppLayout() {
       <header className="h-14 border-b bg-white flex items-center justify-between px-4 shrink-0 gap-4">
         <div className="flex items-center gap-2">
           <span className="text-blue-600 text-base">📋</span>
-          <span className="font-semibold text-gray-800 text-sm tracking-tight">Decision Table Editor</span>
+          <span className="font-semibold text-gray-800 text-sm tracking-tight">LEVERIE</span>
         </div>
         <div className="flex items-center gap-2">
           <button

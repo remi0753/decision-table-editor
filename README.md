@@ -1,4 +1,8 @@
-# Decision Table Editor
+# LEVERIE
+
+**Pronunciation:** /lɛvəˈrie/ · レヴァリエ
+
+The name is inspired by *reverie* — a state of pleasant, effortless thought. The leading **L** reflects the tool's core purpose: **Logic**. Together, LEVERIE evokes the idea of navigating complex decision logic as naturally as a train of thought.
 
 A browser-based editor for building and evaluating **decision logic** as interconnected tables — no code required.
 
