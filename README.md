@@ -1,6 +1,6 @@
 # LEVERIE
 
-**Pronunciation:** /lɛvəˈrie/ · レヴァリエ
+**Pronunciation:** /lɛvəˈrie/ · レヴァリエ *(the Japanese reading is a respectful nod to ZUN of [Team Shanghai Alice](https://www16.big.or.jp/~zun/))*
 
 The name is inspired by *reverie* — a state of pleasant, effortless thought. The leading **L** reflects the tool's core purpose: **Logic**. Together, LEVERIE evokes the idea of navigating complex decision logic as naturally as a train of thought.
 
