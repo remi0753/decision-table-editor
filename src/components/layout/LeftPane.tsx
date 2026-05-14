@@ -7,6 +7,7 @@ import { DagGraph } from '@/components/graph/DagGraph';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { InlineEdit } from '@/components/ui/InlineEdit';
 import { cn } from '@/lib/utils';
+import { useT } from '@/i18n/useT';
 
 export function LeftPane() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -16,6 +17,7 @@ export function LeftPane() {
   const setLogicName = useLogicStore(s => s.setLogicName);
   const selectedTableId = useUiStore(s => s.selectedTableId);
   const setSelectedTable = useUiStore(s => s.setSelectedTable);
+  const t = useT();
 
   const tables = Object.values(logic.tables);
 
@@ -29,20 +31,20 @@ export function LeftPane() {
   return (
     <div className="flex flex-col h-full">
       <div className="border-b bg-white px-3 pt-3 pb-2.5 shrink-0">
-        <div className="text-xs text-gray-400 mb-1 font-medium tracking-wide">ロジック名</div>
+        <div className="text-xs text-gray-400 mb-1 font-medium tracking-wide">{t.logicNameLabel}</div>
         <InlineEdit
           value={logic.name}
           onSave={setLogicName}
           className="font-semibold text-gray-800 text-sm block w-full"
           inputClassName="text-sm w-full"
-          placeholder="ロジック名"
+          placeholder={t.logicNamePlaceholder}
         />
       </div>
 
       <DagGraph />
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        <div className="text-xs text-gray-400 px-2 py-1">テーブル一覧</div>
+        <div className="text-xs text-gray-400 px-2 py-1">{t.tableList}</div>
         {tables.map(table => (
           <div
             key={table.id}
@@ -71,16 +73,16 @@ export function LeftPane() {
           onClick={addTable}
           className="w-full flex items-center gap-1 px-3 py-2 text-xs text-violet-600 hover:text-violet-800 hover:bg-violet-50 rounded border border-dashed border-violet-300"
         >
-          <Plus size={12} /> テーブルを追加
+          <Plus size={12} /> {t.addTable}
         </button>
       </div>
 
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={open => !open && setDeleteTarget(null)}
-        title="テーブルを削除"
-        description={`「${deleteTarget?.name}」を削除しますか？`}
-        confirmLabel="削除"
+        title={t.deleteTable}
+        description={deleteTarget ? t.deleteTableConfirm(deleteTarget.name) : ''}
+        confirmLabel={t.confirmDefault}
         destructive
         onConfirm={handleDelete}
       />

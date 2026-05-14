@@ -11,6 +11,7 @@ import { InlineEdit } from '@/components/ui/InlineEdit';
 import { FlowChart } from '@/components/graph/FlowChart';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   tableId: string;
@@ -29,9 +30,10 @@ export function DecisionTable({ tableId }: Props) {
   const moveRow = useLogicStore(s => s.moveRow);
   const renameTable = useLogicStore(s => s.renameTable);
   const setEntryTable = useLogicStore(s => s.setEntryTable);
+  const t = useT();
 
   const table = logic.tables[tableId];
-  if (!table) return <div className="p-4 text-gray-400">テーブルが見つかりません。</div>;
+  if (!table) return <div className="p-4 text-gray-400">{t.tableNotFound}</div>;
 
   const { duplicates, unreachable, noDefault } = useQualityChecks(table);
 
@@ -57,9 +59,6 @@ export function DecisionTable({ tableId }: Props) {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
-    if (tab === 'table' && highlightedRowIds.size > 0) {
-      // keep highlight so user can see which rows were selected
-    }
     if (tab === 'flowchart') {
       setHighlightedRowIds(new Set());
     }
@@ -73,15 +72,15 @@ export function DecisionTable({ tableId }: Props) {
         <div className="flex items-center gap-2">
           <InlineEdit value={table.name} onSave={handleRename} className="font-semibold text-sm" />
           {logic.entryTableId === tableId && (
-            <span className="bg-violet-100 text-violet-700 text-xs px-1.5 py-0.5 rounded">▶ 入口</span>
+            <span className="bg-violet-100 text-violet-700 text-xs px-1.5 py-0.5 rounded">{t.entryBadge}</span>
           )}
           {logic.entryTableId !== tableId && (
             <button
               onClick={() => setEntryTable(tableId)}
               className="text-xs text-gray-400 hover:text-violet-600"
-              title="このテーブルをエントリーポイントに設定"
+              title={t.setEntryTitle}
             >
-              入口に設定
+              {t.setEntry}
             </button>
           )}
         </div>
@@ -97,7 +96,7 @@ export function DecisionTable({ tableId }: Props) {
                 : 'text-gray-500 hover:text-gray-700',
             )}
           >
-            <Table2 size={11} /> テーブル
+            <Table2 size={11} /> {t.tableTab}
           </button>
           <button
             onClick={() => handleTabChange('flowchart')}
@@ -108,7 +107,7 @@ export function DecisionTable({ tableId }: Props) {
                 : 'text-gray-500 hover:text-gray-700',
             )}
           >
-            <GitBranch size={11} /> フローチャート
+            <GitBranch size={11} /> {t.flowchartTab}
           </button>
         </div>
       </div>
@@ -127,11 +126,11 @@ export function DecisionTable({ tableId }: Props) {
                   ))}
                   <th className="border-b border-r bg-gray-50 px-2 py-1 text-xs font-medium relative" style={{ minWidth: 240 }}>
                     <div className="flex items-center justify-between">
-                      <span>結論</span>
+                      <span>{t.conclusion}</span>
                       <button
                         onClick={() => setShowOutputPanel(!showOutputPanel)}
                         className="text-gray-400 hover:text-gray-600"
-                        title="出力列を管理"
+                        title={t.manageOutputCols}
                       >
                         <Settings size={12} />
                       </button>
@@ -172,19 +171,19 @@ export function DecisionTable({ tableId }: Props) {
               onClick={() => addCol(tableId)}
               className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-2 py-1"
             >
-              <Plus size={12} /> 条件列を追加
+              <Plus size={12} /> {t.addConditionCol}
             </button>
             <button
               onClick={() => addRow(tableId)}
               className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-2 py-1"
             >
-              <Plus size={12} /> 行を追加
+              <Plus size={12} /> {t.addRow}
             </button>
           </div>
 
           {noDefault && table.rows.length > 0 && (
             <div className="mx-4 mb-3 bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800">
-              ⚠️ どの条件にも当てはまるフォールバック行がありません。特定の入力値で結果が得られない場合があります。
+              {t.noFallbackWarning}
             </div>
           )}
         </>

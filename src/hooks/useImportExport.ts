@@ -3,6 +3,7 @@ import { type Logic } from '@/types/logic';
 import { LogicSchema } from '@/lib/schema';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
+import { useT, getT } from '@/i18n/useT';
 
 function getAllColIds(logic: Logic): string[] {
   return Object.values(logic.tables).flatMap(t => t.cols.map(c => c.id));
@@ -25,13 +26,14 @@ function maxId(prefix: string, ids: string[]): number {
 }
 
 function repairLogic(logic: Logic): { logic: Logic; messages: string[] } {
+  const t = getT();
   const messages: string[] = [];
 
   for (const table of Object.values(logic.tables)) {
     for (const row of table.rows) {
       if (row.conclusion.type === 'continue' && !logic.tables[row.conclusion.tableId]) {
         row.conclusion = { type: 'terminal', outputs: {} };
-        messages.push('参照先が見つからない継続参照をリセットしました。');
+        messages.push(t.repairResetContinue);
       }
     }
   }
@@ -40,9 +42,9 @@ function repairLogic(logic: Logic): { logic: Logic; messages: string[] } {
   let nextOCol = maxOColNum + 1;
   for (const table of Object.values(logic.tables)) {
     if (table.outputCols.length === 0) {
-      table.outputCols.push({ id: `oc${nextOCol}`, name: '結果' });
+      table.outputCols.push({ id: `oc${nextOCol}`, name: t.initialOutputColName });
       nextOCol++;
-      messages.push('出力列が未定義のテーブルに「結果」列を追加しました。');
+      messages.push(t.repairAddedOutputCol);
     }
   }
 
@@ -63,6 +65,7 @@ function csvQuote(value: string): string {
 }
 
 export function downloadBatchTemplate(logic: Logic): void {
+  const t = getT();
   const fields = Object.values(logic.fieldDefs);
   const seenOColIds = new Set<string>();
   const outputCols: { id: string; name: string }[] = [];
@@ -76,9 +79,9 @@ export function downloadBatchTemplate(logic: Logic): void {
   }
 
   const headers = [
-    'ケース名',
+    t.csvCaseName,
     ...fields.map(f => f.name),
-    ...outputCols.map(oc => `期待:${oc.name}`),
+    ...outputCols.map(oc => `${t.csvExpectedPrefix}${oc.name}`),
   ];
   const emptyRow = new Array(headers.length).fill('');
   const csvContent = [headers, emptyRow]
@@ -91,7 +94,7 @@ export function downloadBatchTemplate(logic: Logic): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${safeName}_テストケース.csv`;
+  a.download = `${safeName}${t.csvTemplateFileSuffix}`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -111,6 +114,7 @@ export function useImportLogic() {
   const importLogic = useLogicStore(s => s.importLogic);
   const clearEvalResult = useUiStore(s => s.clearEvalResult);
   const clearBatch = useUiStore(s => s.clearBatch);
+  const t = useT();
 
   return () => {
     const input = document.createElement('input');
@@ -124,7 +128,7 @@ export function useImportLogic() {
         const parsed = JSON.parse(text);
         const result = LogicSchema.safeParse(parsed);
         if (!result.success) {
-          toast.error('JSONの形式が正しくありません。' + result.error.issues[0]?.message);
+          toast.error(t.importJsonInvalid(result.error.issues[0]?.message ?? ''));
           return;
         }
         const { logic: repaired, messages } = repairLogic(result.data as Logic);
@@ -132,12 +136,12 @@ export function useImportLogic() {
         clearEvalResult();
         clearBatch();
         if (messages.length > 0) {
-          toast.warning('インポート時に自動修復を行いました: ' + messages.join(' / '));
+          toast.warning(t.importRepaired(messages.join(' / ')));
         } else {
-          toast.success('インポートしました。');
+          toast.success(t.importSuccess);
         }
       } catch {
-        toast.error('JSONのパースに失敗しました。');
+        toast.error(t.importJsonParseFailed);
       }
     };
     input.click();

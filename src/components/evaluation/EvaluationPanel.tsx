@@ -6,6 +6,7 @@ import { evaluateTable } from '@/engine/evaluate';
 import { InputForm } from './InputForm';
 import { TraceView } from './TraceView';
 import { BatchPanel } from './BatchPanel';
+import { useT } from '@/i18n/useT';
 
 type Tab = 'single' | 'batch';
 
@@ -18,6 +19,7 @@ export function EvaluationPanel() {
   const result = useUiStore(s => s.evalResult);
   const setResult = useUiStore(s => s.setEvalResult);
   const clearResult = useUiStore(s => s.clearEvalResult);
+  const t = useT();
 
   const handleEvaluate = () => {
     const res = evaluateTable(logic.entryTableId, evalInputs, logic);
@@ -32,7 +34,7 @@ export function EvaluationPanel() {
   return (
     <div className="border rounded-lg bg-white mt-4">
       <div className="flex items-center justify-between px-4 py-2 border-b">
-        <span className="font-medium text-sm">評価パネル</span>
+        <span className="font-medium text-sm">{t.evaluationPanel}</span>
         <button onClick={() => setCollapsed(!collapsed)} className="text-gray-400 hover:text-gray-600">
           {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
         </button>
@@ -51,7 +53,7 @@ export function EvaluationPanel() {
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {tab === 'single' ? '単一評価' : 'バッチ評価'}
+                {tab === 'single' ? t.singleEval : t.batchEval}
               </button>
             ))}
           </div>
@@ -64,18 +66,18 @@ export function EvaluationPanel() {
                   onClick={handleEvaluate}
                   className="flex items-center gap-1 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
                 >
-                  <Play size={14} /> 評価実行
+                  <Play size={14} /> {t.runEval}
                 </button>
                 <button
                   onClick={handleReset}
                   className="flex items-center gap-1 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
                 >
-                  <RotateCcw size={14} /> リセット
+                  <RotateCcw size={14} /> {t.reset}
                 </button>
               </div>
               {result && (
                 <div className="border-t pt-4">
-                  <div className="text-xs font-medium text-gray-500 mb-2">実行トレース</div>
+                  <div className="text-xs font-medium text-gray-500 mb-2">{t.traceLabel}</div>
                   <TraceView result={result} logic={logic} />
                 </div>
               )}

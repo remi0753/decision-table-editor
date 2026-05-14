@@ -7,6 +7,7 @@ import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { buildFlowChart } from '@/utils/buildFlowChart';
 import { cn } from '@/lib/utils';
+import { useT } from '@/i18n/useT';
 
 // ---- Custom node data types ----
 
@@ -63,6 +64,7 @@ function ConditionNode({ data }: NodeProps) {
 
 function TerminalNode({ data }: NodeProps) {
   const d = data as BaseNodeData;
+  const t = useT();
   const lines = d.label.split('\n');
   return (
     <>
@@ -75,7 +77,7 @@ function TerminalNode({ data }: NodeProps) {
         style={{ width: 180 }}
       >
         <div className="bg-green-100 px-2 py-0.5 text-green-700 font-medium text-center border-b border-green-200">
-          ✓ 結論
+          ✓ {t.conclusion}
         </div>
         <div className="px-2 py-1.5 space-y-0.5">
           {lines.map((line, i) => (
@@ -130,11 +132,13 @@ interface Props {
 
 export function FlowChart({ tableId, highlightedRowIds, onNodeClick }: Props) {
   const logic = useLogicStore(s => s.logic);
+  const t = useT();
   const table = logic.tables[tableId];
 
   const { nodes: rawNodes, edges } = useMemo(() => {
     if (!table) return { nodes: [], edges: [] };
-    return buildFlowChart(table, logic);
+    return buildFlowChart(table, logic, t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table, logic]);
 
   const nodes = useMemo(() => rawNodes.map(n => ({
@@ -146,7 +150,7 @@ export function FlowChart({ tableId, highlightedRowIds, onNodeClick }: Props) {
   })), [rawNodes, highlightedRowIds]);
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    if (node.type === 'continueNode') return; // handled internally
+    if (node.type === 'continueNode') return;
     onNodeClick(node.data.rowIds as string[], node.type ?? '');
   }, [onNodeClick]);
 
@@ -155,7 +159,7 @@ export function FlowChart({ tableId, highlightedRowIds, onNodeClick }: Props) {
   if (table.rows.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-        行を追加するとフローチャートが表示されます
+        {t.flowchartAddRows}
       </div>
     );
   }

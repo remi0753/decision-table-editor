@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { type OutputCol } from '@/types/logic';
 import { useLogicStore } from '@/store/logicStore';
 import { InlineEdit } from '@/components/ui/InlineEdit';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   tableId: string;
@@ -16,6 +17,7 @@ export function OutputColsPanel({ tableId, outputCols, onClose }: Props) {
   const addOutputCol = useLogicStore(s => s.addOutputCol);
   const renameOutputCol = useLogicStore(s => s.renameOutputCol);
   const deleteOutputCol = useLogicStore(s => s.deleteOutputCol);
+  const t = useT();
 
   const handleAdd = () => {
     const name = newName.trim();
@@ -31,7 +33,7 @@ export function OutputColsPanel({ tableId, outputCols, onClose }: Props) {
 
   return (
     <div className="absolute right-0 top-8 bg-white border rounded-lg shadow-lg p-3 w-64 z-30 space-y-2">
-      <div className="text-xs font-medium text-gray-600 mb-2">出力列を管理</div>
+      <div className="text-xs font-medium text-gray-600 mb-2">{t.manageOutputColsTitle}</div>
       {outputCols.map(oc => (
         <div key={oc.id} className="flex items-center gap-2 group">
           <InlineEdit
@@ -52,14 +54,14 @@ export function OutputColsPanel({ tableId, outputCols, onClose }: Props) {
           value={newName}
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd(); }}
-          placeholder="列名"
+          placeholder={t.colNamePlaceholder}
           className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
         />
         <button onClick={handleAdd} className="text-violet-600 hover:text-violet-800">
           <Plus size={14} />
         </button>
       </div>
-      <button onClick={onClose} className="w-full text-xs text-gray-500 hover:text-gray-700 pt-1 border-t">閉じる</button>
+      <button onClick={onClose} className="w-full text-xs text-gray-500 hover:text-gray-700 pt-1 border-t">{t.close}</button>
     </div>
   );
 }

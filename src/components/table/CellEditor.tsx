@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { type Cell, type FieldDef, type Operator } from '@/types/logic';
-import { OPERATOR_LABELS, OPERATORS_BY_TYPE } from '@/lib/operatorLabels';
+import { OPERATORS_BY_TYPE } from '@/lib/operatorLabels';
 import { ScalarInput } from '@/components/cell-inputs/ScalarInput';
 import { BetweenInput } from '@/components/cell-inputs/BetweenInput';
 import { TagInput, EnumCheckboxInput } from '@/components/cell-inputs/InInput';
 import { BoolSelect } from '@/components/cell-inputs/BoolSelect';
 import { formatCellSummary } from './cellUtils';
 import { cn } from '@/lib/utils';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   cell: Cell | undefined;
@@ -24,6 +25,7 @@ function ValueInput({
   val: string | string[] | undefined;
   onChange: (val: string | string[] | undefined) => void;
 }) {
+  const t = useT();
   const noValOps = ['null', 'before_today', 'today_or_before', 'after_today', 'today_or_after'];
   if (noValOps.includes(op)) return null;
 
@@ -31,13 +33,13 @@ function ValueInput({
     const arr = Array.isArray(val) ? val : ['', ''];
     const lo = arr[0] ?? '';
     const hi = arr[1] ?? '';
-    const t = field.type === 'date' ? 'date' : field.type === 'datetime' ? 'datetime' : 'number';
+    const type = field.type === 'date' ? 'date' : field.type === 'datetime' ? 'datetime' : 'number';
     return (
       <BetweenInput
         lo={lo} hi={hi}
         onChangeLo={v => onChange([v, hi])}
         onChangeHi={v => onChange([lo, v])}
-        type={t}
+        type={type}
       />
     );
   }
@@ -61,7 +63,7 @@ function ValueInput({
         onChange={e => onChange(e.target.value)}
         className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
       >
-        <option value="">選択してください</option>
+        <option value="">{t.pleaseSelect}</option>
         {(field.enumValues ?? []).map(v => <option key={v} value={v}>{v}</option>)}
       </select>
     );
@@ -82,6 +84,7 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
   const [open, setOpen] = useState(false);
   const [op, setOp] = useState<Operator>(cell?.op ?? '=');
   const [val, setVal] = useState<string | string[] | undefined>(cell?.val);
+  const t = useT();
 
   const handleOpen = (o: boolean) => {
     if (o) {
@@ -101,7 +104,7 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
     setOpen(false);
   };
 
-  const summary = formatCellSummary(cell, field);
+  const summary = formatCellSummary(cell, field, t);
 
   return (
     <Popover.Root open={open} onOpenChange={handleOpen}>
@@ -121,18 +124,18 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
           sideOffset={4}
         >
           {!field ? (
-            <p className="text-sm text-gray-500">列にフィールドを割り当ててください。</p>
+            <p className="text-sm text-gray-500">{t.assignField}</p>
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">演算子</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t.operatorLabel}</label>
                 <select
                   value={op}
                   onChange={e => handleOpChange(e.target.value as Operator)}
                   className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
                 >
                   {OPERATORS_BY_TYPE[field.type].map(o => (
-                    <option key={o} value={o}>{OPERATOR_LABELS[o]}</option>
+                    <option key={o} value={o}>{t.operatorLabels[o]}</option>
                   ))}
                 </select>
               </div>
@@ -144,13 +147,13 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
                   onClick={handleSave}
                   className="flex-1 bg-violet-600 text-white text-xs rounded px-3 py-1.5 hover:bg-violet-700"
                 >
-                  設定
+                  {t.setCell}
                 </button>
                 <button
                   onClick={() => { onClear(); setOpen(false); }}
                   className="flex-1 border text-xs rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600"
                 >
-                  条件なし（ワイルドカード）
+                  {t.wildcard}
                 </button>
               </div>
             </div>
@@ -161,4 +164,3 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
     </Popover.Root>
   );
 }
-

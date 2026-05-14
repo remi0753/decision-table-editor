@@ -1,5 +1,5 @@
 import { type EvalResult, type TraceStep, type Logic } from '@/types/logic';
-import { formatCellSummary } from '@/components/table/cellUtils';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   result: EvalResult;
@@ -7,6 +7,7 @@ interface Props {
 }
 
 function TraceStepView({ step, logic }: { step: TraceStep; logic: Logic }) {
+  const t = useT();
   const table = logic.tables[step.tableId];
   if (!table) return null;
 
@@ -15,7 +16,7 @@ function TraceStepView({ step, logic }: { step: TraceStep; logic: Logic }) {
   return (
     <div className="border rounded p-3 mb-2 bg-white">
       <div className="font-medium text-sm mb-1">
-        [ステップ{step.depth + 1}] テーブル「{step.tableName}」を評価
+        {t.traceStepTitle(step.depth + 1, step.tableName)}
       </div>
       {step.skippedRows.map(sr => {
         const rowNum = getRowNumber(sr.rowId);
@@ -23,18 +24,18 @@ function TraceStepView({ step, logic }: { step: TraceStep; logic: Logic }) {
         const failedField = failedCol?.fieldId ? logic.fieldDefs[failedCol.fieldId] : null;
         return (
           <div key={sr.rowId} className="text-gray-500 text-xs pl-4 py-0.5">
-            行{rowNum}: {failedField ? `${failedField.name} の条件を満たさず` : '条件を満たさず'} → スキップ
+            {rowNum}: {failedField ? t.conditionNotMet(failedField.name) : t.conditionNotMetGeneral}
           </div>
         );
       })}
       {step.matchedRowId && (
         <div className="text-green-600 text-xs pl-4 py-0.5">
-          行{getRowNumber(step.matchedRowId)}: → マッチ ✓
+          {t.rowMatched(getRowNumber(step.matchedRowId))}
         </div>
       )}
       {!step.matchedRowId && step.skippedRows.length === table.rows.length && (
         <div className="text-red-500 text-xs pl-4 py-0.5">
-          マッチする行がありませんでした。
+          {t.noMatchInTable}
         </div>
       )}
     </div>
@@ -42,6 +43,8 @@ function TraceStepView({ step, logic }: { step: TraceStep; logic: Logic }) {
 }
 
 export function TraceView({ result, logic }: Props) {
+  const t = useT();
+
   return (
     <div className="space-y-1">
       {result.trace.map((step, i) => (
@@ -50,10 +53,10 @@ export function TraceView({ result, logic }: Props) {
 
       {result.status === 'ok' && (
         <div className="bg-green-50 border border-green-200 rounded p-3">
-          <div className="text-green-700 font-medium text-sm mb-1">✓ 評価結果</div>
+          <div className="text-green-700 font-medium text-sm mb-1">{t.evalSuccess}</div>
           {Object.entries(result.outputs).map(([colId, val]) => {
             const colName = Object.values(logic.tables)
-              .flatMap(t => t.outputCols)
+              .flatMap(tb => tb.outputCols)
               .find(oc => oc.id === colId)?.name ?? colId;
             return (
               <div key={colId} className="text-sm">
@@ -70,11 +73,11 @@ export function TraceView({ result, logic }: Props) {
         const isEntry = !lastStep || lastStep.depth === 0;
         return (
           <div className="bg-red-50 border border-red-200 rounded p-3">
-            <div className="text-red-700 font-medium text-sm mb-1">✗ マッチなし</div>
+            <div className="text-red-700 font-medium text-sm mb-1">{t.evalNoMatch}</div>
             <p className="text-sm text-red-600">
               {isEntry
-                ? 'どのルールにも一致しませんでした。条件を確認してください。'
-                : `継続参照先のテーブル「${logic.tables[result.tableId]?.name ?? result.tableId}」でマッチするルールがありませんでした。`}
+                ? t.noMatchAny
+                : t.noMatchInRef(logic.tables[result.tableId]?.name ?? result.tableId)}
             </p>
           </div>
         );

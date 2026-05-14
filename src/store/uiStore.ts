@@ -1,8 +1,12 @@
 import { create } from 'zustand';
 import { type EvalResult } from '@/types/logic';
 import { type BatchCase, type BatchCaseResult } from '@/types/batch';
+import { type Lang } from '@/i18n/translations';
 
 interface UiStore {
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+
   selectedTableId: string | null;
   setSelectedTable: (tableId: string) => void;
 
@@ -22,7 +26,17 @@ interface UiStore {
   clearBatch: () => void;
 }
 
+const storedLang = (typeof window !== 'undefined'
+  ? (localStorage.getItem('leverie-lang') as Lang | null)
+  : null) ?? 'en';
+
 export const useUiStore = create<UiStore>((set) => ({
+  lang: storedLang,
+  setLang: (lang) => {
+    localStorage.setItem('leverie-lang', lang);
+    set({ lang });
+  },
+
   selectedTableId: null,
   setSelectedTable: (selectedTableId) => set({ selectedTableId }),
 

@@ -1,5 +1,6 @@
 import { type Logic } from '@/types/logic';
 import { type BatchCase } from '@/types/batch';
+import { type TranslationSet } from '@/i18n/translations';
 
 // RFC 4180 compliant CSV parser with BOM removal
 export function parseCsvText(text: string): string[][] {
@@ -66,14 +67,25 @@ type ColRole =
   | { type: 'expected'; outputColId: string }
   | { type: 'unknown' };
 
+function isCaseNameHeader(h: string): boolean {
+  return h === 'ケース名' || h === 'Case name';
+}
+
+function getExpectedColName(h: string): string | null {
+  if (h.startsWith('期待:')) return h.slice(3);
+  if (h.startsWith('Expected:')) return h.slice(9);
+  return null;
+}
+
 export function parseBatchCsv(
   text: string,
   logic: Logic,
+  t: TranslationSet,
 ): { cases: BatchCase[]; warnings: string[] } {
   const rows = parseCsvText(text);
 
   if (rows.length < 1 || rows[0]!.every(h => h === '')) {
-    return { cases: [], warnings: ['ヘッダー行が空です。テンプレートをダウンロードして作成してください。'] };
+    return { cases: [], warnings: [t.csvErrEmptyHeader] };
   }
 
   const headers = rows[0]!;
@@ -94,11 +106,11 @@ export function parseBatchCsv(
 
   const colRoles: ColRole[] = headers.map(h => {
     const trimmed = h.trim();
-    if (trimmed === 'ケース名') return { type: 'name' } satisfies ColRole;
+    if (isCaseNameHeader(trimmed)) return { type: 'name' } satisfies ColRole;
     const fieldId = fieldsByName[trimmed];
     if (fieldId) return { type: 'input', fieldId } satisfies ColRole;
-    if (trimmed.startsWith('期待:')) {
-      const colName = trimmed.slice(3);
+    const colName = getExpectedColName(trimmed);
+    if (colName !== null) {
       const outputColId = outputColsByName[colName];
       if (outputColId) return { type: 'expected', outputColId } satisfies ColRole;
     }
@@ -108,14 +120,12 @@ export function parseBatchCsv(
   const warnings: string[] = [];
   const hasInputCols = colRoles.some(r => r.type === 'input');
   if (!hasInputCols) {
-    warnings.push(
-      '入力値の列が見つかりませんでした。ヘッダーのフィールド名がロジックのフィールド名と一致しているか確認してください。',
-    );
+    warnings.push(t.csvErrNoInputCols);
   }
 
   const dataRows = rows.slice(1);
   if (dataRows.length === 0) {
-    return { cases: [], warnings: ['テストケースが1件もありません。データ行を追加してください。'] };
+    return { cases: [], warnings: [t.csvErrNoCases] };
   }
 
   let autoIndex = 1;
@@ -136,7 +146,7 @@ export function parseBatchCsv(
     });
 
     if (!name) {
-      name = `ケース${autoIndex}`;
+      name = t.csvAutoCase(autoIndex);
       autoIndex++;
     }
 

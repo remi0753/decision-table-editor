@@ -4,6 +4,7 @@ import { type Conclusion, type Table } from '@/types/logic';
 import { useLogicStore } from '@/store/logicStore';
 import { canReference } from '@/engine/checks';
 import { cn } from '@/lib/utils';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   tableId: string;
@@ -24,8 +25,9 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
 
   const logic = useLogicStore(s => s.logic);
   const setConclusion = useLogicStore(s => s.setConclusion);
+  const t = useT();
 
-  const tables = Object.values(logic.tables).filter(t => t.id !== tableId);
+  const tables = Object.values(logic.tables).filter(tb => tb.id !== tableId);
 
   const handleOpen = (o: boolean) => {
     if (o) {
@@ -49,14 +51,14 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
   const summaryText = () => {
     if (conclusion.type === 'terminal') {
       const entries = Object.entries(conclusion.outputs);
-      if (entries.length === 0) return '（出力未設定）';
+      if (entries.length === 0) return t.noOutput;
       return entries.map(([id, v]) => {
         const col = outputCols.find(oc => oc.id === id);
         return `${col?.name ?? id}: ${v}`;
       }).join(' / ');
     }
-    const t = logic.tables[conclusion.tableId];
-    return `→ ${t?.name ?? conclusion.tableId}`;
+    const tb = logic.tables[conclusion.tableId];
+    return `→ ${tb?.name ?? conclusion.tableId}`;
   };
 
   return (
@@ -75,11 +77,11 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
             <div className="flex gap-4">
               <label className="flex items-center gap-1 cursor-pointer text-sm">
                 <input type="radio" checked={type === 'terminal'} onChange={() => setType('terminal')} />
-                終端結論
+                {t.terminalConclusion}
               </label>
               <label className="flex items-center gap-1 cursor-pointer text-sm">
                 <input type="radio" checked={type === 'continue'} onChange={() => setType('continue')} />
-                継続参照
+                {t.continueRef}
               </label>
             </div>
 
@@ -92,7 +94,7 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
                       value={outputs[oc.id] ?? ''}
                       onChange={e => setOutputs(p => ({ ...p, [oc.id]: e.target.value }))}
                       className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
-                      placeholder="出力値"
+                      placeholder={t.outputPlaceholder}
                     />
                   </div>
                 ))}
@@ -101,18 +103,18 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
 
             {type === 'continue' && (
               <div>
-                <label className="text-xs text-gray-500 block mb-0.5">参照先テーブル</label>
+                <label className="text-xs text-gray-500 block mb-0.5">{t.refTable}</label>
                 <select
                   value={targetTableId}
                   onChange={e => setTargetTableId(e.target.value)}
                   className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
                 >
-                  <option value="">選択してください</option>
-                  {tables.map(t => {
-                    const allowed = canReference(tableId, t.id, logic.tables);
+                  <option value="">{t.pleaseSelect}</option>
+                  {tables.map(tb => {
+                    const allowed = canReference(tableId, tb.id, logic.tables);
                     return (
-                      <option key={t.id} value={t.id} disabled={!allowed}>
-                        {t.name}{!allowed ? '（循環参照）' : ''}
+                      <option key={tb.id} value={tb.id} disabled={!allowed}>
+                        {allowed ? tb.name : t.circularRef(tb.name)}
                       </option>
                     );
                   })}
@@ -125,7 +127,7 @@ export function ConclusionCell({ tableId, rowId, conclusion, outputCols }: Props
               disabled={type === 'continue' && !targetTableId}
               className="w-full bg-violet-600 text-white text-xs rounded px-3 py-1.5 hover:bg-violet-700 disabled:opacity-50"
             >
-              設定
+              {t.setCell}
             </button>
           </div>
           <Popover.Arrow className="fill-white stroke-gray-200" />

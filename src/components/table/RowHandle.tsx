@@ -6,6 +6,7 @@ import { useLogicStore } from '@/store/logicStore';
 import { CellEditor } from './CellEditor';
 import { ConclusionCell } from './ConclusionCell';
 import { cn } from '@/lib/utils';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   tableId: string;
@@ -27,6 +28,7 @@ export function SortableRow({
   const clearCell = useLogicStore(s => s.clearCell);
   const deleteRow = useLogicStore(s => s.deleteRow);
   const moveRow = useLogicStore(s => s.moveRow);
+  const t = useT();
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -44,7 +46,7 @@ export function SortableRow({
                 'text-xs font-bold leading-none px-1 rounded',
                 unreachableWarning ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700',
               )}
-              title={unreachableWarning ? 'この行はどの入力でも到達できません。' : 'この行は上の行と同じ条件です。'}
+              title={unreachableWarning ? t.unreachableRowTitle : t.duplicateRowTitle}
             >
               !
             </span>

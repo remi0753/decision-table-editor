@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type Logic } from '@/types/logic';
 import { type BatchCaseResult } from '@/types/batch';
 import { TraceView } from './TraceView';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   results: BatchCaseResult[];
@@ -11,6 +12,7 @@ interface Props {
 
 export function BatchResultTable({ results, logic }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const t = useT();
 
   const totalCount = results.length;
   const matchCount = results.filter(r => r.result.status === 'ok').length;
@@ -24,15 +26,15 @@ export function BatchResultTable({ results, logic }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-        <span className="text-gray-600">合計 {totalCount}件</span>
-        <span className="text-green-600">✓ マッチ {matchCount}件</span>
-        {noMatchCount > 0 && <span className="text-red-500">✗ 不一致 {noMatchCount}件</span>}
+        <span className="text-gray-600">{t.totalCases(totalCount)}</span>
+        <span className="text-green-600">{t.matchedCases(matchCount)}</span>
+        {noMatchCount > 0 && <span className="text-red-500">{t.noMatchCases(noMatchCount)}</span>}
         {withExpected.length > 0 && (
           <>
             <span className="text-gray-400">|</span>
-            <span className="text-gray-600">期待値あり {withExpected.length}件</span>
-            <span className="text-green-600">Pass {passCount}件</span>
-            {failCount > 0 && <span className="text-red-500">Fail {failCount}件</span>}
+            <span className="text-gray-600">{t.withExpected(withExpected.length)}</span>
+            <span className="text-green-600">Pass {passCount}</span>
+            {failCount > 0 && <span className="text-red-500">Fail {failCount}</span>}
           </>
         )}
       </div>
@@ -43,9 +45,9 @@ export function BatchResultTable({ results, logic }: Props) {
             <tr className="bg-gray-50 text-gray-500 text-xs">
               <th className="px-2 py-1.5 text-left w-6"></th>
               <th className="px-2 py-1.5 text-left w-8">#</th>
-              <th className="px-2 py-1.5 text-left">ケース名</th>
-              <th className="px-2 py-1.5 text-left">結果</th>
-              <th className="px-2 py-1.5 text-left">期待値</th>
+              <th className="px-2 py-1.5 text-left">{t.caseName}</th>
+              <th className="px-2 py-1.5 text-left">{t.resultCol}</th>
+              <th className="px-2 py-1.5 text-left">{t.expectedCol}</th>
             </tr>
           </thead>
           <tbody>
@@ -63,9 +65,9 @@ export function BatchResultTable({ results, logic }: Props) {
                   <td className="px-2 py-1.5 text-gray-800">{r.batchCase.name}</td>
                   <td className="px-2 py-1.5">
                     {r.result.status === 'ok' ? (
-                      <span className="text-green-600">✓ マッチ</span>
+                      <span className="text-green-600">{t.matchedResult}</span>
                     ) : (
-                      <span className="text-red-500">✗ 不一致</span>
+                      <span className="text-red-500">{t.noMatchResult}</span>
                     )}
                   </td>
                   <td className="px-2 py-1.5">
@@ -90,7 +92,7 @@ export function BatchResultTable({ results, logic }: Props) {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-gray-400">行をクリックするとトレースを表示</p>
+      <p className="text-xs text-gray-400">{t.clickForTrace}</p>
     </div>
   );
 }

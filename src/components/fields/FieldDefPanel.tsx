@@ -6,15 +6,7 @@ import { useLogicStore } from '@/store/logicStore';
 import { InlineEdit } from '@/components/ui/InlineEdit';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EnumValuesEditor } from './EnumValuesEditor';
-
-const FIELD_TYPES: { value: FieldType; label: string }[] = [
-  { value: 'string', label: 'テキスト' },
-  { value: 'number', label: '数値' },
-  { value: 'bool', label: '真偽値' },
-  { value: 'enum', label: '選択肢' },
-  { value: 'date', label: '日付' },
-  { value: 'datetime', label: '日時' },
-];
+import { useT } from '@/i18n/useT';
 
 export function FieldDefPanel() {
   const [collapsed, setCollapsed] = useState(false);
@@ -28,12 +20,22 @@ export function FieldDefPanel() {
   const renameField = useLogicStore(s => s.renameField);
   const changeFieldType = useLogicStore(s => s.changeFieldType);
   const deleteField = useLogicStore(s => s.deleteField);
+  const t = useT();
 
   const fieldDefs = Object.values(logic.fieldDefs);
 
+  const fieldTypes: { value: FieldType; label: string }[] = [
+    { value: 'string',   label: t.fieldTypes.string },
+    { value: 'number',   label: t.fieldTypes.number },
+    { value: 'bool',     label: t.fieldTypes.bool },
+    { value: 'enum',     label: t.fieldTypes.enum },
+    { value: 'date',     label: t.fieldTypes.date },
+    { value: 'datetime', label: t.fieldTypes.datetime },
+  ];
+
   const handleAdd = () => {
     const name = newName.trim();
-    if (!name) { toast.error('フィールド名を入力してください。'); return; }
+    if (!name) { toast.error(t.fieldNameRequired); return; }
     const result = addField(name, newType, newType === 'enum' ? [] : undefined);
     if (result.error) { toast.error(result.error); return; }
     setNewName('');
@@ -71,7 +73,7 @@ export function FieldDefPanel() {
   return (
     <div className="border rounded-lg bg-white mb-4">
       <div className="flex items-center justify-between px-4 py-2 border-b">
-        <span className="font-medium text-sm">フィールド定義</span>
+        <span className="font-medium text-sm">{t.fieldDefinitions}</span>
         <button onClick={() => setCollapsed(!collapsed)} className="text-gray-400 hover:text-gray-600">
           {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
         </button>
@@ -91,8 +93,8 @@ export function FieldDefPanel() {
                 onChange={e => handleTypeChange(field.id, e.target.value as FieldType)}
                 className="text-xs border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-400"
               >
-                {FIELD_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                {fieldTypes.map(ft => (
+                  <option key={ft.value} value={ft.value}>{ft.label}</option>
                 ))}
               </select>
               {field.type === 'enum' && (
@@ -112,7 +114,7 @@ export function FieldDefPanel() {
               value={newName}
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleAdd(); }}
-              placeholder="フィールド名"
+              placeholder={t.fieldNamePlaceholder}
               className="text-sm border rounded px-2 py-1 flex-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
             />
             <select
@@ -120,15 +122,15 @@ export function FieldDefPanel() {
               onChange={e => setNewType(e.target.value as FieldType)}
               className="text-xs border rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
             >
-              {FIELD_TYPES.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+              {fieldTypes.map(ft => (
+                <option key={ft.value} value={ft.value}>{ft.label}</option>
               ))}
             </select>
             <button
               onClick={handleAdd}
               className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-2 py-1"
             >
-              <Plus size={12} /> 追加
+              <Plus size={12} /> {t.add}
             </button>
           </div>
         </div>
@@ -137,9 +139,9 @@ export function FieldDefPanel() {
       <ConfirmDialog
         open={!!deleteConfirm}
         onOpenChange={open => !open && setDeleteConfirm(null)}
-        title="フィールドを削除"
-        description={`「${deleteConfirm?.name}」を削除しますか？`}
-        confirmLabel="削除"
+        title={t.deleteField}
+        description={deleteConfirm ? t.deleteFieldConfirm(deleteConfirm.name) : ''}
+        confirmLabel={t.confirmDefault}
         destructive
         onConfirm={() => deleteConfirm && handleDelete(deleteConfirm.id)}
       />
@@ -147,9 +149,9 @@ export function FieldDefPanel() {
       <ConfirmDialog
         open={!!typeChangeConfirm}
         onOpenChange={open => !open && setTypeChangeConfirm(null)}
-        title="フィールド型を変更"
-        description={`型を変更すると、このフィールドを使用している${typeChangeConfirm?.count}件の条件がリセットされます。続けますか？`}
-        confirmLabel="変更する"
+        title={t.changeFieldType}
+        description={typeChangeConfirm ? t.changeFieldTypeConfirm(typeChangeConfirm.count) : ''}
+        confirmLabel={t.changeConfirm}
         onConfirm={() => {
           if (typeChangeConfirm) {
             changeFieldType(typeChangeConfirm.id, typeChangeConfirm.newType);

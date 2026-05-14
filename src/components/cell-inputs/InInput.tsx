@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useT } from '@/i18n/useT';
 
 interface TagInputProps {
   values: string[];
@@ -8,6 +9,7 @@ interface TagInputProps {
 
 export function TagInput({ values, onChange }: TagInputProps) {
   const [input, setInput] = useState('');
+  const t = useT();
 
   const add = () => {
     const v = input.trim();
@@ -30,7 +32,7 @@ export function TagInput({ values, onChange }: TagInputProps) {
         value={input}
         onChange={e => setInput(e.target.value)}
         onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }}
-        placeholder="入力してEnter"
+        placeholder={t.tagInputPlaceholder}
         className="flex-1 min-w-16 text-sm outline-none"
       />
     </div>

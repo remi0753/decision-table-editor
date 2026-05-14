@@ -6,6 +6,7 @@ import { parseBatchCsv } from '@/lib/parseCsv';
 import { runBatchEvaluation } from '@/engine/batch';
 import { downloadBatchTemplate } from '@/hooks/useImportExport';
 import { BatchResultTable } from './BatchResultTable';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   logic: Logic;
@@ -18,6 +19,7 @@ export function BatchPanel({ logic }: Props) {
   const setBatchData = useUiStore(s => s.setBatchData);
   const setBatchResults = useUiStore(s => s.setBatchResults);
   const clearBatch = useUiStore(s => s.clearBatch);
+  const t = useT();
 
   const handleLoadCsv = () => {
     const input = document.createElement('input');
@@ -28,19 +30,19 @@ export function BatchPanel({ logic }: Props) {
       if (!file) return;
       try {
         const text = await file.text();
-        const { cases, warnings } = parseBatchCsv(text, logic);
+        const { cases, warnings } = parseBatchCsv(text, logic, t);
         if (cases.length === 0) {
-          toast.error(warnings[0] ?? 'テストケースを読み込めませんでした。');
+          toast.error(warnings[0] ?? t.noCasesLoaded);
           return;
         }
         setBatchData(file.name, cases);
         if (warnings.length > 0) {
           toast.warning(warnings[0]);
         } else {
-          toast.success(`${cases.length}件のテストケースを読み込みました。`);
+          toast.success(t.casesLoaded(cases.length));
         }
       } catch {
-        toast.error('CSVファイルを読み込めませんでした。Excelで作成したCSVファイルを選択してください。');
+        toast.error(t.csvLoadError);
       }
     };
     input.click();
@@ -60,24 +62,24 @@ export function BatchPanel({ logic }: Props) {
           onClick={handleLoadCsv}
           className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-700"
         >
-          <Upload size={14} /> CSVを読み込む
+          <Upload size={14} /> {t.loadCsv}
         </button>
         <button
           onClick={() => downloadBatchTemplate(logic)}
           disabled={noFields}
           className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <Download size={14} /> テンプレートをダウンロード
+          <Download size={14} /> {t.downloadTemplate}
         </button>
       </div>
 
       {noFields && (
-        <p className="text-xs text-gray-400">フィールドが定義されていません。</p>
+        <p className="text-xs text-gray-400">{t.noFields}</p>
       )}
 
       {batchFileName && (
         <p className="text-xs text-gray-500">
-          読み込み済み: <span className="font-medium">{batchFileName}</span>（{batchCases.length}件）
+          {t.loadedFile(batchFileName, batchCases.length)}
         </p>
       )}
 
@@ -87,13 +89,13 @@ export function BatchPanel({ logic }: Props) {
             onClick={handleRunAll}
             className="flex items-center gap-1.5 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
           >
-            <Play size={14} /> すべて評価実行
+            <Play size={14} /> {t.runAll}
           </button>
           <button
             onClick={clearBatch}
             className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
           >
-            <RotateCcw size={14} /> クリア
+            <RotateCcw size={14} /> {t.clear}
           </button>
         </div>
       )}

@@ -3,27 +3,31 @@ import {
   type Logic, type FieldType, type Cell, type Conclusion,
 } from '@/types/logic';
 import { nextFieldId, nextTableId, nextColId, nextOColId, nextRowId } from '@/lib/idgen';
+import { getT } from '@/i18n/useT';
 
-export const createInitialLogic = (): Logic => ({
-  version: '2',
-  name: '新しいロジック',
-  entryTableId: 't1',
-  fieldDefs: {},
-  tables: {
-    t1: {
-      id: 't1',
-      name: 'テーブル1',
-      cols: [],
-      outputCols: [{ id: 'oc1', name: '結果' }],
-      rows: [],
+export const createInitialLogic = (): Logic => {
+  const t = getT();
+  return {
+    version: '2',
+    name: t.initialLogicName,
+    entryTableId: 't1',
+    fieldDefs: {},
+    tables: {
+      t1: {
+        id: 't1',
+        name: t.initialTableName(1),
+        cols: [],
+        outputCols: [{ id: 'oc1', name: t.initialOutputColName }],
+        rows: [],
+      },
     },
-  },
-  nField: 1,
-  nTable: 2,
-  nCol: 1,
-  nOCol: 2,
-  nRow: 1,
-});
+    nField: 1,
+    nTable: 2,
+    nCol: 1,
+    nOCol: 2,
+    nRow: 1,
+  };
+};
 
 interface LogicStore {
   logic: Logic;
@@ -74,8 +78,9 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
   resetLogic: () => set({ logic: createInitialLogic() }),
 
   addTable: () => set(s => {
+    const t = getT();
     const id = nextTableId(s.logic.nTable);
-    const name = `テーブル${s.logic.nTable}`;
+    const name = t.initialTableName(s.logic.nTable);
     const ocolId = nextOColId(s.logic.nOCol);
     return {
       logic: {
@@ -84,7 +89,7 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
         nOCol: s.logic.nOCol + 1,
         tables: {
           ...s.logic.tables,
-          [id]: { id, name, cols: [], outputCols: [{ id: ocolId, name: '結果' }], rows: [] },
+          [id]: { id, name, cols: [], outputCols: [{ id: ocolId, name: t.initialOutputColName }], rows: [] },
         },
       },
     };
@@ -92,11 +97,12 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
 
   deleteTable: (tableId) => {
     const { logic } = get();
+    const t = getT();
     if (Object.keys(logic.tables).length <= 1) {
-      return { error: 'テーブルは最低1つ必要です。' };
+      return { error: t.errMinOneTable };
     }
     if (logic.entryTableId === tableId) {
-      return { error: 'エントリーテーブルは削除できません。先にエントリーテーブルを変更してください。' };
+      return { error: t.errCannotDeleteEntry };
     }
     const referencedBy: string[] = [];
     for (const [tid, table] of Object.entries(logic.tables)) {
@@ -109,7 +115,7 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
       }
     }
     if (referencedBy.length > 0) {
-      return { error: `このテーブルは「${referencedBy.join('、')}」から参照されています。先に参照を解除してください。` };
+      return { error: t.errTableReferenced(referencedBy.join('、')) };
     }
     set(s => {
       const { [tableId]: _, ...rest } = s.logic.tables;
@@ -120,8 +126,9 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
 
   renameTable: (tableId, name) => {
     const { logic } = get();
-    const duplicate = Object.values(logic.tables).some(t => t.name === name && t.id !== tableId);
-    if (duplicate) return { error: `テーブル名「${name}」は既に使用されています。` };
+    const t = getT();
+    const duplicate = Object.values(logic.tables).some(tb => tb.name === name && tb.id !== tableId);
+    if (duplicate) return { error: t.errTableNameDuplicate(name) };
     set(s => ({
       logic: {
         ...s.logic,
@@ -136,8 +143,9 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
 
   addField: (name, type, enumValues) => {
     const { logic } = get();
+    const t = getT();
     const duplicate = Object.values(logic.fieldDefs).some(f => f.name === name);
-    if (duplicate) return { error: `フィールド名「${name}」は既に使用されています。` };
+    if (duplicate) return { error: t.errFieldNameDuplicate(name) };
     const id = nextFieldId(logic.nField);
     set(s => ({
       logic: {
@@ -154,8 +162,9 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
 
   renameField: (fieldId, name) => {
     const { logic } = get();
+    const t = getT();
     const duplicate = Object.values(logic.fieldDefs).some(f => f.name === name && f.id !== fieldId);
-    if (duplicate) return { error: `フィールド名「${name}」は既に使用されています。` };
+    if (duplicate) return { error: t.errFieldNameDuplicate(name) };
     set(s => ({
       logic: {
         ...s.logic,
@@ -192,18 +201,19 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
 
   deleteField: (fieldId) => {
     const { logic } = get();
+    const t = getT();
     const usedIn: string[] = [];
     for (const table of Object.values(logic.tables)) {
       for (const col of table.cols) {
         if (col.fieldId === fieldId) {
-          usedIn.push(`${table.name}`);
+          usedIn.push(table.name);
           break;
         }
       }
     }
     if (usedIn.length > 0) {
       const field = logic.fieldDefs[fieldId];
-      return { error: `「${field?.name ?? fieldId}」は以下のテーブルで使用されています。先に参照を解除してください：${usedIn.join('、')}` };
+      return { error: t.errFieldInUse(field?.name ?? fieldId, usedIn.join('、')) };
     }
     set(s => {
       const { [fieldId]: _, ...rest } = s.logic.fieldDefs;
@@ -263,6 +273,7 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
 
   deleteEnumValue: (fieldId, value) => {
     const { logic } = get();
+    const t = getT();
     const usedIn: string[] = [];
     for (const table of Object.values(logic.tables)) {
       for (const col of table.cols) {
@@ -270,13 +281,13 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
         for (const row of table.rows) {
           const cell = row.cells[col.id];
           if (!cell) continue;
-          if ((cell.op === '=' || cell.op === '!=') && cell.val === value) usedIn.push(`${table.name}`);
-          if (cell.op === 'in' && Array.isArray(cell.val) && cell.val.includes(value)) usedIn.push(`${table.name}`);
+          if ((cell.op === '=' || cell.op === '!=') && cell.val === value) usedIn.push(table.name);
+          if (cell.op === 'in' && Array.isArray(cell.val) && cell.val.includes(value)) usedIn.push(table.name);
         }
       }
     }
     if (usedIn.length > 0) {
-      return { error: `値「${value}」は使用中のセルがあるため削除できません。`, usedIn };
+      return { error: t.errEnumValueInUse(value), usedIn };
     }
     set(s => {
       const field = s.logic.fieldDefs[fieldId];
@@ -377,15 +388,16 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
 
   deleteOutputCol: (tableId, ocolId) => {
     const { logic } = get();
+    const t = getT();
     const table = logic.tables[tableId];
-    if (!table) return { error: 'テーブルが見つかりません。' };
+    if (!table) return { error: t.errTableNotFound };
     if (table.outputCols.length <= 1) {
-      return { error: '出力列は最低1つ必要です。' };
+      return { error: t.errMinOneOutputCol };
     }
     set(s => {
-      const t = s.logic.tables[tableId]!;
-      const newOutputCols = t.outputCols.filter(oc => oc.id !== ocolId);
-      const newRows = t.rows.map(row => {
+      const tb = s.logic.tables[tableId]!;
+      const newOutputCols = tb.outputCols.filter(oc => oc.id !== ocolId);
+      const newRows = tb.rows.map(row => {
         if (row.conclusion.type !== 'terminal') return row;
         const { [ocolId]: _, ...restOutputs } = row.conclusion.outputs;
         return { ...row, conclusion: { ...row.conclusion, outputs: restOutputs } };
@@ -393,7 +405,7 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
       return {
         logic: {
           ...s.logic,
-          tables: { ...s.logic.tables, [tableId]: { ...t, outputCols: newOutputCols, rows: newRows } },
+          tables: { ...s.logic.tables, [tableId]: { ...tb, outputCols: newOutputCols, rows: newRows } },
         },
       };
     });

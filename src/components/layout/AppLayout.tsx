@@ -7,18 +7,23 @@ import { useAutoSave } from '@/hooks/useLocalStorage';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
 import { LeftPane } from './LeftPane';
 import { RightPane } from './RightPane';
+import { useT } from '@/i18n/useT';
+import { type Lang } from '@/i18n/translations';
 
 export function AppLayout() {
   const logic = useLogicStore(s => s.logic);
   const resetLogic = useLogicStore(s => s.resetLogic);
   const clearEvalResult = useUiStore(s => s.clearEvalResult);
   const clearBatch = useUiStore(s => s.clearBatch);
+  const lang = useUiStore(s => s.lang);
+  const setLang = useUiStore(s => s.setLang);
   const importFn = useImportLogic();
+  const t = useT();
 
   useAutoSave(logic);
 
   const handleNew = () => {
-    if (window.confirm('現在のロジックを閉じて新しいロジックを作成しますか？\n現在のロジックはブラウザに保存されています。')) {
+    if (window.confirm(t.newLogicConfirm)) {
       resetLogic();
       clearEvalResult();
       clearBatch();
@@ -34,23 +39,32 @@ export function AppLayout() {
           <img src={logoUrl} alt="LEVERIE" height={40} />
         </div>
         <div className="flex items-center gap-2">
+          <select
+            value={lang}
+            onChange={e => setLang(e.target.value as Lang)}
+            className="text-xs border border-gray-200 rounded px-2 py-1.5 bg-white hover:bg-violet-50 hover:border-violet-200 text-gray-500 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-300"
+          >
+            <option value="en">EN</option>
+            <option value="ja">日本語</option>
+          </select>
+          <div className="w-px h-5 bg-gray-200" />
           <button
             onClick={handleNew}
             className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >
-            <FilePlus size={14} /> 新規作成
+            <FilePlus size={14} /> {t.newCreate}
           </button>
           <button
             onClick={importFn}
             className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >
-            <Upload size={14} /> インポート
+            <Upload size={14} /> {t.importBtn}
           </button>
           <button
             onClick={() => exportLogic(logic)}
             className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >
-            <Download size={14} /> エクスポート
+            <Download size={14} /> {t.exportBtn}
           </button>
         </div>
       </header>

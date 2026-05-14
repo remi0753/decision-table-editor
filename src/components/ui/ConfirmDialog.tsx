@@ -1,4 +1,5 @@
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
+import { useT } from '@/i18n/useT';
 
 interface Props {
   open: boolean;
@@ -12,9 +13,13 @@ interface Props {
 }
 
 export function ConfirmDialog({
-  open, onOpenChange, title, description, confirmLabel = '確認', cancelLabel = 'キャンセル',
+  open, onOpenChange, title, description, confirmLabel, cancelLabel,
   onConfirm, destructive = false,
 }: Props) {
+  const t = useT();
+  const resolvedConfirm = confirmLabel ?? t.confirmDefault;
+  const resolvedCancel = cancelLabel ?? t.cancelDefault;
+
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
@@ -24,14 +29,14 @@ export function ConfirmDialog({
           <AlertDialog.Description className="text-sm text-gray-600 mb-6 whitespace-pre-wrap">{description}</AlertDialog.Description>
           <div className="flex justify-end gap-2">
             <AlertDialog.Cancel asChild>
-              <button className="px-4 py-2 rounded border text-sm hover:bg-gray-50">{cancelLabel}</button>
+              <button className="px-4 py-2 rounded border text-sm hover:bg-gray-50">{resolvedCancel}</button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <button
                 onClick={onConfirm}
                 className={`px-4 py-2 rounded text-sm text-white ${destructive ? 'bg-red-600 hover:bg-red-700' : 'bg-violet-600 hover:bg-violet-700'}`}
               >
-                {confirmLabel}
+                {resolvedConfirm}
               </button>
             </AlertDialog.Action>
           </div>

@@ -1,6 +1,7 @@
 import { type Table, type Cell, type Logic } from '@/types/logic';
 import { type Node, type Edge } from '@xyflow/react';
 import dagre from 'dagre';
+import { type TranslationSet } from '@/i18n/translations';
 
 // ---- Trie types ----
 
@@ -36,7 +37,7 @@ function buildTrie(table: Table): TrieNode {
 
     for (const col of table.cols) {
       const cell = row.cells[col.id];
-      if (!cell) continue; // wildcard - skip
+      if (!cell) continue;
 
       const key = cellKey(col.id, cell);
       if (!cur.children.has(key)) {
@@ -46,7 +47,6 @@ function buildTrie(table: Table): TrieNode {
       cur.rowIds.push(row.id);
     }
 
-    // Conclusion leaf (always unique per row)
     const conclusionNode = makeTrieNode(
       cur.id,
       row.conclusion.type === 'terminal' ? 'terminal' : 'continue',
@@ -64,18 +64,21 @@ function buildTrie(table: Table): TrieNode {
 
 // ---- Format helpers ----
 
-export function formatCellLabel(cell: Cell): string {
-  if (cell.op === 'null') return '(空)';
-  if (cell.op === 'before_today') return '今日より前';
-  if (cell.op === 'today_or_before') return '今日以前';
-  if (cell.op === 'after_today') return '今日より後';
-  if (cell.op === 'today_or_after') return '今日以降';
+export function formatCellLabel(cell: Cell, t: TranslationSet): string {
+  if (cell.op === 'null') return t.flowchartEmpty;
+  if (cell.op === 'before_today') return t.operatorLabels['before_today'] ?? 'before_today';
+  if (cell.op === 'today_or_before') return t.operatorLabels['today_or_before'] ?? 'today_or_before';
+  if (cell.op === 'after_today') return t.operatorLabels['after_today'] ?? 'after_today';
+  if (cell.op === 'today_or_after') return t.operatorLabels['today_or_after'] ?? 'today_or_after';
   if (cell.op === 'between' && Array.isArray(cell.val) && cell.val.length === 2) {
     return `${cell.val[0]} ～ ${cell.val[1]}`;
   }
   const opStr: Record<string, string> = {
     '=': '=', '!=': '≠', '<': '<', '<=': '≤', '>': '>', '>=': '≥',
-    'contains': '含む', 'starts_with': '先頭一致', 'ends_with': '末尾一致', 'in': 'in',
+    'contains': t.flowchartOpContains,
+    'starts_with': t.flowchartOpStartsWith,
+    'ends_with': t.flowchartOpEndsWith,
+    'in': 'in',
   };
   const op = opStr[cell.op] ?? cell.op;
   if (Array.isArray(cell.val)) return `${op} [${cell.val.join(', ')}]`;
@@ -117,7 +120,7 @@ export interface FlowChartData {
   edges: Edge[];
 }
 
-export function buildFlowChart(table: Table, logic: Logic): FlowChartData {
+export function buildFlowChart(table: Table, logic: Logic, t: TranslationSet): FlowChartData {
   const root = buildTrie(table);
   const allNodes = collectAll(root);
 
@@ -130,17 +133,17 @@ export function buildFlowChart(table: Table, logic: Logic): FlowChartData {
     let fieldName: string | undefined;
 
     if (nt === 'root') {
-      label = '開始';
+      label = t.flowchartStart;
     } else if (nt === 'condition') {
       const col = table.cols.find(c => c.id === tn.colId);
       fieldName = col?.fieldId ? (logic.fieldDefs[col.fieldId]?.name ?? '?') : '?';
-      label = tn.cell ? formatCellLabel(tn.cell) : '';
+      label = tn.cell ? formatCellLabel(tn.cell, t) : '';
     } else if (nt === 'terminal') {
       const parts = table.outputCols.map(oc => {
         const val = tn.outputs?.[oc.id] ?? '';
         return `${oc.name}: ${val}`;
       });
-      label = parts.length > 0 ? parts.join('\n') : '(出力なし)';
+      label = parts.length > 0 ? parts.join('\n') : t.flowchartNoOutput;
     } else if (nt === 'continue') {
       const name = tn.targetTableId ? (logic.tables[tn.targetTableId]?.name ?? '?') : '?';
       label = `→ ${name}`;

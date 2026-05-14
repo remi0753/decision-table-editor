@@ -4,18 +4,20 @@ import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { loadFromStorage } from '@/hooks/useLocalStorage';
 import { toast } from 'sonner';
+import { useT } from '@/i18n/useT';
 
 export default function App() {
   const importLogic = useLogicStore(s => s.importLogic);
   const logic = useLogicStore(s => s.logic);
   const setSelectedTable = useUiStore(s => s.setSelectedTable);
+  const t = useT();
 
   useEffect(() => {
     const saved = loadFromStorage();
     if (saved) {
       importLogic(saved);
     } else {
-      toast.info('新しいロジックを作成しました。');
+      toast.info(t.newLogicCreated);
     }
   // Run once on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps
