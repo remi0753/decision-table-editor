@@ -1,5 +1,5 @@
-import { type Logic } from '@/types/logic';
-import { type BatchCase, type BatchCaseResult } from '@/types/batch';
+import type { BatchCase, BatchCaseResult } from '@/types/batch';
+import type { Logic } from '@/types/logic';
 import { evaluateTable } from './evaluate';
 
 function computePass(
@@ -15,8 +15,11 @@ function computePass(
   return true;
 }
 
-export function runBatchEvaluation(cases: BatchCase[], logic: Logic): BatchCaseResult[] {
-  return cases.map(batchCase => {
+export function runBatchEvaluation(
+  cases: BatchCase[],
+  logic: Logic,
+): BatchCaseResult[] {
+  return cases.map((batchCase) => {
     const result = evaluateTable(logic.entryTableId, batchCase.inputs, logic);
     return { batchCase, result, pass: computePass(batchCase.expected, result) };
   });

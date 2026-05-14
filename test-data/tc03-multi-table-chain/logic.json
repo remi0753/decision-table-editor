@@ -31,12 +31,8 @@
     "t1": {
       "id": "t1",
       "name": "申請振り分けテーブル",
-      "cols": [
-        { "id": "c1", "fieldId": "f1" }
-      ],
-      "outputCols": [
-        { "id": "oc1", "name": "対応フロー" }
-      ],
+      "cols": [{ "id": "c1", "fieldId": "f1" }],
+      "outputCols": [{ "id": "oc1", "name": "対応フロー" }],
       "rows": [
         {
           "id": "r1",
@@ -74,9 +70,7 @@
     "t2": {
       "id": "t2",
       "name": "新規審査テーブル",
-      "cols": [
-        { "id": "c2", "fieldId": "f3" }
-      ],
+      "cols": [{ "id": "c2", "fieldId": "f3" }],
       "outputCols": [
         { "id": "oc2", "name": "審査結果" },
         { "id": "oc3", "name": "次のアクション" }
@@ -124,12 +118,8 @@
     "t3": {
       "id": "t3",
       "name": "更新審査テーブル",
-      "cols": [
-        { "id": "c3", "fieldId": "f2" }
-      ],
-      "outputCols": [
-        { "id": "oc4", "name": "更新処理" }
-      ],
+      "cols": [{ "id": "c3", "fieldId": "f2" }],
+      "outputCols": [{ "id": "oc4", "name": "更新処理" }],
       "rows": [
         {
           "id": "r8",
@@ -170,9 +160,7 @@
     "t4": {
       "id": "t4",
       "name": "解約処理テーブル",
-      "cols": [
-        { "id": "c4", "fieldId": "f4" }
-      ],
+      "cols": [{ "id": "c4", "fieldId": "f4" }],
       "outputCols": [
         { "id": "oc5", "name": "解約対応" },
         { "id": "oc6", "name": "引き止め施策" }

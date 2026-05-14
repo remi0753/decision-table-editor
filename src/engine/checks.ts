@@ -1,4 +1,4 @@
-import { type Logic, type Table, type Col, type Row, type Cell } from '@/types/logic';
+import type { Cell, Col, Logic, Row, Table } from '@/types/logic';
 
 export function canReference(
   fromTableId: string,
@@ -89,8 +89,8 @@ export function findUnreachableRows(table: Table): Set<string> {
 }
 
 export function hasDefaultRow(table: Table): boolean {
-  return table.rows.some(row =>
-    table.cols.every(col => !row.cells[col.id])
+  return table.rows.some((row) =>
+    table.cols.every((col) => !row.cells[col.id]),
   );
 }
 
@@ -106,7 +106,7 @@ function generateCartesian(arrays: string[][]): string[][] {
   const rest = arrays.slice(1);
   const restCart = generateCartesian(rest);
   const result: string[][] = [];
-  for (const val of (first ?? [])) {
+  for (const val of first ?? []) {
     for (const combo of restCart) {
       result.push([val, ...combo]);
     }
@@ -114,15 +114,18 @@ function generateCartesian(arrays: string[][]): string[][] {
   return result;
 }
 
-export function checkCoverage(table: Table, fieldDefs: Logic['fieldDefs']): CoverageResult | null {
-  const targetCols = table.cols.filter(col => {
+export function checkCoverage(
+  table: Table,
+  fieldDefs: Logic['fieldDefs'],
+): CoverageResult | null {
+  const targetCols = table.cols.filter((col) => {
     if (!col.fieldId) return false;
     const field = fieldDefs[col.fieldId];
     return field && (field.type === 'enum' || field.type === 'bool');
   });
   if (targetCols.length === 0) return null;
 
-  const valuesList: string[][] = targetCols.map(col => {
+  const valuesList: string[][] = targetCols.map((col) => {
     const field = fieldDefs[col.fieldId!]!;
     return field.type === 'bool' ? ['true', 'false'] : (field.enumValues ?? []);
   });
@@ -132,7 +135,7 @@ export function checkCoverage(table: Table, fieldDefs: Logic['fieldDefs']): Cove
 
   const uncovered: string[][] = [];
   for (const combo of cartesian) {
-    const covered = table.rows.some(row => {
+    const covered = table.rows.some((row) => {
       return targetCols.every((col, i) => {
         const cell = row.cells[col.id];
         if (!cell) return true;
@@ -140,7 +143,8 @@ export function checkCoverage(table: Table, fieldDefs: Logic['fieldDefs']): Cove
         if (cell.op === 'null') return false;
         if (cell.op === '=') return cell.val === val;
         if (cell.op === '!=') return cell.val !== val;
-        if (cell.op === 'in' && Array.isArray(cell.val)) return cell.val.includes(val);
+        if (cell.op === 'in' && Array.isArray(cell.val))
+          return cell.val.includes(val);
         return false;
       });
     });

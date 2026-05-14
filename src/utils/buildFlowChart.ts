@@ -1,7 +1,7 @@
-import { type Table, type Cell, type Logic } from '@/types/logic';
-import { type Node, type Edge } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
 import dagre from 'dagre';
-import { type TranslationSet } from '@/i18n/translations';
+import type { TranslationSet } from '@/i18n/translations';
+import type { Cell, Logic, Table } from '@/types/logic';
 
 // ---- Trie types ----
 
@@ -19,8 +19,19 @@ interface TrieNode {
 
 let _counter = 0;
 
-function makeTrieNode(parentId: string | null, nodeType: TrieNode['nodeType'], extra: Partial<TrieNode> = {}): TrieNode {
-  return { id: `fn${_counter++}`, parentId, nodeType, rowIds: [], children: new Map(), ...extra };
+function makeTrieNode(
+  parentId: string | null,
+  nodeType: TrieNode['nodeType'],
+  extra: Partial<TrieNode> = {},
+): TrieNode {
+  return {
+    id: `fn${_counter++}`,
+    parentId,
+    nodeType,
+    rowIds: [],
+    children: new Map(),
+    ...extra,
+  };
 }
 
 function cellKey(colId: string, cell: Cell): string {
@@ -41,7 +52,10 @@ function buildTrie(table: Table): TrieNode {
 
       const key = cellKey(col.id, cell);
       if (!cur.children.has(key)) {
-        cur.children.set(key, makeTrieNode(cur.id, 'condition', { colId: col.id, cell }));
+        cur.children.set(
+          key,
+          makeTrieNode(cur.id, 'condition', { colId: col.id, cell }),
+        );
       }
       cur = cur.children.get(key)!;
       cur.rowIds.push(row.id);
@@ -51,8 +65,14 @@ function buildTrie(table: Table): TrieNode {
       cur.id,
       row.conclusion.type === 'terminal' ? 'terminal' : 'continue',
       {
-        outputs: row.conclusion.type === 'terminal' ? row.conclusion.outputs : undefined,
-        targetTableId: row.conclusion.type === 'continue' ? row.conclusion.tableId : undefined,
+        outputs:
+          row.conclusion.type === 'terminal'
+            ? row.conclusion.outputs
+            : undefined,
+        targetTableId:
+          row.conclusion.type === 'continue'
+            ? row.conclusion.tableId
+            : undefined,
         rowIds: [row.id],
       },
     );
@@ -66,19 +86,32 @@ function buildTrie(table: Table): TrieNode {
 
 export function formatCellLabel(cell: Cell, t: TranslationSet): string {
   if (cell.op === 'null') return t.flowchartEmpty;
-  if (cell.op === 'before_today') return t.operatorLabels['before_today'] ?? 'before_today';
-  if (cell.op === 'today_or_before') return t.operatorLabels['today_or_before'] ?? 'today_or_before';
-  if (cell.op === 'after_today') return t.operatorLabels['after_today'] ?? 'after_today';
-  if (cell.op === 'today_or_after') return t.operatorLabels['today_or_after'] ?? 'today_or_after';
-  if (cell.op === 'between' && Array.isArray(cell.val) && cell.val.length === 2) {
+  if (cell.op === 'before_today')
+    return t.operatorLabels.before_today ?? 'before_today';
+  if (cell.op === 'today_or_before')
+    return t.operatorLabels.today_or_before ?? 'today_or_before';
+  if (cell.op === 'after_today')
+    return t.operatorLabels.after_today ?? 'after_today';
+  if (cell.op === 'today_or_after')
+    return t.operatorLabels.today_or_after ?? 'today_or_after';
+  if (
+    cell.op === 'between' &&
+    Array.isArray(cell.val) &&
+    cell.val.length === 2
+  ) {
     return `${cell.val[0]} ～ ${cell.val[1]}`;
   }
   const opStr: Record<string, string> = {
-    '=': '=', '!=': '≠', '<': '<', '<=': '≤', '>': '>', '>=': '≥',
-    'contains': t.flowchartOpContains,
-    'starts_with': t.flowchartOpStartsWith,
-    'ends_with': t.flowchartOpEndsWith,
-    'in': 'in',
+    '=': '=',
+    '!=': '≠',
+    '<': '<',
+    '<=': '≤',
+    '>': '>',
+    '>=': '≥',
+    contains: t.flowchartOpContains,
+    starts_with: t.flowchartOpStartsWith,
+    ends_with: t.flowchartOpEndsWith,
+    in: 'in',
   };
   const op = opStr[cell.op] ?? cell.op;
   if (Array.isArray(cell.val)) return `${op} [${cell.val.join(', ')}]`;
@@ -95,17 +128,34 @@ function collectAll(node: TrieNode, result: TrieNode[] = []): TrieNode[] {
 
 // ---- Dagre layout ----
 
-const NODE_W: Record<TrieNode['nodeType'], number> = { root: 100, condition: 160, terminal: 180, continue: 180 };
-const NODE_H: Record<TrieNode['nodeType'], number> = { root: 40, condition: 60, terminal: 56, continue: 44 };
+const NODE_W: Record<TrieNode['nodeType'], number> = {
+  root: 100,
+  condition: 160,
+  terminal: 180,
+  continue: 180,
+};
+const NODE_H: Record<TrieNode['nodeType'], number> = {
+  root: 40,
+  condition: 60,
+  terminal: 56,
+  continue: 44,
+};
 
 function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 50 });
   g.setDefaultEdgeLabel(() => ({}));
-  nodes.forEach(n => g.setNode(n.id, { width: n.data._w as number, height: n.data._h as number }));
-  edges.forEach(e => g.setEdge(e.source, e.target));
+  for (const n of nodes) {
+    g.setNode(n.id, {
+      width: n.data._w as number,
+      height: n.data._h as number,
+    });
+  }
+  for (const e of edges) {
+    g.setEdge(e.source, e.target);
+  }
   dagre.layout(g);
-  return nodes.map(n => {
+  return nodes.map((n) => {
     const { x, y } = g.node(n.id);
     const w = n.data._w as number;
     const h = n.data._h as number;
@@ -120,11 +170,15 @@ export interface FlowChartData {
   edges: Edge[];
 }
 
-export function buildFlowChart(table: Table, logic: Logic, t: TranslationSet): FlowChartData {
+export function buildFlowChart(
+  table: Table,
+  logic: Logic,
+  t: TranslationSet,
+): FlowChartData {
   const root = buildTrie(table);
   const allNodes = collectAll(root);
 
-  const rfNodes: Node[] = allNodes.map(tn => {
+  const rfNodes: Node[] = allNodes.map((tn) => {
     const nt = tn.nodeType;
     const w = NODE_W[nt];
     const h = NODE_H[nt];
@@ -135,17 +189,21 @@ export function buildFlowChart(table: Table, logic: Logic, t: TranslationSet): F
     if (nt === 'root') {
       label = t.flowchartStart;
     } else if (nt === 'condition') {
-      const col = table.cols.find(c => c.id === tn.colId);
-      fieldName = col?.fieldId ? (logic.fieldDefs[col.fieldId]?.name ?? '?') : '?';
+      const col = table.cols.find((c) => c.id === tn.colId);
+      fieldName = col?.fieldId
+        ? (logic.fieldDefs[col.fieldId]?.name ?? '?')
+        : '?';
       label = tn.cell ? formatCellLabel(tn.cell, t) : '';
     } else if (nt === 'terminal') {
-      const parts = table.outputCols.map(oc => {
+      const parts = table.outputCols.map((oc) => {
         const val = tn.outputs?.[oc.id] ?? '';
         return `${oc.name}: ${val}`;
       });
       label = parts.length > 0 ? parts.join('\n') : t.flowchartNoOutput;
     } else if (nt === 'continue') {
-      const name = tn.targetTableId ? (logic.tables[tn.targetTableId]?.name ?? '?') : '?';
+      const name = tn.targetTableId
+        ? (logic.tables[tn.targetTableId]?.name ?? '?')
+        : '?';
       label = `→ ${name}`;
     }
 
@@ -153,7 +211,14 @@ export function buildFlowChart(table: Table, logic: Logic, t: TranslationSet): F
       id: tn.id,
       type: `${nt}Node`,
       position: { x: 0, y: 0 },
-      data: { label, fieldName, rowIds: tn.rowIds, targetTableId: tn.targetTableId, _w: w, _h: h },
+      data: {
+        label,
+        fieldName,
+        rowIds: tn.rowIds,
+        targetTableId: tn.targetTableId,
+        _w: w,
+        _h: h,
+      },
     };
   });
 

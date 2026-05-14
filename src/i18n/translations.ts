@@ -30,7 +30,14 @@ export type TranslationSet = {
   // FieldDefPanel
   fieldDefinitions: string;
   fieldNameRequired: string;
-  fieldTypes: { string: string; number: string; bool: string; enum: string; date: string; datetime: string };
+  fieldTypes: {
+    string: string;
+    number: string;
+    bool: string;
+    enum: string;
+    date: string;
+    datetime: string;
+  };
   fieldNamePlaceholder: string;
   add: string;
   deleteField: string;
@@ -196,7 +203,8 @@ export const translations: Record<Lang, TranslationSet> = {
 
     newLogicCreated: 'Created a new logic.',
 
-    newLogicConfirm: 'Close the current logic and create a new one?\nThe current logic is saved in the browser.',
+    newLogicConfirm:
+      'Close the current logic and create a new one?\nThe current logic is saved in the browser.',
     newCreate: 'New',
     importBtn: 'Import',
     exportBtn: 'Export',
@@ -291,12 +299,14 @@ export const translations: Record<Lang, TranslationSet> = {
     downloadTemplate: 'Download template',
     noCasesLoaded: 'No test cases could be loaded.',
     casesLoaded: (n) => `Loaded ${n} test case(s).`,
-    csvLoadError: 'Failed to load CSV. Please select a CSV file created with Excel.',
+    csvLoadError:
+      'Failed to load CSV. Please select a CSV file created with Excel.',
     loadedFile: (name, n) => `Loaded: ${name} (${n} cases)`,
     runAll: 'Run all',
     clear: 'Clear',
 
-    traceStepTitle: (depth, tableName) => `[Step ${depth}] Evaluating "${tableName}"`,
+    traceStepTitle: (depth, tableName) =>
+      `[Step ${depth}] Evaluating "${tableName}"`,
     conditionNotMet: (fieldName) => `${fieldName}: condition not met → skip`,
     conditionNotMetGeneral: 'Condition not met → skip',
     rowMatched: (rowNum) => `Row ${rowNum}: → Matched ✓`,
@@ -304,7 +314,8 @@ export const translations: Record<Lang, TranslationSet> = {
     evalSuccess: '✓ Result',
     evalNoMatch: '✗ No match',
     noMatchAny: 'No rules matched. Please check your conditions.',
-    noMatchInRef: (tableName) => `No matching rule in referenced table "${tableName}".`,
+    noMatchInRef: (tableName) =>
+      `No matching rule in referenced table "${tableName}".`,
 
     totalCases: (n) => `Total: ${n}`,
     matchedCases: (n) => `✓ Matched: ${n}`,
@@ -321,22 +332,22 @@ export const translations: Record<Lang, TranslationSet> = {
     cancelDefault: 'Cancel',
 
     operatorLabels: {
-      '=':               'Equal to',
-      '!=':              'Not equal to',
-      '<':               'Less than',
-      '<=':              'At most',
-      '>':               'Greater than',
-      '>=':              'At least',
-      'between':         'Between',
-      'contains':        'Contains',
-      'starts_with':     'Starts with',
-      'ends_with':       'Ends with',
-      'in':              'In',
-      'null':            'Is empty',
-      'before_today':    'Before today',
-      'today_or_before': 'Today or before',
-      'after_today':     'After today',
-      'today_or_after':  'Today or after',
+      '=': 'Equal to',
+      '!=': 'Not equal to',
+      '<': 'Less than',
+      '<=': 'At most',
+      '>': 'Greater than',
+      '>=': 'At least',
+      between: 'Between',
+      contains: 'Contains',
+      starts_with: 'Starts with',
+      ends_with: 'Ends with',
+      in: 'In',
+      null: 'Is empty',
+      before_today: 'Before today',
+      today_or_before: 'Today or before',
+      after_today: 'After today',
+      today_or_after: 'Today or after',
     },
 
     flowchartStart: 'Start',
@@ -348,7 +359,8 @@ export const translations: Record<Lang, TranslationSet> = {
     flowchartOpEndsWith: 'ends with',
 
     errMinOneTable: 'At least one table is required.',
-    errCannotDeleteEntry: 'Cannot delete the entry table. Change the entry table first.',
+    errCannotDeleteEntry:
+      'Cannot delete the entry table. Change the entry table first.',
     errTableReferenced: (refs) =>
       `This table is referenced by: ${refs}. Remove the references first.`,
     errTableNameDuplicate: (name) => `Table name "${name}" is already in use.`,
@@ -364,8 +376,10 @@ export const translations: Record<Lang, TranslationSet> = {
     importRepaired: (messages) => `Auto-repaired on import: ${messages}`,
     importJsonInvalid: (msg) => `Invalid JSON format: ${msg}`,
     importJsonParseFailed: 'Failed to parse JSON.',
-    repairResetContinue: 'Reset a continue reference whose target was not found.',
-    repairAddedOutputCol: 'Added a "Result" output column to a table that had none.',
+    repairResetContinue:
+      'Reset a continue reference whose target was not found.',
+    repairAddedOutputCol:
+      'Added a "Result" output column to a table that had none.',
 
     enumDuplicate: (v) => `"${v}" already exists.`,
     enumAddPlaceholder: 'Add...',
@@ -490,7 +504,8 @@ export const translations: Record<Lang, TranslationSet> = {
     runAll: 'すべて評価実行',
     clear: 'クリア',
 
-    traceStepTitle: (depth, tableName) => `[ステップ${depth}] テーブル「${tableName}」を評価`,
+    traceStepTitle: (depth, tableName) =>
+      `[ステップ${depth}] テーブル「${tableName}」を評価`,
     conditionNotMet: (fieldName) => `${fieldName} の条件を満たさず → スキップ`,
     conditionNotMetGeneral: '条件を満たさず → スキップ',
     rowMatched: (rowNum) => `行${rowNum}: → マッチ ✓`,
@@ -516,22 +531,22 @@ export const translations: Record<Lang, TranslationSet> = {
     cancelDefault: 'キャンセル',
 
     operatorLabels: {
-      '=':               '等しい',
-      '!=':              '等しくない',
-      '<':               'より小さい（未満）',
-      '<=':              '以下',
-      '>':               'より大きい（超過）',
-      '>=':              '以上',
-      'between':         '範囲内',
-      'contains':        '含む',
-      'starts_with':     'から始まる',
-      'ends_with':       'で終わる',
-      'in':              'いずれかに一致',
-      'null':            '値がない',
-      'before_today':    '今日より前',
-      'today_or_before': '今日以前',
-      'after_today':     '今日より後',
-      'today_or_after':  '今日以降',
+      '=': '等しい',
+      '!=': '等しくない',
+      '<': 'より小さい（未満）',
+      '<=': '以下',
+      '>': 'より大きい（超過）',
+      '>=': '以上',
+      between: '範囲内',
+      contains: '含む',
+      starts_with: 'から始まる',
+      ends_with: 'で終わる',
+      in: 'いずれかに一致',
+      null: '値がない',
+      before_today: '今日より前',
+      today_or_before: '今日以前',
+      after_today: '今日より後',
+      today_or_after: '今日以降',
     },
 
     flowchartStart: '開始',
@@ -547,8 +562,10 @@ export const translations: Record<Lang, TranslationSet> = {
       'エントリーテーブルは削除できません。先にエントリーテーブルを変更してください。',
     errTableReferenced: (refs) =>
       `このテーブルは「${refs}」から参照されています。先に参照を解除してください。`,
-    errTableNameDuplicate: (name) => `テーブル名「${name}」は既に使用されています。`,
-    errFieldNameDuplicate: (name) => `フィールド名「${name}」は既に使用されています。`,
+    errTableNameDuplicate: (name) =>
+      `テーブル名「${name}」は既に使用されています。`,
+    errFieldNameDuplicate: (name) =>
+      `フィールド名「${name}」は既に使用されています。`,
     errFieldInUse: (fieldName, tables) =>
       `「${fieldName}」は以下のテーブルで使用されています。先に参照を解除してください：${tables}`,
     errEnumValueInUse: (value) =>
@@ -557,11 +574,13 @@ export const translations: Record<Lang, TranslationSet> = {
     errMinOneOutputCol: '出力列は最低1つ必要です。',
 
     importSuccess: 'インポートしました。',
-    importRepaired: (messages) => `インポート時に自動修復を行いました: ${messages}`,
+    importRepaired: (messages) =>
+      `インポート時に自動修復を行いました: ${messages}`,
     importJsonInvalid: (msg) => `JSONの形式が正しくありません。${msg}`,
     importJsonParseFailed: 'JSONのパースに失敗しました。',
     repairResetContinue: '参照先が見つからない継続参照をリセットしました。',
-    repairAddedOutputCol: '出力列が未定義のテーブルに「結果」列を追加しました。',
+    repairAddedOutputCol:
+      '出力列が未定義のテーブルに「結果」列を追加しました。',
 
     enumDuplicate: (v) => `「${v}」は既に存在します。`,
     enumAddPlaceholder: '追加...',
@@ -573,7 +592,8 @@ export const translations: Record<Lang, TranslationSet> = {
       'ヘッダー行が空です。テンプレートをダウンロードして作成してください。',
     csvErrNoInputCols:
       '入力値の列が見つかりませんでした。ヘッダーのフィールド名がロジックのフィールド名と一致しているか確認してください。',
-    csvErrNoCases: 'テストケースが1件もありません。データ行を追加してください。',
+    csvErrNoCases:
+      'テストケースが1件もありません。データ行を追加してください。',
     csvAutoCase: (n) => `ケース${n}`,
   },
 };

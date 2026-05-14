@@ -1,8 +1,8 @@
-import { type EvalResult } from './logic';
+import type { EvalResult } from './logic';
 
 export interface BatchCase {
   name: string;
-  inputs: Record<string, string>;   // fieldId -> value
+  inputs: Record<string, string>; // fieldId -> value
   expected: Record<string, string>; // outputColId -> expected value
 }
 

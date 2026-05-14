@@ -25,9 +25,7 @@
         { "id": "c1", "fieldId": "f1" },
         { "id": "c2", "fieldId": "f2" }
       ],
-      "outputCols": [
-        { "id": "oc1", "name": "担当チーム" }
-      ],
+      "outputCols": [{ "id": "oc1", "name": "担当チーム" }],
       "rows": [
         {
           "id": "r1",
@@ -47,7 +45,9 @@
           },
           "conclusion": {
             "type": "terminal",
-            "outputs": { "oc1": "東京VIPチーム（r1に到達不能：r1がc2ワイルドカードで先にマッチ）" }
+            "outputs": {
+              "oc1": "東京VIPチーム（r1に到達不能：r1がc2ワイルドカードで先にマッチ）"
+            }
           }
         },
         {

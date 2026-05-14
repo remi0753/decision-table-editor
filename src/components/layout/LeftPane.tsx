@@ -1,22 +1,25 @@
-import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { useLogicStore } from '@/store/logicStore';
-import { useUiStore } from '@/store/uiStore';
 import { DagGraph } from '@/components/graph/DagGraph';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { InlineEdit } from '@/components/ui/InlineEdit';
-import { cn } from '@/lib/utils';
 import { useT } from '@/i18n/useT';
+import { cn } from '@/lib/utils';
+import { useLogicStore } from '@/store/logicStore';
+import { useUiStore } from '@/store/uiStore';
 
 export function LeftPane() {
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const logic = useLogicStore(s => s.logic);
-  const addTable = useLogicStore(s => s.addTable);
-  const deleteTable = useLogicStore(s => s.deleteTable);
-  const setLogicName = useLogicStore(s => s.setLogicName);
-  const selectedTableId = useUiStore(s => s.selectedTableId);
-  const setSelectedTable = useUiStore(s => s.setSelectedTable);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const logic = useLogicStore((s) => s.logic);
+  const addTable = useLogicStore((s) => s.addTable);
+  const deleteTable = useLogicStore((s) => s.deleteTable);
+  const setLogicName = useLogicStore((s) => s.setLogicName);
+  const selectedTableId = useUiStore((s) => s.selectedTableId);
+  const setSelectedTable = useUiStore((s) => s.setSelectedTable);
   const t = useT();
 
   const tables = Object.values(logic.tables);
@@ -31,7 +34,9 @@ export function LeftPane() {
   return (
     <div className="flex flex-col h-full">
       <div className="border-b bg-white px-3 pt-3 pb-2.5 shrink-0">
-        <div className="text-xs text-gray-400 mb-1 font-medium tracking-wide">{t.logicNameLabel}</div>
+        <div className="text-xs text-gray-400 mb-1 font-medium tracking-wide">
+          {t.logicNameLabel}
+        </div>
         <InlineEdit
           value={logic.name}
           onSave={setLogicName}
@@ -45,10 +50,14 @@ export function LeftPane() {
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         <div className="text-xs text-gray-400 px-2 py-1">{t.tableList}</div>
-        {tables.map(table => (
+        {tables.map((table) => (
+          // biome-ignore lint/a11y/useSemanticElements: contains a nested button, so outer element cannot be a button
           <div
             key={table.id}
             onClick={() => setSelectedTable(table.id)}
+            onKeyDown={(e) => e.key === 'Enter' && setSelectedTable(table.id)}
+            role="button"
+            tabIndex={0}
             className={cn(
               'flex items-center justify-between px-3 py-2 rounded cursor-pointer text-sm group',
               selectedTableId === table.id
@@ -57,11 +66,17 @@ export function LeftPane() {
             )}
           >
             <div className="flex items-center gap-1 min-w-0">
-              {logic.entryTableId === table.id && <span className="text-violet-500 text-xs shrink-0">▶</span>}
+              {logic.entryTableId === table.id && (
+                <span className="text-violet-500 text-xs shrink-0">▶</span>
+              )}
               <span className="truncate">{table.name}</span>
             </div>
             <button
-              onClick={e => { e.stopPropagation(); setDeleteTarget({ id: table.id, name: table.name }); }}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget({ id: table.id, name: table.name });
+              }}
               className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 shrink-0"
             >
               <Trash2 size={12} />
@@ -70,6 +85,7 @@ export function LeftPane() {
         ))}
 
         <button
+          type="button"
           onClick={addTable}
           className="w-full flex items-center gap-1 px-3 py-2 text-xs text-violet-600 hover:text-violet-800 hover:bg-violet-50 rounded border border-dashed border-violet-300"
         >
@@ -79,9 +95,11 @@ export function LeftPane() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={open => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
         title={t.deleteTable}
-        description={deleteTarget ? t.deleteTableConfirm(deleteTarget.name) : ''}
+        description={
+          deleteTarget ? t.deleteTableConfirm(deleteTarget.name) : ''
+        }
         confirmLabel={t.confirmDefault}
         destructive
         onConfirm={handleDelete}

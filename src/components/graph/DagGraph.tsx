@@ -1,19 +1,30 @@
-import { useCallback, useEffect, useMemo } from 'react';
 import {
-  ReactFlow, Background, Controls, Handle, Position, useReactFlow, type Node, type Edge,
+  Background,
+  Controls,
+  type Edge,
+  Handle,
+  type Node,
+  Position,
+  ReactFlow,
+  useReactFlow,
 } from '@xyflow/react';
+import { useCallback, useEffect, useMemo } from 'react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
-import { type Logic } from '@/types/logic';
+import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
-import { cn } from '@/lib/utils';
+import type { Logic } from '@/types/logic';
 
 function isReachable(tableId: string, logic: Logic): boolean {
   if (logic.entryTableId === tableId) return true;
   for (const table of Object.values(logic.tables)) {
     for (const row of table.rows) {
-      if (row.conclusion.type === 'continue' && row.conclusion.tableId === tableId) return true;
+      if (
+        row.conclusion.type === 'continue' &&
+        row.conclusion.tableId === tableId
+      )
+        return true;
     }
   }
   return false;
@@ -23,29 +34,42 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 80 });
   g.setDefaultEdgeLabel(() => ({}));
-  nodes.forEach(n => g.setNode(n.id, { width: 160, height: 48 }));
-  edges.forEach(e => g.setEdge(e.source, e.target));
+  for (const n of nodes) {
+    g.setNode(n.id, { width: 160, height: 48 });
+  }
+  for (const e of edges) {
+    g.setEdge(e.source, e.target);
+  }
   dagre.layout(g);
-  return nodes.map(n => {
+  return nodes.map((n) => {
     const pos = g.node(n.id);
     return { ...n, position: { x: pos.x - 80, y: pos.y - 24 } };
   });
 }
 
 interface TableNodeProps {
-  data: { label: string; isEntry: boolean; isOrphan: boolean; isSelected: boolean };
+  data: {
+    label: string;
+    isEntry: boolean;
+    isOrphan: boolean;
+    isSelected: boolean;
+  };
 }
 
 function TableNode({ data }: TableNodeProps) {
   return (
     <>
       <Handle type="target" position={Position.Top} />
-      <div className={cn(
-        'px-3 py-2 rounded border-2 text-sm font-medium cursor-pointer select-none w-40 text-center',
-        data.isEntry ? 'border-violet-500 bg-violet-50 text-violet-800' : 'border-gray-300 bg-white text-gray-700',
-        data.isOrphan ? 'opacity-50' : '',
-        data.isSelected ? 'ring-2 ring-violet-400 ring-offset-1' : '',
-      )}>
+      <div
+        className={cn(
+          'px-3 py-2 rounded border-2 text-sm font-medium cursor-pointer select-none w-40 text-center',
+          data.isEntry
+            ? 'border-violet-500 bg-violet-50 text-violet-800'
+            : 'border-gray-300 bg-white text-gray-700',
+          data.isOrphan ? 'opacity-50' : '',
+          data.isSelected ? 'ring-2 ring-violet-400 ring-offset-1' : '',
+        )}
+      >
         {data.isEntry && <span className="text-xs mr-1">▶</span>}
         {data.label}
       </div>
@@ -58,6 +82,7 @@ const nodeTypes = { tableNode: TableNode };
 
 function FitViewWatcher({ nodeCount }: { nodeCount: number }) {
   const { fitView } = useReactFlow();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: nodeCount is an intentional trigger dep
   useEffect(() => {
     const id = setTimeout(() => fitView({ padding: 0.15, duration: 200 }), 50);
     return () => clearTimeout(id);
@@ -66,12 +91,12 @@ function FitViewWatcher({ nodeCount }: { nodeCount: number }) {
 }
 
 export function DagGraph() {
-  const logic = useLogicStore(s => s.logic);
-  const selectedTableId = useUiStore(s => s.selectedTableId);
-  const setSelectedTable = useUiStore(s => s.setSelectedTable);
+  const logic = useLogicStore((s) => s.logic);
+  const selectedTableId = useUiStore((s) => s.selectedTableId);
+  const setSelectedTable = useUiStore((s) => s.setSelectedTable);
 
   const { nodes: rawNodes, edges } = useMemo(() => {
-    const ns: Node[] = Object.values(logic.tables).map(table => ({
+    const ns: Node[] = Object.values(logic.tables).map((table) => ({
       id: table.id,
       type: 'tableNode',
       position: { x: 0, y: 0 },
@@ -105,11 +130,17 @@ export function DagGraph() {
     return { nodes: ns, edges: es };
   }, [logic, selectedTableId]);
 
-  const layoutedNodes = useMemo(() => getLayoutedElements(rawNodes, edges), [rawNodes, edges]);
+  const layoutedNodes = useMemo(
+    () => getLayoutedElements(rawNodes, edges),
+    [rawNodes, edges],
+  );
 
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    setSelectedTable(node.id);
-  }, [setSelectedTable]);
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      setSelectedTable(node.id);
+    },
+    [setSelectedTable],
+  );
 
   return (
     <div style={{ height: 220 }} className="border-b">

@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
-import { type Table } from '@/types/logic';
-import { findDuplicateRows, findUnreachableRows, hasDefaultRow } from '@/engine/checks';
+import {
+  findDuplicateRows,
+  findUnreachableRows,
+  hasDefaultRow,
+} from '@/engine/checks';
+import type { Table } from '@/types/logic';
 
 export function useQualityChecks(table: Table) {
   const [duplicates, setDuplicates] = useState<Set<string>>(new Set());
@@ -14,9 +18,9 @@ export function useQualityChecks(table: Table) {
     setNoDefault(!hasDefaultRow(table));
   }, 300);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runChecks is a stable debounced callback
   useEffect(() => {
     runChecks();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table.rows, table.cols]);
 
   return { duplicates, unreachable, noDefault };

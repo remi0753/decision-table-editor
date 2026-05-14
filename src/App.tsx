@@ -1,17 +1,18 @@
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { loadFromStorage } from '@/hooks/useLocalStorage';
+import { useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
-import { loadFromStorage } from '@/hooks/useLocalStorage';
-import { toast } from 'sonner';
-import { useT } from '@/i18n/useT';
 
 export default function App() {
-  const importLogic = useLogicStore(s => s.importLogic);
-  const logic = useLogicStore(s => s.logic);
-  const setSelectedTable = useUiStore(s => s.setSelectedTable);
+  const importLogic = useLogicStore((s) => s.importLogic);
+  const logic = useLogicStore((s) => s.logic);
+  const setSelectedTable = useUiStore((s) => s.setSelectedTable);
   const t = useT();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
   useEffect(() => {
     const saved = loadFromStorage();
     if (saved) {
@@ -19,13 +20,11 @@ export default function App() {
     } else {
       toast.info(t.newLogicCreated);
     }
-  // Run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
   useEffect(() => {
     setSelectedTable(logic.entryTableId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <AppLayout />;

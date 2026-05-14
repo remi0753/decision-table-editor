@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { type EvalResult } from '@/types/logic';
-import { type BatchCase, type BatchCaseResult } from '@/types/batch';
-import { type Lang } from '@/i18n/translations';
+import type { Lang } from '@/i18n/translations';
+import type { BatchCase, BatchCaseResult } from '@/types/batch';
+import type { EvalResult } from '@/types/logic';
 
 interface UiStore {
   lang: Lang;
@@ -26,9 +26,10 @@ interface UiStore {
   clearBatch: () => void;
 }
 
-const storedLang = (typeof window !== 'undefined'
-  ? (localStorage.getItem('leverie-lang') as Lang | null)
-  : null) ?? 'en';
+const storedLang =
+  (typeof window !== 'undefined'
+    ? (localStorage.getItem('leverie-lang') as Lang | null)
+    : null) ?? 'en';
 
 export const useUiStore = create<UiStore>((set) => ({
   lang: storedLang,
@@ -41,7 +42,8 @@ export const useUiStore = create<UiStore>((set) => ({
   setSelectedTable: (selectedTableId) => set({ selectedTableId }),
 
   evalInputs: {},
-  setEvalInput: (fieldId, value) => set(s => ({ evalInputs: { ...s.evalInputs, [fieldId]: value } })),
+  setEvalInput: (fieldId, value) =>
+    set((s) => ({ evalInputs: { ...s.evalInputs, [fieldId]: value } })),
   clearEvalInputs: () => set({ evalInputs: {} }),
 
   evalResult: null,
@@ -51,7 +53,9 @@ export const useUiStore = create<UiStore>((set) => ({
   batchFileName: null,
   batchCases: [],
   batchResults: null,
-  setBatchData: (batchFileName, batchCases) => set({ batchFileName, batchCases, batchResults: null }),
+  setBatchData: (batchFileName, batchCases) =>
+    set({ batchFileName, batchCases, batchResults: null }),
   setBatchResults: (batchResults) => set({ batchResults }),
-  clearBatch: () => set({ batchFileName: null, batchCases: [], batchResults: null }),
+  clearBatch: () =>
+    set({ batchFileName: null, batchCases: [], batchResults: null }),
 }));

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { type Logic } from '@/types/logic';
 import { LogicSchema } from '@/lib/schema';
+import type { Logic } from '@/types/logic';
 
 const STORAGE_KEY = 'decision-table-editor-v2';
 
@@ -10,7 +10,9 @@ export function useAutoSave(logic: Logic) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(logic));
     } catch {
-      toast.error('データの自動保存に失敗しました。「エクスポート」からファイルに保存してください。');
+      toast.error(
+        'データの自動保存に失敗しました。「エクスポート」からファイルに保存してください。',
+      );
     }
   }, [logic]);
 }

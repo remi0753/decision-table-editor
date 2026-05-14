@@ -7,13 +7,14 @@ interface Props {
 }
 
 export function BetweenInput({ lo, hi, onChangeLo, onChangeHi, type }: Props) {
-  const inputType = type === 'number' ? 'number' : type === 'date' ? 'date' : 'datetime-local';
+  const inputType =
+    type === 'number' ? 'number' : type === 'date' ? 'date' : 'datetime-local';
   return (
     <div className="flex items-center gap-1">
       <input
         type={inputType}
         value={lo}
-        onChange={e => onChangeLo(e.target.value)}
+        onChange={(e) => onChangeLo(e.target.value)}
         className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
         placeholder="以上"
       />
@@ -21,7 +22,7 @@ export function BetweenInput({ lo, hi, onChangeLo, onChangeHi, type }: Props) {
       <input
         type={inputType}
         value={hi}
-        onChange={e => onChangeHi(e.target.value)}
+        onChange={(e) => onChangeHi(e.target.value)}
         className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
         placeholder="以下"
       />

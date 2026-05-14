@@ -1,13 +1,13 @@
-import { useUiStore } from '@/store/uiStore';
-import { useLogicStore } from '@/store/logicStore';
+import { EvaluationPanel } from '@/components/evaluation/EvaluationPanel';
 import { FieldDefPanel } from '@/components/fields/FieldDefPanel';
 import { DecisionTable } from '@/components/table/DecisionTable';
-import { EvaluationPanel } from '@/components/evaluation/EvaluationPanel';
 import { useT } from '@/i18n/useT';
+import { useLogicStore } from '@/store/logicStore';
+import { useUiStore } from '@/store/uiStore';
 
 export function RightPane() {
-  const selectedTableId = useUiStore(s => s.selectedTableId);
-  const logic = useLogicStore(s => s.logic);
+  const selectedTableId = useUiStore((s) => s.selectedTableId);
+  const logic = useLogicStore((s) => s.logic);
   const t = useT();
 
   const tableId = selectedTableId ?? logic.entryTableId;

@@ -1,13 +1,19 @@
-import { useCallback, useMemo } from 'react';
 import {
-  ReactFlow, Background, Controls, Handle, Position, type Node, type NodeProps,
+  Background,
+  Controls,
+  Handle,
+  type Node,
+  type NodeProps,
+  Position,
+  ReactFlow,
 } from '@xyflow/react';
+import { useCallback, useMemo } from 'react';
 import '@xyflow/react/dist/style.css';
+import { useT } from '@/i18n/useT';
+import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { buildFlowChart } from '@/utils/buildFlowChart';
-import { cn } from '@/lib/utils';
-import { useT } from '@/i18n/useT';
 
 // ---- Custom node data types ----
 
@@ -16,8 +22,12 @@ interface BaseNodeData extends Record<string, unknown> {
   rowIds: string[];
   highlighted: boolean;
 }
-interface ConditionNodeData extends BaseNodeData { fieldName?: string }
-interface ContinueNodeData extends BaseNodeData { targetTableId?: string }
+interface ConditionNodeData extends BaseNodeData {
+  fieldName?: string;
+}
+interface ContinueNodeData extends BaseNodeData {
+  targetTableId?: string;
+}
 
 // ---- Custom Node components ----
 
@@ -25,13 +35,19 @@ function RootNode({ data }: NodeProps) {
   const d = data as BaseNodeData;
   return (
     <>
-      <div className={cn(
-        'px-4 py-2 rounded-full border-2 border-gray-400 bg-white text-gray-600 text-xs font-semibold text-center select-none',
-        d.highlighted && 'border-violet-500 ring-2 ring-violet-300',
-      )}>
+      <div
+        className={cn(
+          'px-4 py-2 rounded-full border-2 border-gray-400 bg-white text-gray-600 text-xs font-semibold text-center select-none',
+          d.highlighted && 'border-violet-500 ring-2 ring-violet-300',
+        )}
+      >
         {d.label}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!bg-gray-400"
+      />
     </>
   );
 }
@@ -57,7 +73,11 @@ function ConditionNode({ data }: NodeProps) {
           {d.label}
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!bg-gray-400"
+      />
     </>
   );
 }
@@ -81,7 +101,10 @@ function TerminalNode({ data }: NodeProps) {
         </div>
         <div className="px-2 py-1.5 space-y-0.5">
           {lines.map((line, i) => (
-            <div key={i} className="text-green-800 truncate">{line}</div>
+            // biome-ignore lint/suspicious/noArrayIndexKey: static label lines have no stable ID
+            <div key={`${i}-${line}`} className="text-green-800 truncate">
+              {line}
+            </div>
           ))}
         </div>
       </div>
@@ -91,7 +114,7 @@ function TerminalNode({ data }: NodeProps) {
 
 function ContinueNode({ data }: NodeProps) {
   const d = data as ContinueNodeData;
-  const setSelectedTable = useUiStore(s => s.setSelectedTable);
+  const setSelectedTable = useUiStore((s) => s.setSelectedTable);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -100,8 +123,13 @@ function ContinueNode({ data }: NodeProps) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-violet-400" />
-      <div
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-violet-400"
+      />
+      <button
+        type="button"
         onClick={handleClick}
         className={cn(
           'px-3 py-2.5 rounded border-2 border-violet-400 bg-violet-50 text-xs text-violet-700 font-medium text-center cursor-pointer hover:bg-violet-100 select-none',
@@ -110,7 +138,7 @@ function ContinueNode({ data }: NodeProps) {
         style={{ width: 180 }}
       >
         {d.label}
-      </div>
+      </button>
     </>
   );
 }
@@ -131,28 +159,36 @@ interface Props {
 }
 
 export function FlowChart({ tableId, highlightedRowIds, onNodeClick }: Props) {
-  const logic = useLogicStore(s => s.logic);
+  const logic = useLogicStore((s) => s.logic);
   const t = useT();
   const table = logic.tables[tableId];
 
   const { nodes: rawNodes, edges } = useMemo(() => {
     if (!table) return { nodes: [], edges: [] };
     return buildFlowChart(table, logic, t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, logic]);
+  }, [table, logic, t]);
 
-  const nodes = useMemo(() => rawNodes.map(n => ({
-    ...n,
-    data: {
-      ...n.data,
-      highlighted: (n.data.rowIds as string[]).some(id => highlightedRowIds.has(id)),
+  const nodes = useMemo(
+    () =>
+      rawNodes.map((n) => ({
+        ...n,
+        data: {
+          ...n.data,
+          highlighted: (n.data.rowIds as string[]).some((id) =>
+            highlightedRowIds.has(id),
+          ),
+        },
+      })),
+    [rawNodes, highlightedRowIds],
+  );
+
+  const handleNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      if (node.type === 'continueNode') return;
+      onNodeClick(node.data.rowIds as string[], node.type ?? '');
     },
-  })), [rawNodes, highlightedRowIds]);
-
-  const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    if (node.type === 'continueNode') return;
-    onNodeClick(node.data.rowIds as string[], node.type ?? '');
-  }, [onNodeClick]);
+    [onNodeClick],
+  );
 
   if (!table) return null;
 

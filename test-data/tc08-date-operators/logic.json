@@ -143,12 +143,8 @@
     "t2": {
       "id": "t2",
       "name": "申請日時確認テーブル",
-      "cols": [
-        { "id": "c3", "fieldId": "f2" }
-      ],
-      "outputCols": [
-        { "id": "oc3", "name": "申請区分" }
-      ],
+      "cols": [{ "id": "c3", "fieldId": "f2" }],
+      "outputCols": [{ "id": "oc3", "name": "申請区分" }],
       "rows": [
         {
           "id": "r9",
@@ -165,7 +161,10 @@
         {
           "id": "r10",
           "cells": {
-            "c3": { "op": "between", "val": ["2024-04-01T09:00:00", "2024-09-30T18:00:00"] }
+            "c3": {
+              "op": "between",
+              "val": ["2024-04-01T09:00:00", "2024-09-30T18:00:00"]
+            }
           },
           "conclusion": {
             "type": "terminal",

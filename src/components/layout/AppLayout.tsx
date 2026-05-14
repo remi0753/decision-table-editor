@@ -1,22 +1,22 @@
-import { Download, Upload, FilePlus } from 'lucide-react';
-import logoUrl from '@/assets/logo.svg';
+import { Download, FilePlus, Upload } from 'lucide-react';
 import { Toaster } from 'sonner';
+import logoUrl from '@/assets/logo.svg';
+import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
+import { useAutoSave } from '@/hooks/useLocalStorage';
+import type { Lang } from '@/i18n/translations';
+import { useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
-import { useAutoSave } from '@/hooks/useLocalStorage';
-import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
 import { LeftPane } from './LeftPane';
 import { RightPane } from './RightPane';
-import { useT } from '@/i18n/useT';
-import { type Lang } from '@/i18n/translations';
 
 export function AppLayout() {
-  const logic = useLogicStore(s => s.logic);
-  const resetLogic = useLogicStore(s => s.resetLogic);
-  const clearEvalResult = useUiStore(s => s.clearEvalResult);
-  const clearBatch = useUiStore(s => s.clearBatch);
-  const lang = useUiStore(s => s.lang);
-  const setLang = useUiStore(s => s.setLang);
+  const logic = useLogicStore((s) => s.logic);
+  const resetLogic = useLogicStore((s) => s.resetLogic);
+  const clearEvalResult = useUiStore((s) => s.clearEvalResult);
+  const clearBatch = useUiStore((s) => s.clearBatch);
+  const lang = useUiStore((s) => s.lang);
+  const setLang = useUiStore((s) => s.setLang);
   const importFn = useImportLogic();
   const t = useT();
 
@@ -41,7 +41,7 @@ export function AppLayout() {
         <div className="flex items-center gap-2">
           <select
             value={lang}
-            onChange={e => setLang(e.target.value as Lang)}
+            onChange={(e) => setLang(e.target.value as Lang)}
             className="text-xs border border-gray-200 rounded px-2 py-1.5 bg-white hover:bg-violet-50 hover:border-violet-200 text-gray-500 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-300"
           >
             <option value="en">EN</option>
@@ -49,18 +49,21 @@ export function AppLayout() {
           </select>
           <div className="w-px h-5 bg-gray-200" />
           <button
+            type="button"
             onClick={handleNew}
             className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >
             <FilePlus size={14} /> {t.newCreate}
           </button>
           <button
+            type="button"
             onClick={importFn}
             className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >
             <Upload size={14} /> {t.importBtn}
           </button>
           <button
+            type="button"
             onClick={() => exportLogic(logic)}
             className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
           >

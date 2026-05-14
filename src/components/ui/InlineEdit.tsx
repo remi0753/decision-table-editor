@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -9,12 +9,20 @@ interface Props {
   placeholder?: string;
 }
 
-export function InlineEdit({ value, onSave, className, inputClassName, placeholder }: Props) {
+export function InlineEdit({
+  value,
+  onSave,
+  className,
+  inputClassName,
+  placeholder,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { if (editing) inputRef.current?.select(); }, [editing]);
+  useEffect(() => {
+    if (editing) inputRef.current?.select();
+  }, [editing]);
 
   const commit = () => {
     const trimmed = draft.trim();
@@ -28,22 +36,41 @@ export function InlineEdit({ value, onSave, className, inputClassName, placehold
       <input
         ref={inputRef}
         value={draft}
-        onChange={e => setDraft(e.target.value)}
+        onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
-        onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(value); setEditing(false); } }}
-        className={cn('border rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400', inputClassName)}
+        onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return;
+          if (e.key === 'Enter') commit();
+          if (e.key === 'Escape') {
+            setDraft(value);
+            setEditing(false);
+          }
+        }}
+        className={cn(
+          'border rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400',
+          inputClassName,
+        )}
         placeholder={placeholder}
       />
     );
   }
 
+  const startEditing = () => {
+    setDraft(value);
+    setEditing(true);
+  };
+
   return (
-    <span
-      onClick={() => { setDraft(value); setEditing(true); }}
-      className={cn('cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5', className)}
+    <button
+      type="button"
+      onClick={startEditing}
+      className={cn(
+        'cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 text-left',
+        className,
+      )}
       title="クリックして編集"
     >
       {value || <span className="text-gray-400">{placeholder}</span>}
-    </span>
+    </button>
   );
 }

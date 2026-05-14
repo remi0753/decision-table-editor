@@ -1,6 +1,6 @@
-import { type Logic } from '@/types/logic';
-import { type BatchCase } from '@/types/batch';
-import { type TranslationSet } from '@/i18n/translations';
+import type { TranslationSet } from '@/i18n/translations';
+import type { BatchCase } from '@/types/batch';
+import type { Logic } from '@/types/logic';
 
 // RFC 4180 compliant CSV parser with BOM removal
 export function parseCsvText(text: string): string[][] {
@@ -56,7 +56,7 @@ export function parseCsvText(text: string): string[][] {
   }
 
   current.push(field);
-  if (current.some(f => f !== '')) rows.push(current);
+  if (current.some((f) => f !== '')) rows.push(current);
 
   return rows;
 }
@@ -84,7 +84,7 @@ export function parseBatchCsv(
 ): { cases: BatchCase[]; warnings: string[] } {
   const rows = parseCsvText(text);
 
-  if (rows.length < 1 || rows[0]!.every(h => h === '')) {
+  if (rows.length < 1 || rows[0]!.every((h) => h === '')) {
     return { cases: [], warnings: [t.csvErrEmptyHeader] };
   }
 
@@ -104,7 +104,7 @@ export function parseBatchCsv(
     }
   }
 
-  const colRoles: ColRole[] = headers.map(h => {
+  const colRoles: ColRole[] = headers.map((h) => {
     const trimmed = h.trim();
     if (isCaseNameHeader(trimmed)) return { type: 'name' } satisfies ColRole;
     const fieldId = fieldsByName[trimmed];
@@ -112,13 +112,14 @@ export function parseBatchCsv(
     const colName = getExpectedColName(trimmed);
     if (colName !== null) {
       const outputColId = outputColsByName[colName];
-      if (outputColId) return { type: 'expected', outputColId } satisfies ColRole;
+      if (outputColId)
+        return { type: 'expected', outputColId } satisfies ColRole;
     }
     return { type: 'unknown' } satisfies ColRole;
   });
 
   const warnings: string[] = [];
-  const hasInputCols = colRoles.some(r => r.type === 'input');
+  const hasInputCols = colRoles.some((r) => r.type === 'input');
   if (!hasInputCols) {
     warnings.push(t.csvErrNoInputCols);
   }
@@ -129,7 +130,7 @@ export function parseBatchCsv(
   }
 
   let autoIndex = 1;
-  const cases: BatchCase[] = dataRows.map(row => {
+  const cases: BatchCase[] = dataRows.map((row) => {
     const inputs: Record<string, string> = {};
     const expected: Record<string, string> = {};
     let name = '';

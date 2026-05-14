@@ -1,4 +1,10 @@
-export type FieldType = 'number' | 'string' | 'bool' | 'enum' | 'date' | 'datetime';
+export type FieldType =
+  | 'number'
+  | 'string'
+  | 'bool'
+  | 'enum'
+  | 'date'
+  | 'datetime';
 
 export interface FieldDef {
   id: string;
@@ -8,11 +14,21 @@ export interface FieldDef {
 }
 
 export type Operator =
-  | '=' | '!=' | '<' | '<=' | '>' | '>='
+  | '='
+  | '!='
+  | '<'
+  | '<='
+  | '>'
+  | '>='
   | 'between'
-  | 'contains' | 'starts_with' | 'ends_with'
+  | 'contains'
+  | 'starts_with'
+  | 'ends_with'
   | 'in'
-  | 'before_today' | 'today_or_before' | 'after_today' | 'today_or_after'
+  | 'before_today'
+  | 'today_or_before'
+  | 'after_today'
+  | 'today_or_after'
   | 'null';
 
 export interface Cell {

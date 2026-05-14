@@ -1,24 +1,24 @@
 import { Download, Play, RotateCcw, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { type Logic } from '@/types/logic';
-import { useUiStore } from '@/store/uiStore';
-import { parseBatchCsv } from '@/lib/parseCsv';
 import { runBatchEvaluation } from '@/engine/batch';
 import { downloadBatchTemplate } from '@/hooks/useImportExport';
-import { BatchResultTable } from './BatchResultTable';
 import { useT } from '@/i18n/useT';
+import { parseBatchCsv } from '@/lib/parseCsv';
+import { useUiStore } from '@/store/uiStore';
+import type { Logic } from '@/types/logic';
+import { BatchResultTable } from './BatchResultTable';
 
 interface Props {
   logic: Logic;
 }
 
 export function BatchPanel({ logic }: Props) {
-  const batchFileName = useUiStore(s => s.batchFileName);
-  const batchCases = useUiStore(s => s.batchCases);
-  const batchResults = useUiStore(s => s.batchResults);
-  const setBatchData = useUiStore(s => s.setBatchData);
-  const setBatchResults = useUiStore(s => s.setBatchResults);
-  const clearBatch = useUiStore(s => s.clearBatch);
+  const batchFileName = useUiStore((s) => s.batchFileName);
+  const batchCases = useUiStore((s) => s.batchCases);
+  const batchResults = useUiStore((s) => s.batchResults);
+  const setBatchData = useUiStore((s) => s.setBatchData);
+  const setBatchResults = useUiStore((s) => s.setBatchResults);
+  const clearBatch = useUiStore((s) => s.clearBatch);
   const t = useT();
 
   const handleLoadCsv = () => {
@@ -59,12 +59,14 @@ export function BatchPanel({ logic }: Props) {
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <button
+          type="button"
           onClick={handleLoadCsv}
           className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-700"
         >
           <Upload size={14} /> {t.loadCsv}
         </button>
         <button
+          type="button"
           onClick={() => downloadBatchTemplate(logic)}
           disabled={noFields}
           className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -73,9 +75,7 @@ export function BatchPanel({ logic }: Props) {
         </button>
       </div>
 
-      {noFields && (
-        <p className="text-xs text-gray-400">{t.noFields}</p>
-      )}
+      {noFields && <p className="text-xs text-gray-400">{t.noFields}</p>}
 
       {batchFileName && (
         <p className="text-xs text-gray-500">
@@ -86,12 +86,14 @@ export function BatchPanel({ logic }: Props) {
       {batchCases.length > 0 && (
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={handleRunAll}
             className="flex items-center gap-1.5 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
           >
             <Play size={14} /> {t.runAll}
           </button>
           <button
+            type="button"
             onClick={clearBatch}
             className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
           >

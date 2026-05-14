@@ -24,9 +24,7 @@
         { "id": "c1", "fieldId": "f1" },
         { "id": "c2", "fieldId": "f2" }
       ],
-      "outputCols": [
-        { "id": "oc1", "name": "対応方針" }
-      ],
+      "outputCols": [{ "id": "oc1", "name": "対応方針" }],
       "rows": [
         {
           "id": "r1",

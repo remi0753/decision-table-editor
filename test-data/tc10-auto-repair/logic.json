@@ -20,12 +20,8 @@
     "t1": {
       "id": "t1",
       "name": "エントリーテーブル",
-      "cols": [
-        { "id": "c1", "fieldId": "f1" }
-      ],
-      "outputCols": [
-        { "id": "oc1", "name": "振り分け結果" }
-      ],
+      "cols": [{ "id": "c1", "fieldId": "f1" }],
+      "outputCols": [{ "id": "oc1", "name": "振り分け結果" }],
       "rows": [
         {
           "id": "r1",
@@ -54,9 +50,7 @@
     "t2": {
       "id": "t2",
       "name": "出力列なしテーブル（自動修復対象）",
-      "cols": [
-        { "id": "c2", "fieldId": "f2" }
-      ],
+      "cols": [{ "id": "c2", "fieldId": "f2" }],
       "outputCols": [],
       "rows": [
         {
