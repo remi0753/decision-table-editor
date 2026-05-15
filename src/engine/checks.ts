@@ -88,10 +88,110 @@ export function findUnreachableRows(table: Table): Set<string> {
   return unreachable;
 }
 
-export function hasDefaultRow(table: Table): boolean {
-  return table.rows.some((row) =>
-    table.cols.every((col) => !row.cells[col.id]),
-  );
+function cellCoversValue(cell: Cell, val: string): boolean {
+  if (cell.op === '=') return String(cell.val) === val;
+  if (cell.op === 'in' && Array.isArray(cell.val))
+    return cell.val.includes(val);
+  if (cell.op === '!=') return String(cell.val) !== val;
+  return false;
+}
+
+export interface CoverageGap {
+  branchPath: Array<{ colId: string; cell: Cell }>;
+  missingCol: { colId: string; missingVal: string };
+}
+
+function collectCoverageGaps(
+  rows: Row[],
+  colIndex: number,
+  cols: Col[],
+  fieldDefs: Logic['fieldDefs'],
+  pathSoFar: Array<{ colId: string; cell: Cell }>,
+  result: CoverageGap[],
+): void {
+  if (rows.length === 0) return;
+  if (colIndex >= cols.length) return;
+
+  const col = cols[colIndex];
+  if (!col) return;
+  const field = col.fieldId ? fieldDefs[col.fieldId] : undefined;
+  const anyRows = rows.filter((r) => !r.cells[col.id]);
+  const specificRows = rows.filter((r) => !!r.cells[col.id]);
+
+  if (field?.type === 'bool' || field?.type === 'enum') {
+    const allValues =
+      field.type === 'bool' ? ['true', 'false'] : (field.enumValues ?? []);
+    for (const val of allValues) {
+      const matchingSpecific = specificRows.filter((r) =>
+        cellCoversValue(r.cells[col.id]!, val),
+      );
+      const rowsForVal = [...anyRows, ...matchingSpecific];
+      if (rowsForVal.length === 0) {
+        result.push({
+          branchPath: [...pathSoFar],
+          missingCol: { colId: col.id, missingVal: val },
+        });
+      } else {
+        const repCell: Cell = matchingSpecific[0]?.cells[col.id] ?? {
+          op: '=',
+          val,
+        };
+        collectCoverageGaps(
+          rowsForVal,
+          colIndex + 1,
+          cols,
+          fieldDefs,
+          [...pathSoFar, { colId: col.id, cell: repCell }],
+          result,
+        );
+      }
+    }
+    return;
+  }
+
+  const groups = new Map<string, { cell: Cell; rows: Row[] }>();
+  for (const r of specificRows) {
+    const cell = r.cells[col.id]!;
+    const key = `${cell.op}|${JSON.stringify(cell.val ?? null)}`;
+    if (!groups.has(key)) groups.set(key, { cell, rows: [] });
+    groups.get(key)!.rows.push(r);
+  }
+  for (const group of groups.values()) {
+    collectCoverageGaps(
+      [...anyRows, ...group.rows],
+      colIndex + 1,
+      cols,
+      fieldDefs,
+      [...pathSoFar, { colId: col.id, cell: group.cell }],
+      result,
+    );
+  }
+  if (anyRows.length > 0) {
+    collectCoverageGaps(
+      anyRows,
+      colIndex + 1,
+      cols,
+      fieldDefs,
+      pathSoFar,
+      result,
+    );
+  }
+}
+
+export function findCoverageGaps(
+  table: Table,
+  fieldDefs: Logic['fieldDefs'],
+): CoverageGap[] {
+  const result: CoverageGap[] = [];
+  collectCoverageGaps(table.rows, 0, table.cols, fieldDefs, [], result);
+  return result;
+}
+
+export function hasDefaultRow(
+  table: Table,
+  fieldDefs: Logic['fieldDefs'],
+): boolean {
+  return findCoverageGaps(table, fieldDefs).length === 0;
 }
 
 export interface CoverageResult {

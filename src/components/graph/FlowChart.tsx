@@ -9,6 +9,7 @@ import {
 } from '@xyflow/react';
 import { useCallback, useMemo } from 'react';
 import '@xyflow/react/dist/style.css';
+import type { CoverageGap } from '@/engine/checks';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
@@ -143,11 +144,69 @@ function ContinueNode({ data }: NodeProps) {
   );
 }
 
+function PhantomConditionNode({ data }: NodeProps) {
+  const d = data as ConditionNodeData;
+  const t = useT();
+  return (
+    <>
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-yellow-400"
+      />
+      <div
+        className="rounded border-2 border-dashed border-yellow-400 bg-yellow-50/60 text-xs select-none overflow-hidden"
+        style={{ width: 160 }}
+        title={t.phantomNodeTitle}
+      >
+        {d.fieldName && (
+          <div className="bg-yellow-100/70 px-2 py-0.5 text-yellow-700 font-medium truncate border-b border-dashed border-yellow-300 text-center">
+            {d.fieldName}
+          </div>
+        )}
+        <div className="px-2 py-1.5 text-yellow-800 text-center font-mono truncate">
+          {d.label}
+        </div>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!bg-yellow-400"
+      />
+    </>
+  );
+}
+
+function PhantomDeadendNode({ data }: NodeProps) {
+  const d = data as BaseNodeData;
+  const t = useT();
+  return (
+    <>
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-yellow-500"
+      />
+      <div
+        className="rounded border-2 border-dashed border-yellow-500 bg-yellow-50 text-xs select-none overflow-hidden"
+        style={{ width: 160 }}
+        title={t.phantomNodeTitle}
+      >
+        <div className="px-3 py-2 text-yellow-800 text-center font-medium">
+          ⚠️ {d.label}
+        </div>
+      </div>
+    </>
+  );
+}
+
 const nodeTypes = {
   rootNode: RootNode,
   conditionNode: ConditionNode,
   terminalNode: TerminalNode,
   continueNode: ContinueNode,
+  phantomConditionNode: PhantomConditionNode,
+  phantomDeadendNode: PhantomDeadendNode,
 };
 
 // ---- FlowChart component ----
@@ -156,17 +215,23 @@ interface Props {
   tableId: string;
   highlightedRowIds: Set<string>;
   onNodeClick: (rowIds: string[], nodeType: string) => void;
+  coverageGaps?: CoverageGap[];
 }
 
-export function FlowChart({ tableId, highlightedRowIds, onNodeClick }: Props) {
+export function FlowChart({
+  tableId,
+  highlightedRowIds,
+  onNodeClick,
+  coverageGaps,
+}: Props) {
   const logic = useLogicStore((s) => s.logic);
   const t = useT();
   const table = logic.tables[tableId];
 
   const { nodes: rawNodes, edges } = useMemo(() => {
     if (!table) return { nodes: [], edges: [] };
-    return buildFlowChart(table, logic, t);
-  }, [table, logic, t]);
+    return buildFlowChart(table, logic, t, coverageGaps);
+  }, [table, logic, t, coverageGaps]);
 
   const nodes = useMemo(
     () =>

@@ -1,5 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import dagre from 'dagre';
+import type { CoverageGap } from '@/engine/checks';
 import type { TranslationSet } from '@/i18n/translations';
 import type { Cell, Logic, Table } from '@/types/logic';
 
@@ -8,7 +9,13 @@ import type { Cell, Logic, Table } from '@/types/logic';
 interface TrieNode {
   id: string;
   parentId: string | null;
-  nodeType: 'root' | 'condition' | 'terminal' | 'continue';
+  nodeType:
+    | 'root'
+    | 'condition'
+    | 'terminal'
+    | 'continue'
+    | 'phantomCondition'
+    | 'phantomDeadend';
   colId?: string;
   cell?: Cell;
   outputs?: Record<string, string>;
@@ -82,6 +89,36 @@ function buildTrie(table: Table): TrieNode {
   return root;
 }
 
+function attachCoverageGaps(root: TrieNode, gaps: CoverageGap[]): void {
+  for (const gap of gaps) {
+    let cur = root;
+    for (const step of gap.branchPath) {
+      const key = cellKey(step.colId, step.cell);
+      let next = cur.children.get(key);
+      if (!next) {
+        next = makeTrieNode(cur.id, 'phantomCondition', {
+          colId: step.colId,
+          cell: step.cell,
+        });
+        cur.children.set(key, next);
+      }
+      cur = next;
+    }
+    const missingCell: Cell = { op: '=', val: gap.missingCol.missingVal };
+    const missingKey = cellKey(gap.missingCol.colId, missingCell);
+    let missingNode = cur.children.get(missingKey);
+    if (!missingNode) {
+      missingNode = makeTrieNode(cur.id, 'phantomCondition', {
+        colId: gap.missingCol.colId,
+        cell: missingCell,
+      });
+      cur.children.set(missingKey, missingNode);
+      const deadend = makeTrieNode(missingNode.id, 'phantomDeadend');
+      missingNode.children.set(`deadend|${missingNode.id}`, deadend);
+    }
+  }
+}
+
 // ---- Format helpers ----
 
 export function formatCellLabel(cell: Cell, t: TranslationSet): string {
@@ -133,12 +170,16 @@ const NODE_W: Record<TrieNode['nodeType'], number> = {
   condition: 160,
   terminal: 180,
   continue: 180,
+  phantomCondition: 160,
+  phantomDeadend: 160,
 };
 const NODE_H: Record<TrieNode['nodeType'], number> = {
   root: 40,
   condition: 60,
   terminal: 56,
   continue: 44,
+  phantomCondition: 60,
+  phantomDeadend: 44,
 };
 
 function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
@@ -174,8 +215,10 @@ export function buildFlowChart(
   table: Table,
   logic: Logic,
   t: TranslationSet,
+  gaps: CoverageGap[] = [],
 ): FlowChartData {
   const root = buildTrie(table);
+  if (gaps.length > 0) attachCoverageGaps(root, gaps);
   const allNodes = collectAll(root);
 
   const rfNodes: Node[] = allNodes.map((tn) => {
@@ -188,7 +231,7 @@ export function buildFlowChart(
 
     if (nt === 'root') {
       label = t.flowchartStart;
-    } else if (nt === 'condition') {
+    } else if (nt === 'condition' || nt === 'phantomCondition') {
       const col = table.cols.find((c) => c.id === tn.colId);
       fieldName = col?.fieldId
         ? (logic.fieldDefs[col.fieldId]?.name ?? '?')
@@ -205,6 +248,8 @@ export function buildFlowChart(
         ? (logic.tables[tn.targetTableId]?.name ?? '?')
         : '?';
       label = `→ ${name}`;
+    } else if (nt === 'phantomDeadend') {
+      label = t.flowchartDeadendLabel;
     }
 
     return {
@@ -225,12 +270,21 @@ export function buildFlowChart(
   const rfEdges: Edge[] = [];
   for (const tn of allNodes) {
     for (const child of tn.children.values()) {
+      const isPhantomEdge =
+        child.nodeType === 'phantomCondition' ||
+        child.nodeType === 'phantomDeadend';
       rfEdges.push({
         id: `e-${tn.id}-${child.id}`,
         source: tn.id,
         target: child.id,
-        style: { stroke: '#9ca3af' },
-        markerEnd: { type: 'arrowclosed' as const, color: '#9ca3af' },
+        style: {
+          stroke: isPhantomEdge ? '#eab308' : '#9ca3af',
+          strokeDasharray: isPhantomEdge ? '4 4' : undefined,
+        },
+        markerEnd: {
+          type: 'arrowclosed' as const,
+          color: isPhantomEdge ? '#eab308' : '#9ca3af',
+        },
       });
     }
   }

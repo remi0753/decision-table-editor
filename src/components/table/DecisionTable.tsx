@@ -39,11 +39,14 @@ export function DecisionTable({ tableId }: Props) {
 
   const table = logic.tables[tableId];
 
-  const { duplicates, unreachable, noDefault } = useQualityChecks(
+  const { duplicates, unreachable, coverageGaps } = useQualityChecks(
     table ?? { rows: [], cols: [], id: '', name: '', outputCols: [] },
+    logic.fieldDefs,
   );
+  const gapCount = coverageGaps.length;
 
   const handleFlowNodeClick = useCallback((rowIds: string[]) => {
+    if (rowIds.length === 0) return;
     setHighlightedRowIds(new Set(rowIds));
     setActiveTab('table');
   }, []);
@@ -125,6 +128,11 @@ export function DecisionTable({ tableId }: Props) {
               )}
             >
               <GitBranch size={11} /> {t.flowchartTab}
+              {gapCount > 0 && (
+                <span className="bg-yellow-200 text-yellow-800 text-[10px] font-semibold px-1 rounded leading-tight">
+                  ⚠️ {gapCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -217,9 +225,16 @@ export function DecisionTable({ tableId }: Props) {
               </button>
             </div>
 
-            {noDefault && table.rows.length > 0 && (
-              <div className="mx-4 mb-3 bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800">
-                {t.noFallbackWarning}
+            {gapCount > 0 && table.rows.length > 0 && (
+              <div className="mx-4 mb-3 bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800 flex items-center justify-between gap-2">
+                <span>⚠️ {t.coverageGapWarning(gapCount)}</span>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('flowchart')}
+                  className="text-yellow-900 hover:text-yellow-700 font-medium underline whitespace-nowrap"
+                >
+                  {t.viewInFlowchart} →
+                </button>
               </div>
             )}
           </>
@@ -231,6 +246,7 @@ export function DecisionTable({ tableId }: Props) {
             tableId={tableId}
             highlightedRowIds={highlightedRowIds}
             onNodeClick={handleFlowNodeClick}
+            coverageGaps={coverageGaps}
           />
         )}
       </div>

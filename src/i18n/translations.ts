@@ -57,7 +57,10 @@ export type TranslationSet = {
   manageOutputCols: string;
   addConditionCol: string;
   addRow: string;
-  noFallbackWarning: string;
+  coverageGapWarning: (n: number) => string;
+  viewInFlowchart: string;
+  phantomNodeTitle: string;
+  flowchartDeadendLabel: string;
 
   // ColumnHeader
   noFieldSelected: string;
@@ -248,8 +251,11 @@ export const translations: Record<Lang, TranslationSet> = {
     manageOutputCols: 'Manage output columns',
     addConditionCol: 'Add condition column',
     addRow: 'Add row',
-    noFallbackWarning:
-      '⚠️ No fallback row that matches all conditions. Some inputs may produce no result.',
+    coverageGapWarning: (n) =>
+      `${n} input combination${n === 1 ? '' : 's'} produce no result.`,
+    viewInFlowchart: 'View in flowchart',
+    phantomNodeTitle: 'No rule defined for this branch',
+    flowchartDeadendLabel: 'No rule',
 
     noFieldSelected: '(none)',
     deleteColumn: 'Delete column',
@@ -447,8 +453,10 @@ export const translations: Record<Lang, TranslationSet> = {
     manageOutputCols: '出力列を管理',
     addConditionCol: '条件列を追加',
     addRow: '行を追加',
-    noFallbackWarning:
-      '⚠️ どの条件にも当てはまるフォールバック行がありません。特定の入力値で結果が得られない場合があります。',
+    coverageGapWarning: (n) => `${n}件の入力組み合わせで結果が得られません。`,
+    viewInFlowchart: 'フローチャートで確認',
+    phantomNodeTitle: 'このブランチには対応する行がありません',
+    flowchartDeadendLabel: '未対応',
 
     noFieldSelected: '（未選択）',
     deleteColumn: '列を削除',
