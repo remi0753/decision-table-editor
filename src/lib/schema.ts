@@ -36,6 +36,17 @@ const FieldDefSchema = z.object({
   enumValues: z.array(z.string()).optional(),
 });
 
+export const FieldDefsFileSchema = z.object({
+  version: z.literal('1'),
+  fields: z.array(
+    z.object({
+      name: z.string().min(1),
+      type: z.enum(['number', 'string', 'bool', 'enum', 'date', 'datetime']),
+      enumValues: z.array(z.string()).optional(),
+    }),
+  ),
+});
+
 export const LogicSchema = z.object({
   version: z.literal('2'),
   name: z.string(),

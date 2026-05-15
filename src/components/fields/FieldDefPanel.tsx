@@ -1,8 +1,16 @@
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Plus,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { InlineEdit } from '@/components/ui/InlineEdit';
+import { exportFieldDefs, useImportFieldDefs } from '@/hooks/useImportExport';
 import { useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
 import type { FieldType } from '@/types/logic';
@@ -27,6 +35,7 @@ export function FieldDefPanel() {
   const renameField = useLogicStore((s) => s.renameField);
   const changeFieldType = useLogicStore((s) => s.changeFieldType);
   const deleteField = useLogicStore((s) => s.deleteField);
+  const importFieldDefsFn = useImportFieldDefs();
   const t = useT();
 
   const fieldDefs = Object.values(logic.fieldDefs);
@@ -90,13 +99,32 @@ export function FieldDefPanel() {
     <div className="border rounded-lg bg-white mb-4">
       <div className="flex items-center justify-between px-4 py-2 border-b">
         <span className="font-medium text-sm">{t.fieldDefinitions}</span>
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-gray-400 hover:text-gray-600"
-        >
-          {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={importFieldDefsFn}
+            title={t.importFieldDefsTitle}
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-violet-600 border border-gray-200 hover:border-violet-200 rounded px-2 py-0.5"
+          >
+            <Upload size={12} /> {t.importFieldDefs}
+          </button>
+          <button
+            type="button"
+            onClick={() => exportFieldDefs(logic)}
+            disabled={fieldDefs.length === 0}
+            title={t.exportFieldDefsTitle}
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-violet-600 border border-gray-200 hover:border-violet-200 rounded px-2 py-0.5 disabled:opacity-40 disabled:hover:text-gray-500 disabled:hover:border-gray-200"
+          >
+            <Download size={12} /> {t.exportFieldDefs}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-gray-400 hover:text-gray-600 ml-1"
+          >
+            {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          </button>
+        </div>
       </div>
 
       {!collapsed && (
