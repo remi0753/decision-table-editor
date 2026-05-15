@@ -1,6 +1,7 @@
 import { Download, FilePlus, Upload } from 'lucide-react';
 import { Toaster } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
 import { useAutoSave } from '@/hooks/useLocalStorage';
 import type { Lang } from '@/i18n/translations';
@@ -34,9 +35,9 @@ export function AppLayout() {
     <div className="h-screen flex flex-col overflow-hidden">
       <Toaster position="top-right" richColors />
 
-      <header className="h-20 border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white flex items-center justify-between px-5 shrink-0 gap-4">
+      <header className="h-12 border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white flex items-center justify-between px-3 shrink-0 gap-4">
         <div className="flex items-center">
-          <img src={logoUrl} alt="LEVERIE" height={40} />
+          <img src={logoUrl} alt="LEVERIE" height={34} className="h-[34px]" />
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -48,27 +49,36 @@ export function AppLayout() {
             <option value="ja">日本語</option>
           </select>
           <div className="w-px h-5 bg-gray-200" />
-          <button
-            type="button"
-            onClick={handleNew}
-            className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
-          >
-            <FilePlus size={14} /> {t.newCreate}
-          </button>
-          <button
-            type="button"
-            onClick={importFn}
-            className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
-          >
-            <Upload size={14} /> {t.importBtn}
-          </button>
-          <button
-            type="button"
-            onClick={() => exportLogic(logic)}
-            className="flex items-center gap-1 text-sm border border-gray-200 rounded px-3 py-1.5 hover:bg-violet-50 hover:border-violet-200 text-gray-600"
-          >
-            <Download size={14} /> {t.exportBtn}
-          </button>
+          <Tooltip content={t.newCreate}>
+            <button
+              type="button"
+              onClick={handleNew}
+              aria-label={t.newCreate}
+              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600"
+            >
+              <FilePlus size={20} />
+            </button>
+          </Tooltip>
+          <Tooltip content={t.importBtn}>
+            <button
+              type="button"
+              onClick={importFn}
+              aria-label={t.importBtn}
+              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600"
+            >
+              <Upload size={20} />
+            </button>
+          </Tooltip>
+          <Tooltip content={t.exportBtn}>
+            <button
+              type="button"
+              onClick={() => exportLogic(logic)}
+              aria-label={t.exportBtn}
+              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600"
+            >
+              <Download size={20} />
+            </button>
+          </Tooltip>
         </div>
       </header>
 
