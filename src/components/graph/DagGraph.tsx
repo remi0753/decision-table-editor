@@ -143,7 +143,7 @@ export function DagGraph() {
   );
 
   return (
-    <div style={{ height: 220 }} className="border-b">
+    <div style={{ height: 220 }}>
       <ReactFlow
         nodes={layoutedNodes}
         edges={edges}

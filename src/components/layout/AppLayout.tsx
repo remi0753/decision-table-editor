@@ -73,7 +73,7 @@ export function AppLayout() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-72 border-r bg-gray-50 overflow-hidden flex flex-col shrink-0">
+        <aside className="w-80 border-r bg-gray-50 overflow-hidden flex flex-col shrink-0">
           <LeftPane />
         </aside>
         <main className="flex-1 overflow-hidden bg-gray-50">

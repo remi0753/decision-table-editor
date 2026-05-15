@@ -1,5 +1,4 @@
 import { EvaluationPanel } from '@/components/evaluation/EvaluationPanel';
-import { FieldDefPanel } from '@/components/fields/FieldDefPanel';
 import { DecisionTable } from '@/components/table/DecisionTable';
 import { useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
@@ -13,15 +12,16 @@ export function RightPane() {
   const tableId = selectedTableId ?? logic.entryTableId;
 
   return (
-    <div className="h-full overflow-y-auto p-4 space-y-0">
-      <FieldDefPanel />
-      {tableId && logic.tables[tableId] ? (
-        <div className="border rounded-lg bg-white overflow-hidden">
-          <DecisionTable tableId={tableId} />
-        </div>
-      ) : (
-        <div className="text-gray-400 text-sm p-4">{t.selectTable}</div>
-      )}
+    <div className="h-full flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        {tableId && logic.tables[tableId] ? (
+          <div className="border rounded-lg bg-white overflow-hidden">
+            <DecisionTable tableId={tableId} />
+          </div>
+        ) : (
+          <div className="text-gray-400 text-sm p-4">{t.selectTable}</div>
+        )}
+      </div>
       <EvaluationPanel />
     </div>
   );

@@ -20,6 +20,7 @@ export type TranslationSet = {
   logicNameLabel: string;
   logicNamePlaceholder: string;
   tableList: string;
+  tableGraph: string;
   addTable: string;
   deleteTable: string;
   deleteTableConfirm: (name: string) => string;
@@ -27,7 +28,7 @@ export type TranslationSet = {
   // RightPane
   selectTable: string;
 
-  // FieldDefPanel
+  // FieldsSection
   fieldDefinitions: string;
   fieldNameRequired: string;
   fieldTypes: {
@@ -223,6 +224,7 @@ export const translations: Record<Lang, TranslationSet> = {
     logicNameLabel: 'Logic Name',
     logicNamePlaceholder: 'Logic name',
     tableList: 'Tables',
+    tableGraph: 'Table Graph',
     addTable: 'Add table',
     deleteTable: 'Delete table',
     deleteTableConfirm: (name) => `Delete "${name}"?`,
@@ -434,6 +436,7 @@ export const translations: Record<Lang, TranslationSet> = {
     logicNameLabel: 'ロジック名',
     logicNamePlaceholder: 'ロジック名',
     tableList: 'テーブル一覧',
+    tableGraph: 'テーブル関係図',
     addTable: 'テーブルを追加',
     deleteTable: 'テーブルを削除',
     deleteTableConfirm: (name) => `「${name}」を削除しますか？`,
