@@ -146,8 +146,15 @@ export function SortableRow({
           onAdvance={handleAdvanceFromLastRow}
         />
       </td>
-      <td className="border-b px-1 py-0.5 w-8 text-center">
-        <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 gap-0.5">
+      <td
+        className={cn(
+          'border-b border-l px-1 py-0.5 w-16 text-center sticky right-0 z-10',
+          'bg-white group-hover:bg-gray-50',
+          isDragging && 'bg-violet-50',
+          highlighted && 'bg-yellow-50',
+        )}
+      >
+        <div className="flex flex-row items-center justify-center opacity-0 group-hover:opacity-100 gap-0.5">
           <IconButton
             tone="primary"
             size="xs"
