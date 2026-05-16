@@ -182,9 +182,15 @@ const NODE_H: Record<TrieNode['nodeType'], number> = {
   phantomDeadend: 44,
 };
 
-function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
+const RANK_SEP = 70;
+
+function layoutNodes(
+  nodes: Node[],
+  edges: Edge[],
+  colRankByNodeId: Map<string, number>,
+): Node[] {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 50 });
+  g.setGraph({ rankdir: 'LR', nodesep: 30, ranksep: RANK_SEP });
   g.setDefaultEdgeLabel(() => ({}));
   for (const n of nodes) {
     g.setNode(n.id, {
@@ -196,8 +202,35 @@ function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
     g.setEdge(e.source, e.target);
   }
   dagre.layout(g);
+
+  // Place each column rank at a deterministic x derived from the decision
+  // table's column order, not from dagre's tree depth. This keeps columns
+  // aligned even when a row's path skips earlier columns (e.g. a row that
+  // only sets c4/c5 would otherwise land at dagre rank 1, aligning with
+  // c1 rather than with c4).
+  const widthByRank = new Map<number, number>();
+  let maxRank = 0;
+  for (const n of nodes) {
+    const rank = colRankByNodeId.get(n.id);
+    if (rank === undefined) continue;
+    if (rank > maxRank) maxRank = rank;
+    const w = n.data._w as number;
+    const cur = widthByRank.get(rank) ?? 0;
+    if (w > cur) widthByRank.set(rank, w);
+  }
+  const xByRank = new Map<number, number>();
+  let cursor = 0;
+  for (let r = 0; r <= maxRank; r++) {
+    const w = widthByRank.get(r) ?? 0;
+    cursor += w / 2;
+    xByRank.set(r, cursor);
+    cursor += w / 2 + RANK_SEP;
+  }
+
   return nodes.map((n) => {
-    const { x, y } = g.node(n.id);
+    const { x: dagreX, y } = g.node(n.id);
+    const rank = colRankByNodeId.get(n.id);
+    const x = rank !== undefined ? (xByRank.get(rank) ?? dagreX) : dagreX;
     const w = n.data._w as number;
     const h = n.data._h as number;
     return { ...n, position: { x: x - w / 2, y: y - h / 2 } };
@@ -220,6 +253,33 @@ export function buildFlowChart(
   const root = buildTrie(table);
   if (gaps.length > 0) attachCoverageGaps(root, gaps);
   const allNodes = collectAll(root);
+
+  // Map each column id to its display order, used to align flow-chart ranks
+  // with the decision-table column order (left→right).
+  const colIndex = new Map<string, number>();
+  table.cols.forEach((c, i) => {
+    colIndex.set(c.id, i);
+  });
+  const conclusionRank = table.cols.length + 1;
+
+  const colRankByNodeId = new Map<string, number>();
+  for (const tn of allNodes) {
+    if (tn.nodeType === 'root') {
+      colRankByNodeId.set(tn.id, 0);
+    } else if (
+      tn.nodeType === 'condition' ||
+      tn.nodeType === 'phantomCondition'
+    ) {
+      const idx = tn.colId !== undefined ? colIndex.get(tn.colId) : undefined;
+      if (idx !== undefined) colRankByNodeId.set(tn.id, idx + 1);
+    } else if (
+      tn.nodeType === 'terminal' ||
+      tn.nodeType === 'continue' ||
+      tn.nodeType === 'phantomDeadend'
+    ) {
+      colRankByNodeId.set(tn.id, conclusionRank);
+    }
+  }
 
   const rfNodes: Node[] = allNodes.map((tn) => {
     const nt = tn.nodeType;
@@ -289,5 +349,8 @@ export function buildFlowChart(
     }
   }
 
-  return { nodes: layoutNodes(rfNodes, rfEdges), edges: rfEdges };
+  return {
+    nodes: layoutNodes(rfNodes, rfEdges, colRankByNodeId),
+    edges: rfEdges,
+  };
 }
