@@ -90,6 +90,10 @@ export type TranslationSet = {
   // RowHandle
   unreachableRowTitle: string;
   duplicateRowTitle: string;
+  unreachableRowTooltip: string;
+  duplicateRowTooltip: string;
+  rowWarningLabel: string;
+  rowErrorLabel: string;
   duplicateRow: string;
   deleteRow: string;
   insertRowBelow: string;
@@ -305,6 +309,12 @@ export const translations: Record<Lang, TranslationSet> = {
 
     unreachableRowTitle: 'This row cannot be reached by any input.',
     duplicateRowTitle: 'This row has the same condition as a row above.',
+    unreachableRowTooltip:
+      'Unreachable: another row already covers this input, so this row will never run. Change the conditions to make it reachable.',
+    duplicateRowTooltip:
+      'Duplicate: another row has the same conditions. Change the conditions or remove one of the rows.',
+    rowWarningLabel: 'Row warning',
+    rowErrorLabel: 'Row error',
     duplicateRow: 'Duplicate row',
     deleteRow: 'Delete row',
     insertRowBelow: 'Insert row below',
@@ -528,6 +538,12 @@ export const translations: Record<Lang, TranslationSet> = {
 
     unreachableRowTitle: 'この行はどの入力でも到達できません。',
     duplicateRowTitle: 'この行は上の行と同じ条件です。',
+    unreachableRowTooltip:
+      '到達不能: 他の行に覆われているため、この行は決して実行されません。条件を変更してください。',
+    duplicateRowTooltip:
+      '重複: 他の行と同じ条件です。条件を変更するか、いずれかを削除してください。',
+    rowWarningLabel: '行の警告',
+    rowErrorLabel: '行のエラー',
     duplicateRow: '行を複製',
     deleteRow: '行を削除',
     insertRowBelow: 'この行の下に挿入',
