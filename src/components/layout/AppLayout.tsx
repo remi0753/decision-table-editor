@@ -1,4 +1,4 @@
-import { Download, FilePlus, Upload } from 'lucide-react';
+import { Download, FilePlus, Redo2, Undo2, Upload } from 'lucide-react';
 import { Toaster } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -6,6 +6,7 @@ import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
 import { useAutoSave } from '@/hooks/useLocalStorage';
 import type { Lang } from '@/i18n/translations';
 import { useT } from '@/i18n/useT';
+import { redo, undo, useHistoryStore } from '@/store/historyStore';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { LeftPane } from './LeftPane';
@@ -18,6 +19,8 @@ export function AppLayout() {
   const clearBatch = useUiStore((s) => s.clearBatch);
   const lang = useUiStore((s) => s.lang);
   const setLang = useUiStore((s) => s.setLang);
+  const canUndo = useHistoryStore((s) => s.past.length > 0);
+  const canRedo = useHistoryStore((s) => s.future.length > 0);
   const importFn = useImportLogic();
   const t = useT();
 
@@ -48,6 +51,29 @@ export function AppLayout() {
             <option value="en">EN</option>
             <option value="ja">日本語</option>
           </select>
+          <div className="w-px h-5 bg-gray-200" />
+          <Tooltip content={t.undo}>
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              aria-label={t.undo}
+              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600 disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <Undo2 size={20} />
+            </button>
+          </Tooltip>
+          <Tooltip content={t.redo}>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              aria-label={t.redo}
+              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600 disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <Redo2 size={20} />
+            </button>
+          </Tooltip>
           <div className="w-px h-5 bg-gray-200" />
           <Tooltip content={t.newCreate}>
             <button

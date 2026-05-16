@@ -14,6 +14,8 @@ export type TranslationSet = {
   newCreate: string;
   importBtn: string;
   exportBtn: string;
+  undo: string;
+  redo: string;
   langLabel: string;
 
   // LeftPane
@@ -221,6 +223,8 @@ export const translations: Record<Lang, TranslationSet> = {
     newCreate: 'New',
     importBtn: 'Import',
     exportBtn: 'Export',
+    undo: 'Undo (⌘Z)',
+    redo: 'Redo (⇧⌘Z)',
     langLabel: 'EN',
 
     logicNameLabel: 'Logic Name',
@@ -435,6 +439,8 @@ export const translations: Record<Lang, TranslationSet> = {
     newCreate: '新規作成',
     importBtn: 'インポート',
     exportBtn: 'エクスポート',
+    undo: '元に戻す（⌘Z）',
+    redo: 'やり直し（⇧⌘Z）',
     langLabel: '日本語',
 
     logicNameLabel: 'ロジック名',
