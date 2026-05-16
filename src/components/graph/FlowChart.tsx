@@ -46,7 +46,7 @@ function RootNode({ data }: NodeProps) {
       </div>
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className="!bg-gray-400"
       />
     </>
@@ -57,7 +57,7 @@ function ConditionNode({ data }: NodeProps) {
   const d = data as ConditionNodeData;
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-gray-400" />
+      <Handle type="target" position={Position.Left} className="!bg-gray-400" />
       <div
         className={cn(
           'rounded border-2 border-gray-300 bg-white text-xs select-none overflow-hidden',
@@ -76,7 +76,7 @@ function ConditionNode({ data }: NodeProps) {
       </div>
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className="!bg-gray-400"
       />
     </>
@@ -89,7 +89,11 @@ function TerminalNode({ data }: NodeProps) {
   const lines = d.label.split('\n');
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-green-400" />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!bg-green-400"
+      />
       <div
         className={cn(
           'rounded border-2 border-green-400 bg-green-50 text-xs select-none overflow-hidden',
@@ -126,7 +130,7 @@ function ContinueNode({ data }: NodeProps) {
     <>
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!bg-violet-400"
       />
       <button
@@ -151,7 +155,7 @@ function PhantomConditionNode({ data }: NodeProps) {
     <>
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!bg-yellow-400"
       />
       <div
@@ -170,7 +174,7 @@ function PhantomConditionNode({ data }: NodeProps) {
       </div>
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className="!bg-yellow-400"
       />
     </>
@@ -184,7 +188,7 @@ function PhantomDeadendNode({ data }: NodeProps) {
     <>
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!bg-yellow-500"
       />
       <div
