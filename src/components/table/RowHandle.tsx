@@ -1,12 +1,27 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowDown, ArrowUp, Copy, GripVertical, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Copy,
+  GripVertical,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
 import type { FieldDef, Row, Table } from '@/types/logic';
 import { CellEditor } from './CellEditor';
 import { ConclusionCell } from './ConclusionCell';
+
+function focusFirstCellOfRow(rowId: string) {
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+    const trigger = row?.querySelector<HTMLElement>('[data-cell-trigger]');
+    trigger?.focus();
+  });
+}
 
 interface Props {
   tableId: string;
@@ -44,7 +59,21 @@ export function SortableRow({
   const deleteRow = useLogicStore((s) => s.deleteRow);
   const duplicateRow = useLogicStore((s) => s.duplicateRow);
   const moveRow = useLogicStore((s) => s.moveRow);
+  const addRow = useLogicStore((s) => s.addRow);
+  const insertRowAfter = useLogicStore((s) => s.insertRowAfter);
   const t = useT();
+
+  const isLastRow = rowIndex === totalRows - 1;
+
+  const handleInsertBelow = () => {
+    const newId = insertRowAfter(tableId, row.id);
+    if (newId) focusFirstCellOfRow(newId);
+  };
+
+  const handleAdvanceFromLastRow = () => {
+    const newId = addRow(tableId);
+    if (newId) focusFirstCellOfRow(newId);
+  };
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -55,6 +84,7 @@ export function SortableRow({
   return (
     <tr
       ref={setNodeRef}
+      data-row-id={row.id}
       style={style}
       className={cn(
         'group hover:bg-gray-50',
@@ -62,7 +92,7 @@ export function SortableRow({
         highlighted && 'bg-yellow-50',
       )}
     >
-      <td className="border-b border-r px-1 py-0.5 w-8 text-center">
+      <td className="border-b border-r px-1 py-0.5 w-8 text-center relative">
         <div className="flex flex-col items-center gap-0.5">
           {(duplicateWarning || unreachableWarning) && (
             <span
@@ -88,6 +118,15 @@ export function SortableRow({
             <GripVertical size={12} />
           </button>
         </div>
+        <button
+          type="button"
+          onClick={handleInsertBelow}
+          title={t.insertRowBelow}
+          aria-label={t.insertRowBelow}
+          className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 bg-white border border-violet-300 text-violet-600 rounded-full hover:bg-violet-50 flex items-center justify-center w-4 h-4"
+        >
+          <Plus size={10} strokeWidth={2.5} />
+        </button>
       </td>
       <td className="border-b border-r px-2 py-0.5 text-xs text-gray-400 text-center w-10">
         {rowIndex + 1}
@@ -115,6 +154,8 @@ export function SortableRow({
           rowId={row.id}
           conclusion={row.conclusion}
           outputCols={table.outputCols}
+          isLastRow={isLastRow}
+          onAdvance={handleAdvanceFromLastRow}
         />
       </td>
       <td className="border-b px-1 py-0.5 w-8 text-center">

@@ -76,7 +76,8 @@ interface LogicStore {
   renameOutputCol: (tableId: string, ocolId: string, name: string) => void;
   deleteOutputCol: (tableId: string, ocolId: string) => { error?: string };
 
-  addRow: (tableId: string) => void;
+  addRow: (tableId: string) => string | undefined;
+  insertRowAfter: (tableId: string, rowId: string) => string | undefined;
   duplicateRow: (tableId: string, rowId: string) => string | undefined;
   deleteRow: (tableId: string, rowId: string) => void;
   moveRow: (tableId: string, fromIndex: number, toIndex: number) => void;
@@ -550,16 +551,18 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
     return {};
   },
 
-  addRow: (tableId) =>
+  addRow: (tableId) => {
+    const { logic } = get();
+    if (!logic.tables[tableId]) return undefined;
+    const id = nextRowId(logic.nRow);
+    const newRow = {
+      id,
+      cells: {},
+      conclusion: { type: 'terminal' as const, outputs: {} },
+    };
     set((s) => {
       const table = s.logic.tables[tableId];
       if (!table) return s;
-      const id = nextRowId(s.logic.nRow);
-      const newRow = {
-        id,
-        cells: {},
-        conclusion: { type: 'terminal' as const, outputs: {} },
-      };
       return {
         logic: {
           ...s.logic,
@@ -570,7 +573,42 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
           },
         },
       };
-    }),
+    });
+    return id;
+  },
+
+  insertRowAfter: (tableId, rowId) => {
+    const { logic } = get();
+    const table = logic.tables[tableId];
+    if (!table) return undefined;
+    const idx = table.rows.findIndex((r) => r.id === rowId);
+    if (idx === -1) return undefined;
+    const id = nextRowId(logic.nRow);
+    const newRow = {
+      id,
+      cells: {},
+      conclusion: { type: 'terminal' as const, outputs: {} },
+    };
+    set((s) => {
+      const tb = s.logic.tables[tableId];
+      if (!tb) return s;
+      const sourceIdx = tb.rows.findIndex((r) => r.id === rowId);
+      if (sourceIdx === -1) return s;
+      const newRows = [...tb.rows];
+      newRows.splice(sourceIdx + 1, 0, newRow);
+      return {
+        logic: {
+          ...s.logic,
+          nRow: s.logic.nRow + 1,
+          tables: {
+            ...s.logic.tables,
+            [tableId]: { ...tb, rows: newRows },
+          },
+        },
+      };
+    });
+    return id;
+  },
 
   duplicateRow: (tableId, rowId) => {
     const { logic } = get();

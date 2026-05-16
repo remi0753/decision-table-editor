@@ -11,6 +11,8 @@ interface Props {
   rowId: string;
   conclusion: Conclusion;
   outputCols: Table['outputCols'];
+  isLastRow?: boolean;
+  onAdvance?: () => void;
 }
 
 export function ConclusionCell({
@@ -18,6 +20,8 @@ export function ConclusionCell({
   rowId,
   conclusion,
   outputCols,
+  isLastRow,
+  onAdvance,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'terminal' | 'continue'>(conclusion.type);
@@ -80,6 +84,18 @@ export function ConclusionCell({
       <Popover.Trigger asChild>
         <button
           type="button"
+          data-cell-trigger=""
+          onKeyDown={(e) => {
+            if (open) return;
+            if (!isLastRow || !onAdvance) return;
+            if (e.key === 'Tab' && !e.shiftKey) {
+              e.preventDefault();
+              onAdvance();
+            } else if (e.key === 'Enter') {
+              e.preventDefault();
+              onAdvance();
+            }
+          }}
           className={cn(
             'w-full h-full px-2 py-1 text-left text-xs hover:bg-gray-50 transition-colors',
             conclusion.type === 'continue'
