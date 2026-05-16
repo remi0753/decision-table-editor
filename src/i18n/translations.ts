@@ -82,6 +82,8 @@ export type TranslationSet = {
   // RowHandle
   unreachableRowTitle: string;
   duplicateRowTitle: string;
+  duplicateRow: string;
+  deleteRow: string;
 
   // CellEditor
   assignField: string;
@@ -284,6 +286,8 @@ export const translations: Record<Lang, TranslationSet> = {
 
     unreachableRowTitle: 'This row cannot be reached by any input.',
     duplicateRowTitle: 'This row has the same condition as a row above.',
+    duplicateRow: 'Duplicate row',
+    deleteRow: 'Delete row',
 
     assignField: 'Assign a field to this column.',
     operatorLabel: 'Operator',
@@ -494,6 +498,8 @@ export const translations: Record<Lang, TranslationSet> = {
 
     unreachableRowTitle: 'この行はどの入力でも到達できません。',
     duplicateRowTitle: 'この行は上の行と同じ条件です。',
+    duplicateRow: '行を複製',
+    deleteRow: '行を削除',
 
     assignField: '列にフィールドを割り当ててください。',
     operatorLabel: '演算子',
