@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { loadFromStorage } from '@/hooks/useLocalStorage';
+import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
 import { useT } from '@/i18n/useT';
+import { clearHistory } from '@/store/historyStore';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 
@@ -12,6 +14,8 @@ export default function App() {
   const setSelectedTable = useUiStore((s) => s.setSelectedTable);
   const t = useT();
 
+  useUndoRedoShortcuts();
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
   useEffect(() => {
     const saved = loadFromStorage();
@@ -20,6 +24,7 @@ export default function App() {
     } else {
       toast.info(t.newLogicCreated);
     }
+    clearHistory();
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
