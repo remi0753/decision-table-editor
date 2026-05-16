@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react';
+import { IconButton } from '@/components/ui/IconButton';
 import { useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
 
@@ -34,14 +35,15 @@ export function ColumnHeader({ tableId, colId, fieldId }: Props) {
             </option>
           ))}
         </select>
-        <button
-          type="button"
+        <IconButton
+          tone="danger"
           onClick={() => deleteCol(tableId, colId)}
-          className="text-gray-300 hover:text-red-500 shrink-0"
           title={t.deleteColumn}
+          aria-label={t.deleteColumn}
+          className="shrink-0"
         >
-          <Trash2 size={12} />
-        </button>
+          <Trash2 />
+        </IconButton>
       </div>
     </th>
   );

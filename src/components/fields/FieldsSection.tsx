@@ -9,6 +9,7 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { IconButton } from '@/components/ui/IconButton';
 import { InlineEdit } from '@/components/ui/InlineEdit';
 import { exportFieldDefs, useImportFieldDefs } from '@/hooks/useImportExport';
 import { useT } from '@/i18n/useT';
@@ -24,29 +25,29 @@ export function FieldsSectionActions() {
   const fieldDefs = Object.values(logic.fieldDefs);
   return (
     <>
-      <button
-        type="button"
+      <IconButton
+        tone="primary"
         onClick={(e) => {
           e.stopPropagation();
           importFieldDefsFn();
         }}
         title={t.importFieldDefsTitle}
-        className="text-gray-400 hover:text-violet-600 p-0.5"
+        aria-label={t.importFieldDefsTitle}
       >
-        <Upload size={12} />
-      </button>
-      <button
-        type="button"
+        <Upload />
+      </IconButton>
+      <IconButton
+        tone="primary"
         onClick={(e) => {
           e.stopPropagation();
           exportFieldDefs(logic);
         }}
         disabled={fieldDefs.length === 0}
         title={t.exportFieldDefsTitle}
-        className="text-gray-400 hover:text-violet-600 p-0.5 disabled:opacity-40 disabled:hover:text-gray-400"
+        aria-label={t.exportFieldDefsTitle}
       >
-        <Download size={12} />
-      </button>
+        <Download />
+      </IconButton>
     </>
   );
 }
@@ -180,16 +181,17 @@ export function FieldsSection() {
                   {typeLabel(field.type)}
                 </span>
               </button>
-              <button
-                type="button"
+              <IconButton
+                tone="danger"
                 onClick={() =>
                   setDeleteConfirm({ id: field.id, name: field.name })
                 }
-                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity shrink-0"
+                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                 title={t.deleteField}
+                aria-label={t.deleteField}
               >
-                <Trash2 size={12} />
-              </button>
+                <Trash2 />
+              </IconButton>
             </div>
             {isOpen && (
               <div className="px-3 pb-2 pt-1 bg-gray-50/50 space-y-1.5">
