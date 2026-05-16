@@ -64,7 +64,7 @@ The editor continuously checks each table and highlights problems:
 |-------|---------|
 | 🟡 Yellow `!` | **Duplicate** — this row has identical conditions to an earlier row and will never be reached first. |
 | 🔴 Red `!` | **Unreachable** — an earlier row's conditions fully cover this row's conditions. |
-| ⚠️ Banner | **No default row** — no row with all-wildcard conditions exists; some inputs may produce no result. |
+| ⚠️ Banner | **Coverage gap** — for tables made of `enum` / `bool` fields, some input combinations have no matching row. The flowchart view marks the gap as a phantom node. |
 
 ---
 
@@ -74,7 +74,7 @@ The editor continuously checks each table and highlights problems:
 
 - Node.js 18+
 
-### Install and run
+### Install and run locally
 
 ```bash
 git clone <repo-url>
@@ -85,36 +85,79 @@ npm run dev
 
 Open **http://localhost:5173** in your browser.
 
-### Build for production
+### Available scripts
 
-```bash
-npm run build
-# Output is in dist/
-```
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start the Vite dev server with HMR. |
+| `npm run build` | Build for production into `dist/`. |
+| `npm run build:local` | Run Biome lint + TypeScript type-check + production build. Use this before pushing. |
+| `npm run lint` | Run Biome lint check. |
+| `npm run lint:fix` | Apply Biome auto-fixes. |
+| `npm run format` | Format the codebase with Biome. |
+| `npm run preview` | Build and serve via Wrangler (Cloudflare Workers preview). |
+| `npm run deploy` | Build and deploy to Cloudflare Workers. |
+
+### Deployment
+
+The app is a static SPA deployed to **Cloudflare Workers**. Configuration lives in [wrangler.jsonc](wrangler.jsonc) (`assets.not_found_handling: "single-page-application"` rewrites unknown paths to `index.html`).
 
 ---
 
 ## How to use
 
+The UI is bilingual. Switch between **English** and **日本語** with the language selector in the top-right header. Labels below mention both versions where relevant.
+
+### Layout overview
+
+- **Header** (icon-only, with tooltips): language selector, **New** (新規作成), **Import** (インポート), **Export** (エクスポート).
+- **Left pane** (collapsible accordion sections):
+  1. **Logic Name** (ロジック名) — inline-editable.
+  2. **Table Graph** (テーブル関係図) — DAG of tables with Continue references.
+  3. **Tables** (テーブル一覧) — flat list with delete + add.
+  4. **Field Definitions** (フィールド定義) — shared field catalog with its own JSON import/export.
+- **Right pane**: the **table editor** for the selected table.
+- **Bottom drawer**: the **Evaluation Panel** (評価パネル) — collapse/expand by clicking the header. Tabs: Single (単一評価) and Batch (バッチ評価).
+
+The accordion open/close state and the drawer state are persisted to `localStorage`.
+
+---
+
 ### 1. Define fields
 
-The **フィールド定義** (Field Definition) panel is at the top of the right pane.
+Open the **Field Definitions** (フィールド定義) accordion in the left pane.
 
-1. Type a field name in the text box.
+1. Type a field name in the text box at the bottom of the section.
 2. Choose a type from the dropdown.
-3. Click **＋ 追加** (or press Enter).
+3. Click the **＋** button (or press Enter).
 
-| Type | Description |
-|------|-------------|
-| `テキスト` (string) | Free-form text. Supports `=`, `!=`, `in`, `contains`, `starts_with`, `ends_with`. |
-| `数値` (number) | Numeric. Supports `=`, `!=`, `<`, `<=`, `>`, `>=`, `between`. |
-| `真偽値` (bool) | `true` / `false`. |
-| `選択肢` (enum) | A predefined list of values. Add choices inline using the tag editor. |
-| `日付` (date) | ISO 8601 date. Supports relative operators like `before_today`, `after_today`. |
-| `日時` (datetime) | ISO 8601 date-time. |
+| Type (EN / 日本語) | Description |
+|---|---|
+| `Text` / `テキスト` (string) | Free-form text. Supports `=`, `!=`, `in`, `contains`, `starts_with`, `ends_with`. |
+| `Number` / `数値` (number) | Numeric. Supports `=`, `!=`, `<`, `<=`, `>`, `>=`, `between`. |
+| `Boolean` / `真偽値` (bool) | `true` / `false`. |
+| `Enum` / `選択肢` (enum) | A predefined list of values. Add choices inline using the tag editor inside each enum field. |
+| `Date` / `日付` (date) | ISO 8601 date. Supports relative operators like `before_today`, `after_today`. |
+| `Datetime` / `日時` (datetime) | ISO 8601 date-time. |
 
-**Changing a field's type** resets all condition cells that reference it (a confirmation dialog is shown).  
+**Changing a field's type** resets all condition cells that reference it (a confirmation dialog is shown if any cells exist).
 **Deleting a field** is blocked if any condition column still references it.
+
+#### Field-definition import / export
+
+The Field Definitions section header has its own ⬆ / ⬇ buttons that import and export **just** the field catalog as JSON (separate from the logic JSON). This is useful for reusing the same fields across multiple logics. The file format is:
+
+```json
+{
+  "version": "1",
+  "fields": [
+    { "name": "Customer Type", "type": "enum", "enumValues": ["Corp", "Individual"] },
+    { "name": "Amount",        "type": "number" }
+  ]
+}
+```
+
+Importing skips fields whose names already exist in the current logic.
 
 ---
 
@@ -122,11 +165,11 @@ The **フィールド定義** (Field Definition) panel is at the top of the righ
 
 #### Add a condition column
 
-Click the **＋** button at the top-right of the table header. Then choose a field from the dropdown in the column header.
+Click **＋ Add condition column** (＋ 条件列を追加) below the table. Then choose a field from the dropdown in the column header.
 
 #### Add a row
 
-Click **＋ 行を追加** below the table.
+Click **＋ Add row** (＋ 行を追加) below the table.
 
 #### Edit a condition cell
 
@@ -134,16 +177,16 @@ Click any cell in the condition area to open a popup:
 
 1. Choose an **operator** from the dropdown (the list is filtered by the column's field type).
 2. Enter a **value** using the appropriate input (text, number, date picker, checkbox list, etc.).
-3. Click **設定** to save, or **条件なし（ワイルドカード）** to make the cell match anything.
+3. Click **Set** (設定) to save, or **No condition (wildcard)** (条件なし（ワイルドカード）) to make the cell match anything.
 
-The cell displays a compact summary (`>= 100`, `法人, 個人`, `（条件なし）`, etc.).
+The cell displays a compact summary (`>= 100`, `Corp, Individual`, `(no condition)`, etc.).
 
 #### Edit a conclusion
 
-Click the **結論** cell to open a popup:
+Click the **Conclusion** (結論) cell to open a popup:
 
-- **終端結論 (Terminal)** — fill in the output value for each output column.
-- **継続参照 (Continue)** — pick the target table from the dropdown. Tables that would create a cycle are marked and disabled.
+- **Terminal** (終端結論) — fill in the output value for each output column.
+- **Continue** (継続参照) — pick the target table from the dropdown. Tables that would create a cycle are marked and disabled.
 
 #### Reorder rows
 
@@ -153,72 +196,100 @@ Drag the grip handle (⠿) on the left of each row, or use the ▲ / ▼ arrow b
 
 Click the ⚙ icon in the conclusion column header to add, rename, or delete output columns. A table must always have at least one output column.
 
+#### Switch between Table and Flowchart view
+
+Each table has a tab switcher in its header:
+
+- **Table** (テーブル) — the rows-and-cells editor.
+- **Flowchart** (フローチャート) — an automatically generated flowchart of the table's rules. Branches that have no matching rule are shown as **phantom nodes** (`No rule` / 未対応) so you can spot coverage gaps visually. Click a node to jump back to the corresponding row in the Table view. Available for tables built from `enum` / `bool` fields where coverage can be analysed exhaustively.
+
+When coverage gaps exist, a yellow banner appears below the table with a shortcut to the Flowchart view.
+
 ---
 
 ### 3. Manage tables
 
-The **left pane** shows the table list and a DAG graph of how tables reference each other.
+The **Table Graph** (テーブル関係図) accordion shows a DAG of how tables reference each other. The **Tables** (テーブル一覧) accordion shows them as a flat list.
 
 | Action | How |
 |--------|-----|
-| Add a table | Click **＋ テーブルを追加** at the bottom of the list. |
+| Add a table | Click **＋ Add table** (＋ テーブルを追加) at the bottom of the Tables list. |
 | Switch to a table | Click its name in the list, or click its node in the DAG graph. |
 | Rename a table | Click the table name in the editor header (inline edit). |
-| Set as entry table | Click **入口に設定** next to the table name in the editor header. |
+| Set as entry table | Click **Set as entry** (入口に設定) next to the table name in the editor header. |
 | Delete a table | Hover the table name in the list and click 🗑. Blocked if other tables reference it or if it is the entry table. |
 
 The DAG graph shows:
-- **Blue border** — the entry table (▶ badge).
-- **Faded** — tables not reachable from the entry table.
+- **▶ Entry badge** — the current entry table.
 - Directed edges — *Continue* references between tables.
+- Tables not reachable from the entry table appear as orphans.
 
 ---
 
 ### 4. Evaluate
 
-The **評価パネル** (Evaluation Panel) is at the bottom of the right pane.
+The **Evaluation Panel** (評価パネル) is a collapsible drawer at the bottom of the right pane. It has two tabs:
+
+#### Single (単一評価)
 
 1. Enter values for each field in the input form.
-2. Click **▶ 評価実行**.
-3. The result is displayed along with a step-by-step **trace** showing which rows were checked, which were skipped, and why.
+2. Click **Evaluate** (評価実行).
+3. The result appears with a step-by-step **trace** showing which rows were checked, which were skipped, and why.
 
-Click **↺ リセット** to clear all inputs and the result.
+Click **Reset** (リセット) to clear all inputs and the result.
+
+#### Batch (バッチ評価)
+
+Run many test cases in one shot from a CSV.
+
+1. Click **Download template** (テンプレートをダウンロード) to get a CSV pre-populated with the current logic's field names and `期待:<output>` columns.
+2. Fill the CSV in Excel / Google Sheets (UTF-8 BOM, RFC 4180 quoting).
+3. Click **Load CSV** (CSVを読み込む) to load the cases, then **Run all** (すべて評価実行).
+4. Each case is shown with its result and (if expected values were provided) a Pass / Fail badge. Click a row to expand its trace.
+
+CSV header conventions:
+
+| Column | Header value |
+|---|---|
+| Case name | `ケース名` (optional — auto-numbered if absent) |
+| Input value | exact field name from the logic |
+| Expected value | `期待:<output column name>` |
 
 ---
 
 ### 5. Save, export, and import
 
-- **Auto-save** — the logic is saved to `localStorage` on every change. It is restored automatically on next load.
-- **Export** — click **エクスポート** in the header to download a `.json` file.
-- **Import** — click **インポート** to load a `.json` file. The file is validated with a schema check. Minor issues (broken references, missing output columns) are repaired automatically with a notification.
+- **Auto-save** — the logic is saved to `localStorage` (key `decision-table-editor-v2`) on every change. It is restored automatically on next load.
+- **Export** — click the ⬇ button in the header to download the logic as `<logic name>.json`.
+- **Import** — click the ⬆ button to load a `.json` file. The file is validated with a Zod schema. Minor issues (broken Continue references, missing output columns, stale ID counters) are repaired automatically with a notification.
 
 #### JSON format (v2)
 
 ```json
 {
   "version": "2",
-  "name": "ローン審査ロジック",
+  "name": "Loan Review",
   "entryTableId": "t1",
   "fieldDefs": {
-    "f1": { "id": "f1", "name": "顧客種別", "type": "enum", "enumValues": ["法人", "個人"] },
-    "f2": { "id": "f2", "name": "申請金額", "type": "number" }
+    "f1": { "id": "f1", "name": "Customer Type", "type": "enum", "enumValues": ["Corp", "Individual"] },
+    "f2": { "id": "f2", "name": "Amount", "type": "number" }
   },
   "tables": {
     "t1": {
       "id": "t1",
-      "name": "初期審査",
+      "name": "Initial Review",
       "cols": [{ "id": "c1", "fieldId": "f1" }, { "id": "c2", "fieldId": "f2" }],
-      "outputCols": [{ "id": "oc1", "name": "結果" }],
+      "outputCols": [{ "id": "oc1", "name": "Result" }],
       "rows": [
         {
           "id": "r1",
-          "cells": { "c1": { "op": "=", "val": "法人" }, "c2": { "op": ">=", "val": "1000000" } },
-          "conclusion": { "type": "terminal", "outputs": { "oc1": "承認" } }
+          "cells": { "c1": { "op": "=", "val": "Corp" }, "c2": { "op": ">=", "val": "1000000" } },
+          "conclusion": { "type": "terminal", "outputs": { "oc1": "Approve" } }
         },
         {
           "id": "r2",
           "cells": {},
-          "conclusion": { "type": "terminal", "outputs": { "oc1": "否認" } }
+          "conclusion": { "type": "terminal", "outputs": { "oc1": "Reject" } }
         }
       ]
     }
@@ -238,9 +309,20 @@ Click **↺ リセット** to clear all inputs and the result.
 | Build tool | Vite 6 |
 | Styling | Tailwind CSS 3 |
 | State management | Zustand 4 |
-| Graph visualization | ReactFlow + dagre |
+| Graph visualization | @xyflow/react + dagre |
 | Drag & drop | @dnd-kit |
+| Date input | react-datepicker |
+| Icons | lucide-react |
+| Notifications | sonner |
 | Schema validation | Zod |
+| Lint / format | Biome |
+| Hosting | Cloudflare Workers (Wrangler) |
+
+---
+
+## Specification documents
+
+The full design specification lives in [doc/](doc/) (Japanese). Start at [doc/README.md](doc/README.md) for the table of contents.
 
 ---
 
