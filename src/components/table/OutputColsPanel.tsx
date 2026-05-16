@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { IconButton } from '@/components/ui/IconButton';
 import { InlineEdit } from '@/components/ui/InlineEdit';
 import { useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
@@ -43,13 +44,13 @@ export function OutputColsPanel({ tableId, outputCols, onClose }: Props) {
             onSave={(name) => renameOutputCol(tableId, oc.id, name)}
             className="text-sm flex-1"
           />
-          <button
-            type="button"
+          <IconButton
+            tone="danger"
             onClick={() => handleDelete(oc.id)}
-            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"
+            className="opacity-0 group-hover:opacity-100"
           >
-            <Trash2 size={12} />
-          </button>
+            <Trash2 />
+          </IconButton>
         </div>
       ))}
       <div className="flex gap-1 pt-1 border-t">
@@ -63,13 +64,9 @@ export function OutputColsPanel({ tableId, outputCols, onClose }: Props) {
           placeholder={t.colNamePlaceholder}
           className="flex-1 text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
         />
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="text-violet-600 hover:text-violet-800"
-        >
-          <Plus size={14} />
-        </button>
+        <IconButton tone="primary" onClick={handleAdd}>
+          <Plus />
+        </IconButton>
       </div>
       <button
         type="button"

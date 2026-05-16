@@ -7,6 +7,7 @@ import { GitBranch, Plus, Settings, Table2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { FlowChart } from '@/components/graph/FlowChart';
+import { IconButton } from '@/components/ui/IconButton';
 import { InlineEdit } from '@/components/ui/InlineEdit';
 import { useQualityChecks } from '@/hooks/useQualityChecks';
 import { useT } from '@/i18n/useT';
@@ -165,14 +166,13 @@ export function DecisionTable({ tableId }: Props) {
                     >
                       <div className="flex items-center justify-between">
                         <span>{t.conclusion}</span>
-                        <button
-                          type="button"
+                        <IconButton
                           onClick={() => setShowOutputPanel(!showOutputPanel)}
-                          className="text-gray-400 hover:text-gray-600"
                           title={t.manageOutputCols}
+                          aria-label={t.manageOutputCols}
                         >
-                          <Settings size={12} />
-                        </button>
+                          <Settings />
+                        </IconButton>
                       </div>
                       {showOutputPanel && (
                         <OutputColsPanel

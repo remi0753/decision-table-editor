@@ -2,6 +2,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { IconButton } from '@/components/ui/IconButton';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
@@ -51,16 +52,18 @@ export function TablesSection() {
             )}
             <span className="truncate">{table.name}</span>
           </div>
-          <button
-            type="button"
+          <IconButton
+            tone="danger"
             onClick={(e) => {
               e.stopPropagation();
               setDeleteTarget({ id: table.id, name: table.name });
             }}
-            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 shrink-0"
+            className="opacity-0 group-hover:opacity-100 shrink-0"
+            title={t.deleteTable}
+            aria-label={t.deleteTable}
           >
-            <Trash2 size={12} />
-          </button>
+            <Trash2 />
+          </IconButton>
         </div>
       ))}
 

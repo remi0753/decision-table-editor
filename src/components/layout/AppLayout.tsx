@@ -1,6 +1,7 @@
 import { Download, FilePlus, Redo2, Undo2, Upload } from 'lucide-react';
 import { Toaster } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
 import { useAutoSave } from '@/hooks/useLocalStorage';
@@ -53,57 +54,57 @@ export function AppLayout() {
           </select>
           <div className="w-px h-5 bg-gray-200" />
           <Tooltip content={t.undo}>
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              tone="primary"
               onClick={undo}
               disabled={!canUndo}
               aria-label={t.undo}
-              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600 disabled:opacity-30 disabled:hover:bg-transparent"
             >
-              <Undo2 size={20} />
-            </button>
+              <Undo2 />
+            </IconButton>
           </Tooltip>
           <Tooltip content={t.redo}>
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              tone="primary"
               onClick={redo}
               disabled={!canRedo}
               aria-label={t.redo}
-              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600 disabled:opacity-30 disabled:hover:bg-transparent"
             >
-              <Redo2 size={20} />
-            </button>
+              <Redo2 />
+            </IconButton>
           </Tooltip>
           <div className="w-px h-5 bg-gray-200" />
           <Tooltip content={t.newCreate}>
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              tone="primary"
               onClick={handleNew}
               aria-label={t.newCreate}
-              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600"
             >
-              <FilePlus size={20} />
-            </button>
+              <FilePlus />
+            </IconButton>
           </Tooltip>
           <Tooltip content={t.importBtn}>
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              tone="primary"
               onClick={importFn}
               aria-label={t.importBtn}
-              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600"
             >
-              <Upload size={20} />
-            </button>
+              <Upload />
+            </IconButton>
           </Tooltip>
           <Tooltip content={t.exportBtn}>
-            <button
-              type="button"
+            <IconButton
+              size="md"
+              tone="primary"
               onClick={() => exportLogic(logic)}
               aria-label={t.exportBtn}
-              className="flex items-center justify-center rounded p-1.5 hover:bg-violet-50 text-gray-600"
             >
-              <Download size={20} />
-            </button>
+              <Download />
+            </IconButton>
           </Tooltip>
         </div>
       </header>

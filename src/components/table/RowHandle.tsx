@@ -1,13 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  ArrowDown,
-  ArrowUp,
-  Copy,
-  GripVertical,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { Copy, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { IconButton } from '@/components/ui/IconButton';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
@@ -58,7 +52,6 @@ export function SortableRow({
   const clearCell = useLogicStore((s) => s.clearCell);
   const deleteRow = useLogicStore((s) => s.deleteRow);
   const duplicateRow = useLogicStore((s) => s.duplicateRow);
-  const moveRow = useLogicStore((s) => s.moveRow);
   const addRow = useLogicStore((s) => s.addRow);
   const insertRowAfter = useLogicStore((s) => s.insertRowAfter);
   const t = useT();
@@ -109,14 +102,9 @@ export function SortableRow({
               !
             </span>
           )}
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing"
-          >
-            <GripVertical size={12} />
-          </button>
+          <IconButton {...attributes} {...listeners} tone="drag">
+            <GripVertical />
+          </IconButton>
         </div>
         <button
           type="button"
@@ -160,43 +148,22 @@ export function SortableRow({
       </td>
       <td className="border-b px-1 py-0.5 w-8 text-center">
         <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 gap-0.5">
-          <button
-            type="button"
-            onClick={() =>
-              rowIndex > 0 && moveRow(tableId, rowIndex, rowIndex - 1)
-            }
-            disabled={rowIndex === 0}
-            className="text-gray-400 hover:text-gray-600 disabled:opacity-20"
-          >
-            <ArrowUp size={10} />
-          </button>
-          <button
-            type="button"
+          <IconButton
+            tone="primary"
             onClick={() => duplicateRow(tableId, row.id)}
-            className="text-gray-400 hover:text-violet-600"
             title={t.duplicateRow}
+            aria-label={t.duplicateRow}
           >
-            <Copy size={12} />
-          </button>
-          <button
-            type="button"
+            <Copy />
+          </IconButton>
+          <IconButton
+            tone="danger"
             onClick={() => deleteRow(tableId, row.id)}
-            className="text-gray-400 hover:text-red-500"
             title={t.deleteRow}
+            aria-label={t.deleteRow}
           >
-            <Trash2 size={12} />
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              rowIndex < totalRows - 1 &&
-              moveRow(tableId, rowIndex, rowIndex + 1)
-            }
-            disabled={rowIndex === totalRows - 1}
-            className="text-gray-400 hover:text-gray-600 disabled:opacity-20"
-          >
-            <ArrowDown size={10} />
-          </button>
+            <Trash2 />
+          </IconButton>
         </div>
       </td>
     </tr>
