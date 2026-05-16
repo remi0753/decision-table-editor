@@ -1,5 +1,6 @@
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core';
 import {
+  horizontalListSortingStrategy,
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
@@ -35,6 +36,7 @@ export function DecisionTable({ tableId }: Props) {
   const addCol = useLogicStore((s) => s.addCol);
   const addRow = useLogicStore((s) => s.addRow);
   const moveRow = useLogicStore((s) => s.moveRow);
+  const moveCol = useLogicStore((s) => s.moveCol);
   const renameTable = useLogicStore((s) => s.renameTable);
   const setEntryTable = useLogicStore((s) => s.setEntryTable);
   const t = useT();
@@ -56,10 +58,18 @@ export function DecisionTable({ tableId }: Props) {
   if (!table) return <div className="p-4 text-gray-400">{t.tableNotFound}</div>;
 
   const rowIds = table.rows.map((r) => r.id);
+  const colIds = table.cols.map((c) => c.id);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    const type = active.data.current?.type;
+    if (type === 'col') {
+      const from = table.cols.findIndex((c) => c.id === active.id);
+      const to = table.cols.findIndex((c) => c.id === over.id);
+      if (from !== -1 && to !== -1) moveCol(tableId, from, to);
+      return;
+    }
     const from = table.rows.findIndex((r) => r.id === active.id);
     const to = table.rows.findIndex((r) => r.id === over.id);
     if (from !== -1 && to !== -1) moveRow(tableId, from, to);
@@ -157,14 +167,19 @@ export function DecisionTable({ tableId }: Props) {
                     <th className="border-b border-r bg-gray-50 w-10 text-xs text-gray-400 px-2">
                       #
                     </th>
-                    {table.cols.map((col) => (
-                      <ColumnHeader
-                        key={col.id}
-                        tableId={tableId}
-                        colId={col.id}
-                        fieldId={col.fieldId}
-                      />
-                    ))}
+                    <SortableContext
+                      items={colIds}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      {table.cols.map((col) => (
+                        <ColumnHeader
+                          key={col.id}
+                          tableId={tableId}
+                          colId={col.id}
+                          fieldId={col.fieldId}
+                        />
+                      ))}
+                    </SortableContext>
                     <th
                       className="border-b border-r bg-gray-50 p-0 w-8"
                       style={{ width: 32 }}

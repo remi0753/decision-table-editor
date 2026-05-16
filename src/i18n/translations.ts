@@ -81,6 +81,7 @@ export type TranslationSet = {
   // ColumnHeader
   noFieldSelected: string;
   deleteColumn: string;
+  reorderColumn: string;
 
   // OutputColsPanel
   manageOutputColsTitle: string;
@@ -302,6 +303,7 @@ export const translations: Record<Lang, TranslationSet> = {
 
     noFieldSelected: '(none)',
     deleteColumn: 'Delete column',
+    reorderColumn: 'Reorder column',
 
     manageOutputColsTitle: 'Manage output columns',
     colNamePlaceholder: 'Column name',
@@ -531,6 +533,7 @@ export const translations: Record<Lang, TranslationSet> = {
 
     noFieldSelected: '（未選択）',
     deleteColumn: '列を削除',
+    reorderColumn: '列を並び替え',
 
     manageOutputColsTitle: '出力列を管理',
     colNamePlaceholder: '列名',
