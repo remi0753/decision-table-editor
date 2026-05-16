@@ -181,8 +181,8 @@ export function DecisionTable({ tableId }: Props) {
                       ))}
                     </SortableContext>
                     <th
-                      className="border-b border-r bg-gray-50 p-0 w-8"
-                      style={{ width: 32 }}
+                      className="border-b border-r bg-gray-50 p-0"
+                      style={{ width: 32, minWidth: 32, maxWidth: 32 }}
                     >
                       <button
                         type="button"
@@ -240,31 +240,25 @@ export function DecisionTable({ tableId }: Props) {
                       />
                     ))}
                   </SortableContext>
-                  {table.rows.length > 0 && (
-                    <tr>
-                      <td
-                        colSpan={table.cols.length + 5}
-                        className="border-b p-0"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => addRow(tableId)}
-                          title={t.addRow}
-                          aria-label={t.addRow}
-                          className="w-full flex items-center justify-center text-gray-300 hover:text-violet-700 hover:bg-violet-50 transition-colors py-1 group/addrow"
-                        >
-                          <Plus
-                            size={14}
-                            strokeWidth={2.5}
-                            className="group-hover/addrow:scale-110 transition-transform"
-                          />
-                        </button>
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
+
+            {table.rows.length > 0 && (
+              <button
+                type="button"
+                onClick={() => addRow(tableId)}
+                title={t.addRow}
+                aria-label={t.addRow}
+                className="w-full flex items-center justify-center text-gray-300 hover:text-violet-700 hover:bg-violet-50 border-b transition-colors py-1 group/addrow"
+              >
+                <Plus
+                  size={14}
+                  strokeWidth={2.5}
+                  className="group-hover/addrow:scale-110 transition-transform"
+                />
+              </button>
+            )}
 
             {(table.rows.length === 0 || table.cols.length === 0) && (
               <div className="flex items-center justify-center px-4 py-10 border-t bg-gray-50/50">

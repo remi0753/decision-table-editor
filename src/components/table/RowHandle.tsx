@@ -176,7 +176,10 @@ export function SortableRow({
           </td>
         );
       })}
-      <td className="border-b border-r w-8" style={{ width: 32 }} />
+      <td
+        className="border-b border-r"
+        style={{ width: 32, minWidth: 32, maxWidth: 32 }}
+      />
       <td className="border-b border-r p-0 h-8" style={{ minWidth: 240 }}>
         <ConclusionCell
           tableId={tableId}
