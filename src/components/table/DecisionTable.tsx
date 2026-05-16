@@ -153,7 +153,7 @@ export function DecisionTable({ tableId }: Props) {
               >
                 <thead>
                   <tr>
-                    <th className="border-b border-r bg-gray-50 w-8" />
+                    <th className="border-b border-r bg-gray-50 w-14 sticky left-0 z-10" />
                     <th className="border-b border-r bg-gray-50 w-10 text-xs text-gray-400 px-2">
                       #
                     </th>

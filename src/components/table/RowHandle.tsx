@@ -1,7 +1,15 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Copy, GripVertical, Plus, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  Copy,
+  GripVertical,
+  OctagonAlert,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { IconButton } from '@/components/ui/IconButton';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
@@ -15,6 +23,14 @@ function focusFirstCellOfRow(rowId: string) {
     const trigger = row?.querySelector<HTMLElement>('[data-cell-trigger]');
     trigger?.focus();
   });
+}
+
+type Severity = 'error' | 'warning' | null;
+
+function pickSeverity(unreachable: boolean, duplicate: boolean): Severity {
+  if (unreachable) return 'error';
+  if (duplicate) return 'warning';
+  return null;
 }
 
 interface Props {
@@ -57,6 +73,7 @@ export function SortableRow({
   const t = useT();
 
   const isLastRow = rowIndex === totalRows - 1;
+  const severity = pickSeverity(unreachableWarning, duplicateWarning);
 
   const handleInsertBelow = () => {
     const newId = insertRowAfter(tableId, row.id);
@@ -74,6 +91,19 @@ export function SortableRow({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const bandColor =
+    severity === 'error'
+      ? 'bg-red-500'
+      : severity === 'warning'
+        ? 'bg-amber-500'
+        : null;
+
+  const stickyBg = cn(
+    'bg-white group-hover:bg-gray-50',
+    isDragging && 'bg-violet-50',
+    highlighted && 'bg-yellow-50',
+  );
+
   return (
     <tr
       ref={setNodeRef}
@@ -85,23 +115,31 @@ export function SortableRow({
         highlighted && 'bg-yellow-50',
       )}
     >
-      <td className="border-b border-r px-1 py-0.5 w-8 text-center relative">
-        <div className="flex flex-col items-center gap-0.5">
-          {(duplicateWarning || unreachableWarning) && (
-            <span
-              className={cn(
-                'text-xs font-bold leading-none px-1 rounded',
-                unreachableWarning
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-yellow-100 text-yellow-700',
-              )}
-              title={
-                unreachableWarning ? t.unreachableRowTitle : t.duplicateRowTitle
-              }
-            >
-              !
-            </span>
-          )}
+      <td
+        className={cn(
+          'border-b border-r py-0.5 w-14 relative sticky left-0 z-10 group-hover:z-30',
+          stickyBg,
+        )}
+      >
+        {bandColor && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute left-0 top-0 bottom-0 w-1 z-20',
+              bandColor,
+            )}
+          />
+        )}
+        <div className="flex flex-row items-center justify-center gap-1 pl-1">
+          <div className="w-5 h-7 flex items-center justify-center">
+            {severity && (
+              <RowWarningIndicator
+                severity={severity}
+                unreachable={unreachableWarning}
+                duplicate={duplicateWarning}
+              />
+            )}
+          </div>
           <IconButton {...attributes} {...listeners} tone="drag" size="xs">
             <GripVertical />
           </IconButton>
@@ -112,7 +150,7 @@ export function SortableRow({
             onClick={handleInsertBelow}
             title={t.insertRowBelow}
             aria-label={t.insertRowBelow}
-            className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 bg-white border border-violet-300 text-violet-600 rounded-full hover:bg-violet-50 flex items-center justify-center w-4 h-4"
+            className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-20 opacity-0 group-hover:opacity-100 focus:opacity-100 bg-white border border-violet-300 text-violet-600 rounded-full hover:bg-violet-50 flex items-center justify-center w-4 h-4"
           >
             <Plus size={10} strokeWidth={2.5} />
           </button>
@@ -152,9 +190,7 @@ export function SortableRow({
       <td
         className={cn(
           'border-b border-l px-1 py-0.5 w-16 text-center sticky right-0 z-10',
-          'bg-white group-hover:bg-gray-50',
-          isDragging && 'bg-violet-50',
-          highlighted && 'bg-yellow-50',
+          stickyBg,
         )}
       >
         <div className="flex flex-row items-center justify-center opacity-0 group-hover:opacity-100 gap-0.5">
@@ -179,5 +215,45 @@ export function SortableRow({
         </div>
       </td>
     </tr>
+  );
+}
+
+interface RowWarningIndicatorProps {
+  severity: Exclude<Severity, null>;
+  unreachable: boolean;
+  duplicate: boolean;
+}
+
+function RowWarningIndicator({
+  severity,
+  unreachable,
+  duplicate,
+}: RowWarningIndicatorProps) {
+  const t = useT();
+  const Icon = severity === 'error' ? OctagonAlert : AlertTriangle;
+  const colorClass = severity === 'error' ? 'text-red-500' : 'text-amber-500';
+  const label = severity === 'error' ? t.rowErrorLabel : t.rowWarningLabel;
+
+  return (
+    <Tooltip
+      content={
+        <div className="max-w-xs space-y-1 leading-snug">
+          {unreachable && <div>{t.unreachableRowTooltip}</div>}
+          {duplicate && <div>{t.duplicateRowTooltip}</div>}
+        </div>
+      }
+      side="right"
+    >
+      <button
+        type="button"
+        aria-label={label}
+        className={cn(
+          'inline-flex items-center justify-center w-5 h-5 rounded',
+          colorClass,
+        )}
+      >
+        <Icon size={14} strokeWidth={2.25} aria-hidden="true" />
+      </button>
+    </Tooltip>
   );
 }
