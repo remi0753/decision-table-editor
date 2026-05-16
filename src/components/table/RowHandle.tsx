@@ -102,7 +102,7 @@ export function SortableRow({
               !
             </span>
           )}
-          <IconButton {...attributes} {...listeners} tone="drag">
+          <IconButton {...attributes} {...listeners} tone="drag" size="xs">
             <GripVertical />
           </IconButton>
         </div>
@@ -150,6 +150,7 @@ export function SortableRow({
         <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 gap-0.5">
           <IconButton
             tone="primary"
+            size="xs"
             onClick={() => duplicateRow(tableId, row.id)}
             title={t.duplicateRow}
             aria-label={t.duplicateRow}
@@ -158,6 +159,7 @@ export function SortableRow({
           </IconButton>
           <IconButton
             tone="danger"
+            size="xs"
             onClick={() => deleteRow(tableId, row.id)}
             title={t.deleteRow}
             aria-label={t.deleteRow}

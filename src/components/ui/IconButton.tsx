@@ -2,7 +2,7 @@ import { type ButtonHTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 type Tone = 'neutral' | 'danger' | 'primary' | 'drag';
-type Size = 'sm' | 'md';
+type Size = 'xs' | 'sm' | 'md';
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   tone?: Tone;
@@ -10,6 +10,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const sizeClass: Record<Size, string> = {
+  xs: 'w-7 h-7 [&_svg]:w-3.5 [&_svg]:h-3.5',
   sm: 'w-7 h-7 [&_svg]:w-4 [&_svg]:h-4',
   md: 'w-8 h-8 [&_svg]:w-5 [&_svg]:h-5',
 };
