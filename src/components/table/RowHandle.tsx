@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowDown, ArrowUp, GripVertical, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, GripVertical, Trash2 } from 'lucide-react';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
@@ -42,6 +42,7 @@ export function SortableRow({
   const setCell = useLogicStore((s) => s.setCell);
   const clearCell = useLogicStore((s) => s.clearCell);
   const deleteRow = useLogicStore((s) => s.deleteRow);
+  const duplicateRow = useLogicStore((s) => s.duplicateRow);
   const moveRow = useLogicStore((s) => s.moveRow);
   const t = useT();
 
@@ -130,8 +131,17 @@ export function SortableRow({
           </button>
           <button
             type="button"
+            onClick={() => duplicateRow(tableId, row.id)}
+            className="text-gray-400 hover:text-violet-600"
+            title={t.duplicateRow}
+          >
+            <Copy size={12} />
+          </button>
+          <button
+            type="button"
             onClick={() => deleteRow(tableId, row.id)}
             className="text-gray-400 hover:text-red-500"
+            title={t.deleteRow}
           >
             <Trash2 size={12} />
           </button>

@@ -77,6 +77,7 @@ interface LogicStore {
   deleteOutputCol: (tableId: string, ocolId: string) => { error?: string };
 
   addRow: (tableId: string) => void;
+  duplicateRow: (tableId: string, rowId: string) => string | undefined;
   deleteRow: (tableId: string, rowId: string) => void;
   moveRow: (tableId: string, fromIndex: number, toIndex: number) => void;
 
@@ -570,6 +571,55 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
         },
       };
     }),
+
+  duplicateRow: (tableId, rowId) => {
+    const { logic } = get();
+    const table = logic.tables[tableId];
+    if (!table) return undefined;
+    const sourceIndex = table.rows.findIndex((r) => r.id === rowId);
+    if (sourceIndex === -1) return undefined;
+    const source = table.rows[sourceIndex]!;
+    const newId = nextRowId(logic.nRow);
+    const clonedCells: Record<string, Cell> = {};
+    for (const [colId, cell] of Object.entries(source.cells)) {
+      clonedCells[colId] = {
+        op: cell.op,
+        ...(Array.isArray(cell.val)
+          ? { val: [...cell.val] }
+          : cell.val !== undefined
+            ? { val: cell.val }
+            : {}),
+      };
+    }
+    const clonedConclusion: Conclusion =
+      source.conclusion.type === 'terminal'
+        ? { type: 'terminal', outputs: { ...source.conclusion.outputs } }
+        : { type: 'continue', tableId: source.conclusion.tableId };
+    const newRow = {
+      id: newId,
+      cells: clonedCells,
+      conclusion: clonedConclusion,
+    };
+    set((s) => {
+      const tb = s.logic.tables[tableId];
+      if (!tb) return s;
+      const idx = tb.rows.findIndex((r) => r.id === rowId);
+      if (idx === -1) return s;
+      const newRows = [...tb.rows];
+      newRows.splice(idx + 1, 0, newRow);
+      return {
+        logic: {
+          ...s.logic,
+          nRow: s.logic.nRow + 1,
+          tables: {
+            ...s.logic.tables,
+            [tableId]: { ...tb, rows: newRows },
+          },
+        },
+      };
+    });
+    return newId;
+  },
 
   deleteRow: (tableId, rowId) =>
     set((s) => {
