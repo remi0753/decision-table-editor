@@ -86,6 +86,7 @@ export type TranslationSet = {
   duplicateRowTitle: string;
   duplicateRow: string;
   deleteRow: string;
+  insertRowBelow: string;
 
   // CellEditor
   assignField: string;
@@ -292,6 +293,7 @@ export const translations: Record<Lang, TranslationSet> = {
     duplicateRowTitle: 'This row has the same condition as a row above.',
     duplicateRow: 'Duplicate row',
     deleteRow: 'Delete row',
+    insertRowBelow: 'Insert row below',
 
     assignField: 'Assign a field to this column.',
     operatorLabel: 'Operator',
@@ -506,6 +508,7 @@ export const translations: Record<Lang, TranslationSet> = {
     duplicateRowTitle: 'この行は上の行と同じ条件です。',
     duplicateRow: '行を複製',
     deleteRow: '行を削除',
+    insertRowBelow: 'この行の下に挿入',
 
     assignField: '列にフィールドを割り当ててください。',
     operatorLabel: '演算子',
