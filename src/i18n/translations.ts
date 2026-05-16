@@ -74,6 +74,9 @@ export type TranslationSet = {
   viewInFlowchart: string;
   phantomNodeTitle: string;
   flowchartDeadendLabel: string;
+  tableMoreActions: string;
+  deleteAllRows: string;
+  deleteAllRowsConfirm: (tableName: string, count: number) => string;
 
   // ColumnHeader
   noFieldSelected: string;
@@ -288,6 +291,10 @@ export const translations: Record<Lang, TranslationSet> = {
     viewInFlowchart: 'View in flowchart',
     phantomNodeTitle: 'No rule defined for this branch',
     flowchartDeadendLabel: 'No rule',
+    tableMoreActions: 'More actions',
+    deleteAllRows: 'Delete all rows',
+    deleteAllRowsConfirm: (tableName, count) =>
+      `Delete all ${count} row${count === 1 ? '' : 's'} in "${tableName}"? This cannot be undone except via Undo.`,
 
     noFieldSelected: '(none)',
     deleteColumn: 'Delete column',
@@ -507,6 +514,10 @@ export const translations: Record<Lang, TranslationSet> = {
     viewInFlowchart: 'フローチャートで確認',
     phantomNodeTitle: 'このブランチには対応する行がありません',
     flowchartDeadendLabel: '未対応',
+    tableMoreActions: 'その他の操作',
+    deleteAllRows: '行をすべて削除',
+    deleteAllRowsConfirm: (tableName, count) =>
+      `「${tableName}」の行をすべて削除しますか？（${count}件）。Undoで元に戻せます。`,
 
     noFieldSelected: '（未選択）',
     deleteColumn: '列を削除',

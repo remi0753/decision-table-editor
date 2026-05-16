@@ -16,6 +16,7 @@ import { useLogicStore } from '@/store/logicStore';
 import { ColumnHeader } from './ColumnHeader';
 import { OutputColsPanel } from './OutputColsPanel';
 import { SortableRow } from './RowHandle';
+import { TableHeaderMenu } from './TableHeaderMenu';
 
 interface Props {
   tableId: string;
@@ -104,37 +105,41 @@ export function DecisionTable({ tableId }: Props) {
             )}
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white p-0.5">
-            <button
-              type="button"
-              onClick={() => handleTabChange('table')}
-              className={cn(
-                'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors',
-                activeTab === 'table'
-                  ? 'bg-gray-100 text-gray-800'
-                  : 'text-gray-500 hover:text-gray-700',
-              )}
-            >
-              <Table2 size={11} /> {t.tableTab}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleTabChange('flowchart')}
-              className={cn(
-                'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors',
-                activeTab === 'flowchart'
-                  ? 'bg-gray-100 text-gray-800'
-                  : 'text-gray-500 hover:text-gray-700',
-              )}
-            >
-              <GitBranch size={11} /> {t.flowchartTab}
-              {gapCount > 0 && (
-                <span className="bg-yellow-200 text-yellow-800 text-[10px] font-semibold px-1 rounded leading-tight">
-                  ⚠️ {gapCount}
-                </span>
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Tab switcher */}
+            <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => handleTabChange('table')}
+                className={cn(
+                  'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors',
+                  activeTab === 'table'
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'text-gray-500 hover:text-gray-700',
+                )}
+              >
+                <Table2 size={11} /> {t.tableTab}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTabChange('flowchart')}
+                className={cn(
+                  'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors',
+                  activeTab === 'flowchart'
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'text-gray-500 hover:text-gray-700',
+                )}
+              >
+                <GitBranch size={11} /> {t.flowchartTab}
+                {gapCount > 0 && (
+                  <span className="bg-yellow-200 text-yellow-800 text-[10px] font-semibold px-1 rounded leading-tight">
+                    ⚠️ {gapCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <TableHeaderMenu tableId={tableId} />
           </div>
         </div>
 
