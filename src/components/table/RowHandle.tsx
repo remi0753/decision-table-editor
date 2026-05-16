@@ -106,15 +106,17 @@ export function SortableRow({
             <GripVertical />
           </IconButton>
         </div>
-        <button
-          type="button"
-          onClick={handleInsertBelow}
-          title={t.insertRowBelow}
-          aria-label={t.insertRowBelow}
-          className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 bg-white border border-violet-300 text-violet-600 rounded-full hover:bg-violet-50 flex items-center justify-center w-4 h-4"
-        >
-          <Plus size={10} strokeWidth={2.5} />
-        </button>
+        {!isLastRow && (
+          <button
+            type="button"
+            onClick={handleInsertBelow}
+            title={t.insertRowBelow}
+            aria-label={t.insertRowBelow}
+            className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 bg-white border border-violet-300 text-violet-600 rounded-full hover:bg-violet-50 flex items-center justify-center w-4 h-4"
+          >
+            <Plus size={10} strokeWidth={2.5} />
+          </button>
+        )}
       </td>
       <td className="border-b border-r px-2 py-0.5 text-xs text-gray-400 text-center w-10">
         {rowIndex + 1}
@@ -136,6 +138,7 @@ export function SortableRow({
           </td>
         );
       })}
+      <td className="border-b border-r w-8" style={{ width: 32 }} />
       <td className="border-b border-r p-0 h-8" style={{ minWidth: 240 }}>
         <ConclusionCell
           tableId={tableId}
