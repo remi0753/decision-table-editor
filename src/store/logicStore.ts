@@ -82,6 +82,7 @@ interface LogicStore {
   deleteRow: (tableId: string, rowId: string) => void;
   deleteAllRows: (tableId: string) => void;
   moveRow: (tableId: string, fromIndex: number, toIndex: number) => void;
+  moveCol: (tableId: string, fromIndex: number, toIndex: number) => void;
 
   setCell: (tableId: string, rowId: string, colId: string, cell: Cell) => void;
   clearCell: (tableId: string, rowId: string, colId: string) => void;
@@ -705,6 +706,22 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
         logic: {
           ...s.logic,
           tables: { ...s.logic.tables, [tableId]: { ...table, rows } },
+        },
+      };
+    }),
+
+  moveCol: (tableId, fromIndex, toIndex) =>
+    set((s) => {
+      const table = s.logic.tables[tableId];
+      if (!table) return s;
+      const cols = [...table.cols];
+      const [moved] = cols.splice(fromIndex, 1);
+      if (!moved) return s;
+      cols.splice(toIndex, 0, moved);
+      return {
+        logic: {
+          ...s.logic,
+          tables: { ...s.logic.tables, [tableId]: { ...table, cols } },
         },
       };
     }),

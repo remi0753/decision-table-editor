@@ -63,7 +63,7 @@ export function SortableRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: row.id });
+  } = useSortable({ id: row.id, data: { type: 'row' } });
   const setCell = useLogicStore((s) => s.setCell);
   const clearCell = useLogicStore((s) => s.clearCell);
   const deleteRow = useLogicStore((s) => s.deleteRow);
