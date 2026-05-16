@@ -23,11 +23,11 @@ interface BaseNodeData extends Record<string, unknown> {
   rowIds: string[];
   highlighted: boolean;
 }
-interface ConditionNodeData extends BaseNodeData {
-  fieldName?: string;
-}
 interface ContinueNodeData extends BaseNodeData {
   targetTableId?: string;
+}
+interface SwimlaneHeaderNodeData extends BaseNodeData {
+  _w: number;
 }
 
 // ---- Custom Node components ----
@@ -54,7 +54,7 @@ function RootNode({ data }: NodeProps) {
 }
 
 function ConditionNode({ data }: NodeProps) {
-  const d = data as ConditionNodeData;
+  const d = data as BaseNodeData;
   return (
     <>
       <Handle type="target" position={Position.Left} className="!bg-gray-400" />
@@ -65,11 +65,6 @@ function ConditionNode({ data }: NodeProps) {
         )}
         style={{ width: 160 }}
       >
-        {d.fieldName && (
-          <div className="bg-gray-100 px-2 py-0.5 text-gray-500 font-medium truncate border-b border-gray-200 text-center">
-            {d.fieldName}
-          </div>
-        )}
         <div className="px-2 py-1.5 text-gray-700 text-center font-mono truncate">
           {d.label}
         </div>
@@ -149,7 +144,7 @@ function ContinueNode({ data }: NodeProps) {
 }
 
 function PhantomConditionNode({ data }: NodeProps) {
-  const d = data as ConditionNodeData;
+  const d = data as BaseNodeData;
   const t = useT();
   return (
     <>
@@ -163,11 +158,6 @@ function PhantomConditionNode({ data }: NodeProps) {
         style={{ width: 160 }}
         title={t.phantomNodeTitle}
       >
-        {d.fieldName && (
-          <div className="bg-yellow-100/70 px-2 py-0.5 text-yellow-700 font-medium truncate border-b border-dashed border-yellow-300 text-center">
-            {d.fieldName}
-          </div>
-        )}
         <div className="px-2 py-1.5 text-yellow-800 text-center font-mono truncate">
           {d.label}
         </div>
@@ -178,6 +168,19 @@ function PhantomConditionNode({ data }: NodeProps) {
         className="!bg-yellow-400"
       />
     </>
+  );
+}
+
+function SwimlaneHeaderNode({ data }: NodeProps) {
+  const d = data as SwimlaneHeaderNodeData;
+  return (
+    <div
+      className="px-2 py-1 rounded bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold text-center truncate select-none pointer-events-none"
+      style={{ width: d._w }}
+      title={d.label}
+    >
+      {d.label}
+    </div>
   );
 }
 
@@ -211,6 +214,7 @@ const nodeTypes = {
   continueNode: ContinueNode,
   phantomConditionNode: PhantomConditionNode,
   phantomDeadendNode: PhantomDeadendNode,
+  swimlaneHeaderNode: SwimlaneHeaderNode,
 };
 
 // ---- FlowChart component ----
@@ -253,7 +257,8 @@ export function FlowChart({
 
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      if (node.type === 'continueNode') return;
+      if (node.type === 'continueNode' || node.type === 'swimlaneHeaderNode')
+        return;
       onNodeClick(node.data.rowIds as string[], node.type ?? '');
     },
     [onNodeClick],
