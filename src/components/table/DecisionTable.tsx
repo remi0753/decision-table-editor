@@ -183,6 +183,7 @@ export function DecisionTable({ tableId }: Props) {
                         />
                       )}
                     </th>
+                    <th className="border-b border-l bg-gray-50 w-16 sticky right-0 z-10" />
                   </tr>
                 </thead>
                 <tbody>
