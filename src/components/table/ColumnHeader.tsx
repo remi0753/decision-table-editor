@@ -37,6 +37,7 @@ export function ColumnHeader({ tableId, colId, fieldId }: Props) {
         </select>
         <IconButton
           tone="danger"
+          size="xs"
           onClick={() => deleteCol(tableId, colId)}
           title={t.deleteColumn}
           aria-label={t.deleteColumn}

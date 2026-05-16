@@ -167,6 +167,7 @@ export function DecisionTable({ tableId }: Props) {
                       <div className="flex items-center justify-between">
                         <span>{t.conclusion}</span>
                         <IconButton
+                          size="xs"
                           onClick={() => setShowOutputPanel(!showOutputPanel)}
                           title={t.manageOutputCols}
                           aria-label={t.manageOutputCols}
