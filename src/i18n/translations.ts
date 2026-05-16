@@ -67,6 +67,9 @@ export type TranslationSet = {
   manageOutputCols: string;
   addConditionCol: string;
   addRow: string;
+  addFirstRow: string;
+  addFirstConditionCol: string;
+  emptyTableHelper: string;
   coverageGapWarning: (n: number) => string;
   viewInFlowchart: string;
   phantomNodeTitle: string;
@@ -276,6 +279,10 @@ export const translations: Record<Lang, TranslationSet> = {
     manageOutputCols: 'Manage output columns',
     addConditionCol: 'Add condition column',
     addRow: 'Add row',
+    addFirstRow: 'Add the first row',
+    addFirstConditionCol: 'Add the first condition column',
+    emptyTableHelper:
+      'This table is empty. Add a column and a row to get started.',
     coverageGapWarning: (n) =>
       `${n} input combination${n === 1 ? '' : 's'} produce no result.`,
     viewInFlowchart: 'View in flowchart',
@@ -492,6 +499,10 @@ export const translations: Record<Lang, TranslationSet> = {
     manageOutputCols: '出力列を管理',
     addConditionCol: '条件列を追加',
     addRow: '行を追加',
+    addFirstRow: '最初の行を追加',
+    addFirstConditionCol: '最初の条件列を追加',
+    emptyTableHelper:
+      'このテーブルはまだ空です。列と行を追加して始めましょう。',
     coverageGapWarning: (n) => `${n}件の入力組み合わせで結果が得られません。`,
     viewInFlowchart: 'フローチャートで確認',
     phantomNodeTitle: 'このブランチには対応する行がありません',

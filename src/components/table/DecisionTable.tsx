@@ -161,6 +161,20 @@ export function DecisionTable({ tableId }: Props) {
                       />
                     ))}
                     <th
+                      className="border-b border-r bg-gray-50 p-0 w-8"
+                      style={{ width: 32 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => addCol(tableId)}
+                        title={t.addConditionCol}
+                        aria-label={t.addConditionCol}
+                        className="w-full h-full flex items-center justify-center text-gray-400 hover:text-violet-700 hover:bg-violet-50 transition-colors py-1.5"
+                      >
+                        <Plus size={14} strokeWidth={2.5} />
+                      </button>
+                    </th>
+                    <th
                       className="border-b border-r bg-gray-50 px-2 py-1 text-xs font-medium relative"
                       style={{ minWidth: 240 }}
                     >
@@ -206,26 +220,63 @@ export function DecisionTable({ tableId }: Props) {
                       />
                     ))}
                   </SortableContext>
+                  {table.rows.length > 0 && (
+                    <tr>
+                      <td
+                        colSpan={table.cols.length + 5}
+                        className="border-b p-0"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => addRow(tableId)}
+                          title={t.addRow}
+                          aria-label={t.addRow}
+                          className="w-full flex items-center justify-center text-gray-300 hover:text-violet-700 hover:bg-violet-50 transition-colors py-1 group/addrow"
+                        >
+                          <Plus
+                            size={14}
+                            strokeWidth={2.5}
+                            className="group-hover/addrow:scale-110 transition-transform"
+                          />
+                        </button>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
 
-            <div className="px-4 py-2 border-t flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => addCol(tableId)}
-                className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-2 py-1"
-              >
-                <Plus size={12} /> {t.addConditionCol}
-              </button>
-              <button
-                type="button"
-                onClick={() => addRow(tableId)}
-                className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-2 py-1"
-              >
-                <Plus size={12} /> {t.addRow}
-              </button>
-            </div>
+            {(table.rows.length === 0 || table.cols.length === 0) && (
+              <div className="flex items-center justify-center px-4 py-10 border-t bg-gray-50/50">
+                <div className="flex flex-col items-center gap-3 bg-white border border-gray-200 rounded-lg shadow-sm px-8 py-6">
+                  {table.rows.length === 0 && table.cols.length === 0 && (
+                    <p className="text-sm text-gray-600 mb-1">
+                      {t.emptyTableHelper}
+                    </p>
+                  )}
+                  {table.cols.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => addCol(tableId)}
+                      className="w-72 flex items-center justify-center gap-1.5 text-sm text-violet-700 hover:text-violet-900 bg-white border border-violet-300 hover:border-violet-500 rounded px-3 py-2"
+                    >
+                      <Plus size={16} strokeWidth={2.5} />
+                      {t.addFirstConditionCol}
+                    </button>
+                  )}
+                  {table.rows.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => addRow(tableId)}
+                      className="w-72 flex items-center justify-center gap-1.5 text-sm text-violet-700 hover:text-violet-900 bg-white border border-violet-300 hover:border-violet-500 rounded px-3 py-2"
+                    >
+                      <Plus size={16} strokeWidth={2.5} />
+                      {t.addFirstRow}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {gapCount > 0 && table.rows.length > 0 && (
               <div className="mx-4 mb-3 bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800 flex items-center justify-between gap-2">
