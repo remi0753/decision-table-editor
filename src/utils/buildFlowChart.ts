@@ -175,19 +175,22 @@ const NODE_W: Record<TrieNode['nodeType'], number> = {
 };
 const NODE_H: Record<TrieNode['nodeType'], number> = {
   root: 40,
-  condition: 60,
+  condition: 40,
   terminal: 56,
   continue: 44,
-  phantomCondition: 60,
+  phantomCondition: 40,
   phantomDeadend: 44,
 };
 
 const RANK_SEP = 70;
+const SWIMLANE_HEADER_H = 28;
+const SWIMLANE_HEADER_GAP = 28;
 
 function layoutNodes(
   nodes: Node[],
   edges: Edge[],
   colRankByNodeId: Map<string, number>,
+  swimlaneLabels: Map<number, string>,
 ): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir: 'LR', nodesep: 30, ranksep: RANK_SEP });
@@ -227,7 +230,7 @@ function layoutNodes(
     cursor += w / 2 + RANK_SEP;
   }
 
-  return nodes.map((n) => {
+  const positioned = nodes.map((n) => {
     const { x: dagreX, y } = g.node(n.id);
     const rank = colRankByNodeId.get(n.id);
     const x = rank !== undefined ? (xByRank.get(rank) ?? dagreX) : dagreX;
@@ -235,6 +238,39 @@ function layoutNodes(
     const h = n.data._h as number;
     return { ...n, position: { x: x - w / 2, y: y - h / 2 } };
   });
+
+  // Append swimlane header nodes above every column that has a label.
+  // They share a single y so the headers form a row across the chart,
+  // and inherit each column rank's max-width so a header always covers
+  // the nodes beneath it.
+  let minY = Infinity;
+  for (const n of positioned) {
+    if (n.position.y < minY) minY = n.position.y;
+  }
+  if (!Number.isFinite(minY)) minY = 0;
+  const headerY = minY - SWIMLANE_HEADER_H - SWIMLANE_HEADER_GAP;
+
+  const headerNodes: Node[] = [];
+  for (const [rank, label] of swimlaneLabels) {
+    const w = widthByRank.get(rank);
+    const cx = xByRank.get(rank);
+    if (w === undefined || cx === undefined) continue;
+    headerNodes.push({
+      id: `swimlane-${rank}`,
+      type: 'swimlaneHeaderNode',
+      position: { x: cx - w / 2, y: headerY },
+      data: {
+        label,
+        rowIds: [],
+        _w: w,
+        _h: SWIMLANE_HEADER_H,
+      },
+      draggable: false,
+      selectable: false,
+    });
+  }
+
+  return [...headerNodes, ...positioned];
 }
 
 // ---- Public API ----
@@ -281,21 +317,24 @@ export function buildFlowChart(
     }
   }
 
+  // Swimlane label per column rank — the field name shown above every
+  // node in that column, replacing the per-node fieldName header.
+  const swimlaneLabels = new Map<number, string>();
+  table.cols.forEach((c, i) => {
+    const name = c.fieldId ? (logic.fieldDefs[c.fieldId]?.name ?? '?') : '?';
+    swimlaneLabels.set(i + 1, name);
+  });
+
   const rfNodes: Node[] = allNodes.map((tn) => {
     const nt = tn.nodeType;
     const w = NODE_W[nt];
     const h = NODE_H[nt];
 
     let label = '';
-    let fieldName: string | undefined;
 
     if (nt === 'root') {
       label = t.flowchartStart;
     } else if (nt === 'condition' || nt === 'phantomCondition') {
-      const col = table.cols.find((c) => c.id === tn.colId);
-      fieldName = col?.fieldId
-        ? (logic.fieldDefs[col.fieldId]?.name ?? '?')
-        : '?';
       label = tn.cell ? formatCellLabel(tn.cell, t) : '';
     } else if (nt === 'terminal') {
       const parts = table.outputCols.map((oc) => {
@@ -318,7 +357,6 @@ export function buildFlowChart(
       position: { x: 0, y: 0 },
       data: {
         label,
-        fieldName,
         rowIds: tn.rowIds,
         targetTableId: tn.targetTableId,
         _w: w,
@@ -350,7 +388,7 @@ export function buildFlowChart(
   }
 
   return {
-    nodes: layoutNodes(rfNodes, rfEdges, colRankByNodeId),
+    nodes: layoutNodes(rfNodes, rfEdges, colRankByNodeId, swimlaneLabels),
     edges: rfEdges,
   };
 }
