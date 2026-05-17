@@ -62,8 +62,9 @@ The editor continuously checks each table and highlights problems:
 
 | Badge | Meaning |
 |-------|---------|
-| 🟡 Yellow `!` | **Duplicate** — this row has identical conditions to an earlier row and will never be reached first. |
-| 🔴 Red `!` | **Unreachable** — an earlier row's conditions fully cover this row's conditions. |
+| 🟡 Yellow `⚠` | **Duplicate** — this row has identical conditions to an earlier row and will never be reached first. |
+| 🔴 Red `⛔` | **Unreachable** — an earlier row's conditions fully cover this row's conditions. |
+| 🔴 Red `⛔` (with red cell highlight) | **Contradictory row** — two cells in the same row place mutually exclusive constraints on the same field, so no input can ever match. The conflicting cells are highlighted in red and the tooltip lists each conflicting pair. |
 | ⚠️ Banner | **Coverage gap** — for tables made of `enum` / `bool` fields, some input combinations have no matching row. The flowchart view marks the gap as a phantom node. |
 
 ---
@@ -78,7 +79,7 @@ The editor continuously checks each table and highlights problems:
 
 ```bash
 git clone <repo-url>
-cd decision-table-editor
+cd leverie
 npm install
 npm run dev
 ```
@@ -95,6 +96,7 @@ Open **http://localhost:5173** in your browser.
 | `npm run lint` | Run Biome lint check. |
 | `npm run lint:fix` | Apply Biome auto-fixes. |
 | `npm run format` | Format the codebase with Biome. |
+| `npm run test` | Run the Vitest unit-test suite (engine / checks). |
 | `npm run preview` | Build and serve via Wrangler (Cloudflare Workers preview). |
 | `npm run deploy` | Build and deploy to Cloudflare Workers. |
 
@@ -110,7 +112,7 @@ The UI is bilingual. Switch between **English** and **日本語** with the langu
 
 ### Layout overview
 
-- **Header** (icon-only, with tooltips): language selector, **New** (新規作成), **Import** (インポート), **Export** (エクスポート).
+- **Header** (icon-only, with tooltips): language selector, **Undo** (元に戻す, ⌘Z / Ctrl+Z), **Redo** (やり直し, ⇧⌘Z / Ctrl+Y), **New** (新規作成), **Import** (インポート), **Export** (エクスポート). Undo / Redo cover every edit (cells, rows, columns, table structure, field definitions).
 - **Left pane** (collapsible accordion sections):
   1. **Logic Name** (ロジック名) — inline-editable.
   2. **Table Graph** (テーブル関係図) — DAG of tables with Continue references.
@@ -165,11 +167,13 @@ Importing skips fields whose names already exist in the current logic.
 
 #### Add a condition column
 
-Click **＋ Add condition column** (＋ 条件列を追加) below the table. Then choose a field from the dropdown in the column header.
+Click the **＋** button at the right edge of the column header row. Then choose a field from the dropdown in the new column header. If the table is empty, an **Add the first condition column** (最初の条件列を追加) CTA appears below the table.
 
 #### Add a row
 
-Click **＋ Add row** (＋ 行を追加) below the table.
+Click the **＋** strip at the bottom of the table body. If the table has no rows yet, use the **Add the first row** (最初の行を追加) CTA below the table. You can also press **Tab / Enter** while on the conclusion cell of the last row to append a new row and jump to its first cell.
+
+To insert a row between two existing rows, hover the row gutter — a small **＋** button appears at the bottom of the row; clicking it inserts a new row directly below and focuses its first cell.
 
 #### Edit a condition cell
 
@@ -188,9 +192,23 @@ Click the **Conclusion** (結論) cell to open a popup:
 - **Terminal** (終端結論) — fill in the output value for each output column.
 - **Continue** (継続参照) — pick the target table from the dropdown. Tables that would create a cycle are marked and disabled.
 
-#### Reorder rows
+#### Reorder rows and columns
 
-Drag the grip handle (⠿) on the left of each row, or use the ▲ / ▼ arrow buttons.
+- **Rows**: drag the grip handle (⠿) on the left of each row.
+- **Condition columns**: drag a column header to reorder it. The cells move with the column.
+
+#### Duplicate or delete a row
+
+Hover any row — a row of icon buttons appears pinned to the right edge:
+
+- 📋 **Duplicate row** (行を複製) — clones the row directly below.
+- 🗑 **Delete row** (行を削除).
+
+#### Table-level actions
+
+The **⋮** (More actions / その他の操作) button in the table header opens a menu with bulk operations:
+
+- **Delete all rows** (行をすべて削除) — clears every row in the current table. The action is recorded in history so Undo (⌘Z) restores them.
 
 #### Manage output columns
 
@@ -201,7 +219,7 @@ Click the ⚙ icon in the conclusion column header to add, rename, or delete out
 Each table has a tab switcher in its header:
 
 - **Table** (テーブル) — the rows-and-cells editor.
-- **Flowchart** (フローチャート) — an automatically generated flowchart of the table's rules. Branches that have no matching rule are shown as **phantom nodes** (`No rule` / 未対応) so you can spot coverage gaps visually. Click a node to jump back to the corresponding row in the Table view. Available for tables built from `enum` / `bool` fields where coverage can be analysed exhaustively.
+- **Flowchart** (フローチャート) — an automatically generated flowchart of the table's rules. The layout is **left-to-right**, with one **swimlane column per condition field** (the field name is shown as a sticky header above its lane) so each decision step is read across the page. Branches that have no matching rule are shown as **phantom nodes** (`No rule` / 未対応) so you can spot coverage gaps visually. Click a node to jump back to the corresponding row in the Table view. Available for tables built from `enum` / `bool` fields where coverage can be analysed exhaustively.
 
 When coverage gaps exist, a yellow banner appears below the table with a shortcut to the Flowchart view.
 
@@ -247,19 +265,20 @@ Run many test cases in one shot from a CSV.
 3. Click **Load CSV** (CSVを読み込む) to load the cases, then **Run all** (すべて評価実行).
 4. Each case is shown with its result and (if expected values were provided) a Pass / Fail badge. Click a row to expand its trace.
 
-CSV header conventions:
+CSV header conventions (the prefix follows the current UI language):
 
-| Column | Header value |
+| Column | Header value (EN / 日本語) |
 |---|---|
-| Case name | `ケース名` (optional — auto-numbered if absent) |
+| Case name | `Case name` / `ケース名` (optional — auto-numbered if absent) |
 | Input value | exact field name from the logic |
-| Expected value | `期待:<output column name>` |
+| Expected value | `Expected:<output column name>` / `期待:<output column name>` |
 
 ---
 
 ### 5. Save, export, and import
 
 - **Auto-save** — the logic is saved to `localStorage` (key `decision-table-editor-v2`) on every change. It is restored automatically on next load.
+- **Undo / Redo** — every editing action goes through the history store, so **⌘Z / Ctrl+Z** undoes the last change and **⇧⌘Z / Ctrl+Y** redoes it. The same actions are available as toolbar buttons in the header.
 - **Export** — click the ⬇ button in the header to download the logic as `<logic name>.json`.
 - **Import** — click the ⬆ button to load a `.json` file. The file is validated with a Zod schema. Minor issues (broken Continue references, missing output columns, stale ID counters) are repaired automatically with a notification.
 
