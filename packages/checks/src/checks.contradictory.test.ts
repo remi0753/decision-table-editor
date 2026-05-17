@@ -1,6 +1,6 @@
 import type { Cell, Col, FieldDef, Logic, Row, Table } from '@leverie/engine';
 import { describe, expect, it } from 'vitest';
-import { findContradictoryRows } from './index';
+import { findContradictoryRows } from './index.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

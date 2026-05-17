@@ -20,15 +20,21 @@ import { evaluateTable, LogicSchema, type Logic } from '@leverie/engine';
 // Parse and validate a Logic JSON (exported from the LEVERIE editor).
 const logic: Logic = LogicSchema.parse(JSON.parse(rawJson));
 
-// Evaluate against an input.
+// Inputs may be keyed by either fieldId (`f1`, `f2`, …) or field name
+// (`"Customer Type"`, `"Amount"`, …). Both shapes are accepted and the
+// engine normalises them internally.
 const result = evaluateTable(
   logic.entryTableId,
-  { 'Customer Type': 'Corp', Amount: 1500000 },
+  { 'Customer Type': 'Corp', Amount: '1500000' },
   logic,
 );
 
 if (result.status === 'ok') {
-  console.log(result.outputs); // { Result: 'Approve' }
+  // Outputs are keyed by output-column id (`oc1`, `oc2`, …). Map them back
+  // to display names via the matched table's `outputCols`, or use
+  // `evaluateLogicByName` from `@leverie/schema` for an LLM-/MCP-friendly
+  // round-trip that returns outputs already keyed by name.
+  console.log(result.outputs); // e.g. { oc1: 'Approve', oc2: 'Large corporate loan' }
   console.log(result.trace);   // step-by-step trace
 }
 ```

@@ -1,12 +1,12 @@
 // Runtime
 
-export { runBatchEvaluation } from './batch';
-export type { CoercedValue } from './coerce';
-export { cmp, coerce, today } from './coerce';
-export { evaluateTable } from './evaluate';
-export { FieldDefsFileSchema, LogicSchema } from './io';
+export { runBatchEvaluation } from './batch.js';
+export type { CoercedValue } from './coerce.js';
+export { cmp, coerce, today } from './coerce.js';
+export { evaluateTable } from './evaluate.js';
+export { FieldDefsFileSchema, LogicSchema } from './io.js';
 // Types — Batch
-export type { BatchCase, BatchCaseResult } from './types/batch';
+export type { BatchCase, BatchCaseResult } from './types/batch.js';
 // Types — Logic
 export type {
   Cell,
@@ -29,4 +29,4 @@ export type {
   TerminalConclusion,
   TraceStep,
   WarningType,
-} from './types/logic';
+} from './types/logic.js';

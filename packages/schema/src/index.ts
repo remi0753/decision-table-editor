@@ -1,4 +1,5 @@
-import type { FieldDef, Logic } from '@leverie/engine';
+import type { EvalResult, FieldDef, Logic, TraceStep } from '@leverie/engine';
+import { evaluateTable } from '@leverie/engine';
 
 /**
  * Minimal JSON Schema (draft 2020-12 / 7) subset that LEVERIE produces.
@@ -159,6 +160,86 @@ export function logicNameToToolSlug(name: string): string {
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_+|_+$/g, '') || 'logic'
   );
+}
+
+/**
+ * Evaluation result whose `outputs` are keyed by **output column name**,
+ * matching what `logicToOutputSchema` advertises to LLMs / MCP clients.
+ *
+ * The internal `@leverie/engine` API keys outputs by generated column IDs
+ * (`oc1`, `oc2`, …). `evaluateLogicByName` re-keys them so that the
+ * round-trip { JSON-Schema → LLM input → evaluation → JSON-Schema-shaped
+ * result } actually closes.
+ */
+export type EvalResultByName =
+  | {
+      status: 'ok';
+      outputs: Record<string, string>;
+      trace: TraceStep[];
+    }
+  | {
+      status: 'no_match';
+      tableId: string;
+      trace: TraceStep[];
+    };
+
+/**
+ * Build a lookup from output column id → output column name across every
+ * table in the logic. Different tables may legally share an output name —
+ * that's the intended union behaviour and matches `logicToOutputSchema`.
+ */
+function buildOutputIdToName(logic: Logic): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const table of Object.values(logic.tables)) {
+    for (const col of table.outputCols) {
+      map.set(col.id, col.name);
+    }
+  }
+  return map;
+}
+
+/**
+ * Evaluate a Logic using LLM-/MCP-friendly key names on both sides.
+ *
+ * - Inputs are keyed by **field name** (e.g. `"Customer Type"`), exactly as
+ *   `logicToInputSchema` advertises. Internal `fieldId`s never have to leak
+ *   into the LLM prompt or the MCP call site.
+ * - Outputs are returned keyed by **output column name**, matching
+ *   `logicToOutputSchema`'s shape.
+ *
+ * Callers wiring LEVERIE into an MCP server should reach for this function;
+ * `evaluateTable` from `@leverie/engine` remains available for callers that
+ * already work in the engine's native id-keyed contract (e.g. the editor).
+ */
+export function evaluateLogicByName(
+  logic: Logic,
+  inputsByName: Record<string, string>,
+): EvalResultByName {
+  const result: EvalResult = evaluateTable(
+    logic.entryTableId,
+    inputsByName,
+    logic,
+  );
+
+  if (result.status === 'no_match') {
+    return {
+      status: 'no_match',
+      tableId: result.tableId,
+      trace: result.trace,
+    };
+  }
+
+  const outputIdToName = buildOutputIdToName(logic);
+  const outputsByName: Record<string, string> = {};
+  for (const [colId, value] of Object.entries(result.outputs)) {
+    const name = outputIdToName.get(colId) ?? colId;
+    outputsByName[name] = value;
+  }
+  return {
+    status: 'ok',
+    outputs: outputsByName,
+    trace: result.trace,
+  };
 }
 
 export interface McpToolDefinition {

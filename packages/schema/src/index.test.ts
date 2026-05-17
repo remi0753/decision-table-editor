@@ -1,11 +1,13 @@
 import type { Logic } from '@leverie/engine';
+import { evaluateTable } from '@leverie/engine';
 import { describe, expect, it } from 'vitest';
 import {
+  evaluateLogicByName,
   logicNameToToolSlug,
   logicToInputSchema,
   logicToMcpTool,
   logicToOutputSchema,
-} from './index';
+} from './index.js';
 
 function makeLogic(): Logic {
   return {
@@ -129,5 +131,154 @@ describe('logicToMcpTool', () => {
     expect(tool.description).toContain('approve a loan');
     expect(tool.inputSchema.type).toBe('object');
     expect(tool.outputSchema.oneOf).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Round-trip: schema → evaluation → schema
+// ---------------------------------------------------------------------------
+//
+// Regression guard for bug_001: the JSON Schemas advertised by this package
+// are field-name keyed, but the engine's native contract is fieldId keyed.
+// These tests assert that the full advertised round-trip actually closes —
+// an LLM-shaped call against the input schema lands on a matching row and
+// produces outputs that match the output schema's shape.
+
+function makeRunnableLogic(): Logic {
+  return {
+    version: '2',
+    name: 'Loan Review',
+    description: 'Decide whether to approve a loan.',
+    entryTableId: 't1',
+    fieldDefs: {
+      f1: {
+        id: 'f1',
+        name: 'Customer Type',
+        type: 'enum',
+        enumValues: ['Corp', 'Individual'],
+      },
+      f2: { id: 'f2', name: 'Amount', type: 'number' },
+    },
+    tables: {
+      t1: {
+        id: 't1',
+        name: 'Review',
+        cols: [
+          { id: 'c1', fieldId: 'f1' },
+          { id: 'c2', fieldId: 'f2' },
+        ],
+        outputCols: [
+          { id: 'oc1', name: 'Decision' },
+          { id: 'oc2', name: 'Reason' },
+        ],
+        rows: [
+          {
+            id: 'r1',
+            cells: {
+              c1: { op: '=', val: 'Corp' },
+              c2: { op: '>=', val: '1000000' },
+            },
+            conclusion: {
+              type: 'terminal',
+              outputs: { oc1: 'Approve', oc2: 'Large corporate loan' },
+            },
+          },
+          {
+            id: 'r2',
+            cells: { c1: { op: '=', val: 'Individual' } },
+            conclusion: {
+              type: 'terminal',
+              outputs: { oc1: 'Reject', oc2: 'Individual not eligible' },
+            },
+          },
+        ],
+      },
+    },
+    nField: 2,
+    nTable: 1,
+    nCol: 2,
+    nOCol: 2,
+    nRow: 2,
+  };
+}
+
+describe('Schema ↔ engine round-trip', () => {
+  it('evaluateTable accepts name-keyed inputs (the shape logicToInputSchema advertises)', () => {
+    const logic = makeRunnableLogic();
+    const schema = logicToInputSchema(logic);
+    // The LLM is told to send this shape:
+    const llmInput = { 'Customer Type': 'Corp', Amount: '1500000' };
+    // Sanity-check the schema actually advertises those exact keys.
+    for (const key of Object.keys(llmInput)) {
+      expect(schema.properties).toHaveProperty(key);
+    }
+    const result = evaluateTable(logic.entryTableId, llmInput, logic);
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') {
+      // Engine's native contract returns id-keyed outputs.
+      expect(result.outputs).toEqual({
+        oc1: 'Approve',
+        oc2: 'Large corporate loan',
+      });
+    }
+  });
+
+  it('evaluateTable still accepts id-keyed inputs (existing editor contract)', () => {
+    const logic = makeRunnableLogic();
+    const result = evaluateTable(
+      logic.entryTableId,
+      { f1: 'Corp', f2: '1500000' },
+      logic,
+    );
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') {
+      expect(result.outputs).toEqual({
+        oc1: 'Approve',
+        oc2: 'Large corporate loan',
+      });
+    }
+  });
+
+  it('evaluateLogicByName closes the round-trip with name-keyed inputs AND outputs', () => {
+    const logic = makeRunnableLogic();
+    const inputSchema = logicToInputSchema(logic);
+    const outputSchema = logicToOutputSchema(logic);
+
+    const result = evaluateLogicByName(logic, {
+      'Customer Type': 'Corp',
+      Amount: '1500000',
+    });
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') {
+      // Outputs are keyed by name, matching the output schema.
+      expect(result.outputs).toEqual({
+        Decision: 'Approve',
+        Reason: 'Large corporate loan',
+      });
+
+      // Cross-check: every advertised output key appears in the schema.
+      const okBranch = outputSchema.oneOf?.[0];
+      const advertisedOutputs = okBranch?.properties?.outputs?.properties ?? {};
+      for (const key of Object.keys(result.outputs)) {
+        expect(advertisedOutputs).toHaveProperty(key);
+      }
+    }
+
+    // And input keys all come from the advertised input schema.
+    for (const key of ['Customer Type', 'Amount']) {
+      expect(inputSchema.properties).toHaveProperty(key);
+    }
+  });
+
+  it('evaluateLogicByName returns no_match cleanly when no row matches', () => {
+    const logic = makeRunnableLogic();
+    const result = evaluateLogicByName(logic, {
+      'Customer Type': 'Corp',
+      Amount: '500', // too small — r1 requires >= 1,000,000
+    });
+    expect(result.status).toBe('no_match');
+    if (result.status === 'no_match') {
+      expect(result.tableId).toBe('t1');
+    }
   });
 });

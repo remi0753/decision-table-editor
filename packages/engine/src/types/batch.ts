@@ -1,4 +1,4 @@
-import type { EvalResult } from './logic';
+import type { EvalResult } from './logic.js';
 
 export interface BatchCase {
   name: string;
