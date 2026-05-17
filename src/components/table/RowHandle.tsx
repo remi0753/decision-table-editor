@@ -8,6 +8,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
+import type { ContradictoryInfo } from '@/engine/checks';
 import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useT } from '@/i18n/useT';
@@ -27,8 +28,12 @@ function focusFirstCellOfRow(rowId: string) {
 
 type Severity = 'error' | 'warning' | null;
 
-function pickSeverity(unreachable: boolean, duplicate: boolean): Severity {
-  if (unreachable) return 'error';
+function pickSeverity(
+  contradictory: boolean,
+  unreachable: boolean,
+  duplicate: boolean,
+): Severity {
+  if (contradictory || unreachable) return 'error';
   if (duplicate) return 'warning';
   return null;
 }
@@ -41,6 +46,7 @@ interface Props {
   totalRows: number;
   duplicateWarning: boolean;
   unreachableWarning: boolean;
+  contradictoryInfo?: ContradictoryInfo;
   fieldDefs: Record<string, FieldDef>;
   highlighted?: boolean;
 }
@@ -53,6 +59,7 @@ export function SortableRow({
   totalRows,
   duplicateWarning,
   unreachableWarning,
+  contradictoryInfo,
   fieldDefs,
   highlighted,
 }: Props) {
@@ -73,7 +80,8 @@ export function SortableRow({
   const t = useT();
 
   const isLastRow = rowIndex === totalRows - 1;
-  const severity = pickSeverity(unreachableWarning, duplicateWarning);
+  const isContradictory = contradictoryInfo != null;
+  const severity = pickSeverity(isContradictory, unreachableWarning, duplicateWarning);
 
   const handleInsertBelow = () => {
     const newId = insertRowAfter(tableId, row.id);
@@ -137,6 +145,9 @@ export function SortableRow({
                 severity={severity}
                 unreachable={unreachableWarning}
                 duplicate={duplicateWarning}
+                contradictoryInfo={contradictoryInfo}
+                fieldDefs={fieldDefs}
+                table={table}
               />
             )}
           </div>
@@ -161,10 +172,14 @@ export function SortableRow({
       </td>
       {table.cols.map((col) => {
         const field = col.fieldId ? (fieldDefs[col.fieldId] ?? null) : null;
+        const cellContradicts = contradictoryInfo?.colIds.has(col.id) ?? false;
         return (
           <td
             key={col.id}
-            className="border-b border-r p-0 h-8"
+            className={cn(
+              'border-b border-r p-0 h-8',
+              cellContradicts && 'ring-1 ring-inset ring-red-400 bg-red-50',
+            )}
             style={{ width: 160 }}
           >
             <CellEditor
@@ -225,12 +240,18 @@ interface RowWarningIndicatorProps {
   severity: Exclude<Severity, null>;
   unreachable: boolean;
   duplicate: boolean;
+  contradictoryInfo?: ContradictoryInfo;
+  fieldDefs: Record<string, FieldDef>;
+  table: Table;
 }
 
 function RowWarningIndicator({
   severity,
   unreachable,
   duplicate,
+  contradictoryInfo,
+  fieldDefs,
+  table,
 }: RowWarningIndicatorProps) {
   const t = useT();
   const Icon = severity === 'error' ? OctagonAlert : AlertTriangle;
@@ -241,6 +262,28 @@ function RowWarningIndicator({
     <Tooltip
       content={
         <div className="max-w-xs space-y-1 leading-snug">
+          {contradictoryInfo && (
+            <div>
+              <div className="font-medium">{t.contradictoryRowTooltip}</div>
+              {contradictoryInfo.pairs.map((pair, i) => {
+                const field = fieldDefs[pair.fieldId];
+                const fieldName = field?.name ?? pair.fieldId;
+                const colIndexA =
+                  table.cols.findIndex((c) => c.id === pair.colIdA) + 1;
+                const colIndexB =
+                  table.cols.findIndex((c) => c.id === pair.colIdB) + 1;
+                return (
+                  <div key={i} className="text-red-200 mt-0.5">
+                    {t.contradictoryRowCellHint(
+                      fieldName,
+                      `#${colIndexA}`,
+                      `#${colIndexB}`,
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {unreachable && <div>{t.unreachableRowTooltip}</div>}
           {duplicate && <div>{t.duplicateRowTooltip}</div>}
         </div>

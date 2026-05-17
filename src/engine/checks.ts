@@ -1,4 +1,4 @@
-import type { Cell, Col, Logic, Row, Table } from '@/types/logic';
+import type { Cell, Col, FieldDef, Logic, Row, Table } from '@/types/logic';
 
 export function canReference(
   fromTableId: string,
@@ -192,6 +192,237 @@ export function hasDefaultRow(
   fieldDefs: Logic['fieldDefs'],
 ): boolean {
   return findCoverageGaps(table, fieldDefs).length === 0;
+}
+
+// Pair of column IDs within a row that are logically contradictory
+export interface ContradictingPair {
+  colIdA: string;
+  colIdB: string;
+  fieldId: string;
+}
+
+export interface ContradictoryInfo {
+  // All column IDs involved in at least one contradiction (for cell-level styling)
+  colIds: Set<string>;
+  // Individual contradicting pairs (for tooltip detail)
+  pairs: ContradictingPair[];
+}
+
+// Operators that imply the field value is non-null
+const NON_NULL_OPS = new Set([
+  '=',
+  '<',
+  '<=',
+  '>',
+  '>=',
+  'in',
+  'between',
+  'contains',
+  'starts_with',
+  'ends_with',
+  'before_today',
+  'today_or_before',
+  'after_today',
+  'today_or_after',
+]);
+
+function compareValues(
+  x: string,
+  y: string,
+  fieldType: FieldDef['type'],
+): number {
+  if (fieldType === 'number') {
+    const nx = Number(x);
+    const ny = Number(y);
+    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return 0;
+    return nx - ny;
+  }
+  // ISO date/datetime strings compare lexicographically
+  return x < y ? -1 : x > y ? 1 : 0;
+}
+
+function isValueInRange(
+  val: string,
+  rangeVal: string[] | undefined,
+  fieldType: FieldDef['type'],
+): boolean {
+  const lo = rangeVal?.[0] ?? '';
+  const hi = rangeVal?.[1] ?? '';
+  return (
+    compareValues(val, lo, fieldType) >= 0 &&
+    compareValues(val, hi, fieldType) <= 0
+  );
+}
+
+/**
+ * Returns true when cells a and b (sharing the same field) are logically
+ * contradictory (L1–L6 per doc/discussion_editing_improvements.md §12).
+ * Empty cells are NOT passed here — the caller filters them out.
+ */
+function areCellsContradictory(
+  a: Cell,
+  b: Cell,
+  field: FieldDef | undefined,
+): boolean {
+  // L6: `null` op vs any concrete value constraint
+  if (a.op === 'null' || b.op === 'null') {
+    const other = a.op === 'null' ? b : a;
+    return NON_NULL_OPS.has(other.op);
+  }
+
+  // L1: X = v AND X = w, v ≠ w
+  if (a.op === '=' && b.op === '=') {
+    return JSON.stringify(a.val) !== JSON.stringify(b.val);
+  }
+
+  // L2: X = v AND X != v
+  if (a.op === '=' && b.op === '!=') return a.val === b.val;
+  if (b.op === '=' && a.op === '!=') return b.val === a.val;
+
+  // L4: X = v AND X in [...] where v is not in the set
+  if (a.op === '=' && b.op === 'in') {
+    if (Array.isArray(b.val) && typeof a.val === 'string') {
+      return !b.val.includes(a.val);
+    }
+  }
+  if (b.op === '=' && a.op === 'in') {
+    if (Array.isArray(a.val) && typeof b.val === 'string') {
+      return !a.val.includes(b.val);
+    }
+  }
+
+  // L5: X = v AND X between [lo, hi] where v ∉ [lo, hi]
+  if (a.op === '=' && b.op === 'between') {
+    if (Array.isArray(b.val) && typeof a.val === 'string' && field) {
+      return !isValueInRange(a.val, b.val, field.type);
+    }
+  }
+  if (b.op === '=' && a.op === 'between') {
+    if (Array.isArray(a.val) && typeof b.val === 'string' && field) {
+      return !isValueInRange(b.val, a.val, field.type);
+    }
+  }
+
+  // L3: numeric/date range intersection is empty
+  if (
+    field &&
+    (field.type === 'number' ||
+      field.type === 'date' ||
+      field.type === 'datetime')
+  ) {
+    return areRangesContradictory(a, b, field.type);
+  }
+
+  return false;
+}
+
+/**
+ * L3: checks whether two range-style constraints on a numeric/date field
+ * are mutually exclusive.
+ * Also handles = vs comparison operators (e.g. X = 1 AND X >= 10).
+ */
+function areRangesContradictory(
+  a: Cell,
+  b: Cell,
+  fieldType: 'number' | 'date' | 'datetime',
+): boolean {
+  const valA = typeof a.val === 'string' ? a.val : null;
+  const valB = typeof b.val === 'string' ? b.val : null;
+
+  // Normalise to (lower-bound op, upper-bound op) to check for empty intersection
+  const lowerOps = new Set(['>', '>=']);
+  const upperOps = new Set(['<', '<=']);
+
+  // a is lower bound, b is upper bound
+  if (lowerOps.has(a.op) && upperOps.has(b.op) && valA && valB) {
+    const cmp = compareValues(valA, valB, fieldType);
+    if (a.op === '>=' && b.op === '<=') return cmp > 0; // [valA, valB] empty when valA > valB
+    if (a.op === '>=' && b.op === '<') return cmp >= 0; // >= 5 AND < 5 → nothing
+    if (a.op === '>' && b.op === '<=') return cmp >= 0;
+    if (a.op === '>' && b.op === '<') return cmp >= 0;
+  }
+
+  // b is lower bound, a is upper bound
+  if (lowerOps.has(b.op) && upperOps.has(a.op) && valA && valB) {
+    const cmp = compareValues(valB, valA, fieldType);
+    if (b.op === '>=' && a.op === '<=') return cmp > 0;
+    if (b.op === '>=' && a.op === '<') return cmp >= 0;
+    if (b.op === '>' && a.op === '<=') return cmp >= 0;
+    if (b.op === '>' && a.op === '<') return cmp >= 0;
+  }
+
+  // = vs comparison operator: check whether the equal value satisfies the constraint
+  if (a.op === '=' && valA && valB) {
+    const cmp = compareValues(valA, valB, fieldType);
+    if (b.op === '<') return cmp >= 0; // = 5 AND < 5 → impossible
+    if (b.op === '<=') return cmp > 0;
+    if (b.op === '>') return cmp <= 0;
+    if (b.op === '>=') return cmp < 0;
+  }
+  if (b.op === '=' && valB && valA) {
+    const cmp = compareValues(valB, valA, fieldType);
+    if (a.op === '<') return cmp >= 0;
+    if (a.op === '<=') return cmp > 0;
+    if (a.op === '>') return cmp <= 0;
+    if (a.op === '>=') return cmp < 0;
+  }
+
+  return false;
+}
+
+/**
+ * Finds rows where the same field is constrained by two or more columns in a
+ * mutually contradictory way (L1–L6). Returns a map from rowId → info about
+ * which columns are involved.
+ */
+export function findContradictoryRows(
+  table: Table,
+  fieldDefs: Logic['fieldDefs'],
+): Map<string, ContradictoryInfo> {
+  const result = new Map<string, ContradictoryInfo>();
+
+  for (const row of table.rows) {
+    // Group columns that have a concrete cell by fieldId
+    const byFieldId = new Map<
+      string,
+      Array<{ colId: string; cell: Cell }>
+    >();
+
+    for (const col of table.cols) {
+      if (!col.fieldId) continue;
+      const cell = row.cells[col.id];
+      if (!cell) continue; // empty cell = wildcard, not a constraint
+      const entries = byFieldId.get(col.fieldId) ?? [];
+      entries.push({ colId: col.id, cell });
+      byFieldId.set(col.fieldId, entries);
+    }
+
+    const contradictingColIds = new Set<string>();
+    const pairs: ContradictingPair[] = [];
+
+    for (const [fieldId, entries] of byFieldId) {
+      if (entries.length < 2) continue;
+      const field = fieldDefs[fieldId];
+
+      for (let i = 0; i < entries.length; i++) {
+        for (let j = i + 1; j < entries.length; j++) {
+          const ea = entries[i]!;
+          const eb = entries[j]!;
+          if (areCellsContradictory(ea.cell, eb.cell, field)) {
+            contradictingColIds.add(ea.colId);
+            contradictingColIds.add(eb.colId);
+            pairs.push({ colIdA: ea.colId, colIdB: eb.colId, fieldId });
+          }
+        }
+      }
+    }
+
+    if (contradictingColIds.size > 0) {
+      result.set(row.id, { colIds: contradictingColIds, pairs });
+    }
+  }
+
+  return result;
 }
 
 export interface CoverageResult {
