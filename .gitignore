@@ -2,6 +2,8 @@ node_modules
 dist
 .claude
 CLAUDE.md
+.playwright-mcp
+.vscode
 
 # wrangler files
 .wrangler
