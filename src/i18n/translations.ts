@@ -93,6 +93,8 @@ export type TranslationSet = {
   duplicateRowTitle: string;
   unreachableRowTooltip: string;
   duplicateRowTooltip: string;
+  contradictoryRowTooltip: string;
+  contradictoryRowCellHint: (fieldName: string, colA: string, colB: string) => string;
   rowWarningLabel: string;
   rowErrorLabel: string;
   duplicateRow: string;
@@ -315,6 +317,10 @@ export const translations: Record<Lang, TranslationSet> = {
       'Unreachable: another row already covers this input, so this row will never run. Change the conditions to make it reachable.',
     duplicateRowTooltip:
       'Duplicate: another row has the same conditions. Change the conditions or remove one of the rows.',
+    contradictoryRowTooltip:
+      'Contradiction: conditions in this row are mutually exclusive — no input can ever match it. Fix or clear the highlighted cells.',
+    contradictoryRowCellHint: (fieldName, colA, colB) =>
+      `Field "${fieldName}" is contradicted between ${colA} and ${colB}.`,
     rowWarningLabel: 'Row warning',
     rowErrorLabel: 'Row error',
     duplicateRow: 'Duplicate row',
@@ -545,6 +551,10 @@ export const translations: Record<Lang, TranslationSet> = {
       '到達不能: 他の行に覆われているため、この行は決して実行されません。条件を変更してください。',
     duplicateRowTooltip:
       '重複: 他の行と同じ条件です。条件を変更するか、いずれかを削除してください。',
+    contradictoryRowTooltip:
+      '行内矛盾: この行の条件は互いに両立しないため、どんな入力でもマッチしません。ハイライトされたセルを修正または削除してください。',
+    contradictoryRowCellHint: (fieldName, colA, colB) =>
+      `フィールド「${fieldName}」が ${colA} と ${colB} で矛盾しています。`,
     rowWarningLabel: '行の警告',
     rowErrorLabel: '行のエラー',
     duplicateRow: '行を複製',

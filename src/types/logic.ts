@@ -113,7 +113,7 @@ export interface EvalResultNoMatch {
 
 export type EvalResult = EvalResultOk | EvalResultNoMatch;
 
-export type WarningType = 'duplicate' | 'unreachable' | 'no_default';
+export type WarningType = 'duplicate' | 'unreachable' | 'no_default' | 'contradictory';
 
 export interface RowWarning {
   rowId: string;

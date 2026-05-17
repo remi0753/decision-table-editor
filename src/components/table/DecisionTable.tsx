@@ -43,10 +43,11 @@ export function DecisionTable({ tableId }: Props) {
 
   const table = logic.tables[tableId];
 
-  const { duplicates, unreachable, coverageGaps } = useQualityChecks(
-    table ?? { rows: [], cols: [], id: '', name: '', outputCols: [] },
-    logic.fieldDefs,
-  );
+  const { contradictory, duplicates, unreachable, coverageGaps } =
+    useQualityChecks(
+      table ?? { rows: [], cols: [], id: '', name: '', outputCols: [] },
+      logic.fieldDefs,
+    );
   const gapCount = coverageGaps.length;
 
   const handleFlowNodeClick = useCallback((rowIds: string[]) => {
@@ -235,6 +236,7 @@ export function DecisionTable({ tableId }: Props) {
                         totalRows={table.rows.length}
                         duplicateWarning={duplicates.has(row.id)}
                         unreachableWarning={unreachable.has(row.id)}
+                        contradictoryInfo={contradictory.get(row.id)}
                         fieldDefs={logic.fieldDefs}
                         highlighted={highlightedRowIds.has(row.id)}
                       />
