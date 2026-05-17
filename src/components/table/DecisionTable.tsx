@@ -157,7 +157,7 @@ export function DecisionTable({ tableId }: Props) {
         {/* Table view */}
         {activeTab === 'table' && (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto pb-3">
               <table
                 className="border-collapse text-sm"
                 style={{ tableLayout: 'fixed' }}
@@ -242,25 +242,31 @@ export function DecisionTable({ tableId }: Props) {
                       />
                     ))}
                   </SortableContext>
+                  {table.rows.length > 0 && (
+                    <tr>
+                      <td
+                        colSpan={5 + table.cols.length}
+                        className="border-b p-0"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => addRow(tableId)}
+                          title={t.addRow}
+                          aria-label={t.addRow}
+                          className="w-full flex items-center justify-center text-gray-300 hover:text-violet-700 hover:bg-violet-50 transition-colors py-1 group/addrow"
+                        >
+                          <Plus
+                            size={14}
+                            strokeWidth={2.5}
+                            className="group-hover/addrow:scale-110 transition-transform"
+                          />
+                        </button>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-
-            {table.rows.length > 0 && (
-              <button
-                type="button"
-                onClick={() => addRow(tableId)}
-                title={t.addRow}
-                aria-label={t.addRow}
-                className="w-full flex items-center justify-center text-gray-300 hover:text-violet-700 hover:bg-violet-50 border-b transition-colors py-1 group/addrow"
-              >
-                <Plus
-                  size={14}
-                  strokeWidth={2.5}
-                  className="group-hover/addrow:scale-110 transition-transform"
-                />
-              </button>
-            )}
 
             {(table.rows.length === 0 || table.cols.length === 0) && (
               <div className="flex items-center justify-center px-4 py-10 border-t bg-gray-50/50">
