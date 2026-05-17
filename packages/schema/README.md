@@ -14,6 +14,7 @@ pnpm add @leverie/schema @leverie/engine
 
 ```ts
 import {
+  evaluateLogicByName,
   logicToInputSchema,
   logicToOutputSchema,
   logicToMcpTool,
@@ -28,9 +29,19 @@ const tool = logicToMcpTool(logic);
 //     description: '...',
 //     inputSchema:  { ... },
 //     outputSchema: { ... } }
+
+// Evaluate using the same name-keyed shape advertised by the schemas above —
+// no need to know the internal `fieldId` / `outputColId` values.
+const result = evaluateLogicByName(logic, {
+  'Customer Type': 'Corp',
+  Amount: '1500000',
+});
+// → { status: 'ok',
+//     outputs: { Decision: 'Approve', Reason: 'Large corporate loan' },
+//     trace: [...] }
 ```
 
-Generated schemas use **draft 2020-12**, key properties by **field name** (not internal IDs), and model the evaluation result as a discriminated union over `status: 'ok' | 'no_match'`.
+Generated schemas use **draft 2020-12**, key properties by **field name** (not internal IDs), and model the evaluation result as a discriminated union over `status: 'ok' | 'no_match'`. `evaluateLogicByName` closes the round-trip: the inputs it accepts and the outputs it returns match `logicToInputSchema` and `logicToOutputSchema` exactly, so an LLM tool call validated against the schemas can flow straight into evaluation without any id ↔ name plumbing.
 
 ## Exports
 
@@ -40,7 +51,8 @@ Generated schemas use **draft 2020-12**, key properties by **field name** (not i
 | `logicToOutputSchema(logic)` | `JsonSchema` describing the result (`status` + `outputs` for `ok`, `status` + `tableId` for `no_match`). |
 | `logicToMcpTool(logic)` | `McpToolDefinition` — slugged name + description + input/output schemas. Plug directly into an MCP server's tool list. |
 | `logicNameToToolSlug(name)` | Convert a Logic's display name into a lower-snake-case tool slug. |
-| `JsonSchema`, `McpToolDefinition` | Exported TypeScript types. |
+| `evaluateLogicByName(logic, inputsByName)` | Evaluate `logic` with name-keyed inputs and receive name-keyed outputs — the MCP-/LLM-facing counterpart to `evaluateTable` from `@leverie/engine`. |
+| `JsonSchema`, `McpToolDefinition`, `EvalResultByName` | Exported TypeScript types. |
 
 ## License
 

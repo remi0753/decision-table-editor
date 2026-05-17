@@ -1,4 +1,4 @@
-import type { FieldType } from './types/logic';
+import type { FieldType } from './types/logic.js';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DATETIME_PATTERN =

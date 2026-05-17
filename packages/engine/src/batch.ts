@@ -1,6 +1,6 @@
-import { evaluateTable } from './evaluate';
-import type { BatchCase, BatchCaseResult } from './types/batch';
-import type { Logic } from './types/logic';
+import { evaluateTable } from './evaluate.js';
+import type { BatchCase, BatchCaseResult } from './types/batch.js';
+import type { Logic } from './types/logic.js';
 
 function computePass(
   expected: Record<string, string>,
