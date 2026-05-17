@@ -5,6 +5,12 @@ CLAUDE.md
 .playwright-mcp
 .vscode
 
+# turborepo cache
+.turbo
+
+# tsc incremental build info
+*.tsbuildinfo
+
 # wrangler files
 .wrangler
 .dev.vars*
