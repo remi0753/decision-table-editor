@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/assets/logo.svg" alt="LEVERIE" height="56" />
+  <img src="apps/editor/src/assets/logo.svg" alt="LEVERIE" height="56" />
   <h1 align="center">LEVERIE</h1>
   <p align="center">
     A browser-based editor for building and evaluating <strong>decision logic</strong> as interconnected tables — no code required.
@@ -73,34 +73,54 @@ The editor continuously checks each table and highlights problems:
 ### Prerequisites
 
 - Node.js 18+
+- pnpm 9+ (this repo is a pnpm + Turborepo monorepo)
+
+### Repository layout
+
+```
+apps/
+  editor/        # browser SPA (this README focuses on running it)
+packages/
+  engine/        # @leverie/engine — evaluation engine
+  checks/        # @leverie/checks — quality checks
+  schema/        # @leverie/schema — JSON Schema generation
+```
 
 ### Install and run locally
 
 ```bash
 git clone <repo-url>
 cd decision-table-editor
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open **http://localhost:5173** in your browser.
 
-### Available scripts
+### Available scripts (root)
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Start the Vite dev server with HMR. |
-| `npm run build` | Build for production into `dist/`. |
-| `npm run build:local` | Run Biome lint + TypeScript type-check + production build. Use this before pushing. |
-| `npm run lint` | Run Biome lint check. |
-| `npm run lint:fix` | Apply Biome auto-fixes. |
-| `npm run format` | Format the codebase with Biome. |
-| `npm run preview` | Build and serve via Wrangler (Cloudflare Workers preview). |
-| `npm run deploy` | Build and deploy to Cloudflare Workers. |
+| `pnpm dev` | Start the editor's Vite dev server with HMR (via Turborepo). |
+| `pnpm build` | Build the editor for production into `apps/editor/dist/`. |
+| `pnpm build:packages` | Build all `packages/*` (engine / checks / schema) into their `dist/` directories. |
+| `pnpm build:local` | Run Biome lint + TypeScript type-check + editor build. Use this before pushing. |
+| `pnpm test` | Run Vitest across all packages. |
+| `pnpm typecheck` | Run `tsc --noEmit` across all packages. |
+| `pnpm lint` | Run Biome lint check. |
+| `pnpm lint:fix` | Apply Biome auto-fixes. |
+| `pnpm format` | Format the codebase with Biome. |
+
+Editor-specific scripts (run with `pnpm --filter @leverie/editor <script>`):
+
+| Script | Description |
+|--------|-------------|
+| `preview` | Build and serve via Wrangler (Cloudflare Workers preview). |
+| `deploy` | Build and deploy to Cloudflare Workers. |
 
 ### Deployment
 
-The app is a static SPA deployed to **Cloudflare Workers**. Configuration lives in [wrangler.jsonc](wrangler.jsonc) (`assets.not_found_handling: "single-page-application"` rewrites unknown paths to `index.html`).
+The app is a static SPA deployed to **Cloudflare Workers**. Configuration lives in [apps/editor/wrangler.jsonc](apps/editor/wrangler.jsonc) (`assets.not_found_handling: "single-page-application"` rewrites unknown paths to `index.html`).
 
 ---
 
