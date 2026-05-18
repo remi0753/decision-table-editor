@@ -19,8 +19,9 @@ async function main(): Promise<void> {
       return;
     case 'serve':
       await serve({
-        filePath: parsed.filePath as string,
+        path: parsed.path as string,
         strict: parsed.strict,
+        watch: parsed.watch,
       });
       return;
   }

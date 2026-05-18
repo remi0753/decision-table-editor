@@ -1,0 +1,49 @@
+{
+  "version": "2",
+  "name": "All Types",
+  "description": "Exercises every supported input field type so the inputSchema generator can be regression-tested end-to-end.",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": { "id": "f1", "name": "Count", "type": "number" },
+    "f2": { "id": "f2", "name": "Active", "type": "bool" },
+    "f3": {
+      "id": "f3",
+      "name": "Tier",
+      "type": "enum",
+      "enumValues": ["bronze", "silver", "gold"]
+    },
+    "f4": { "id": "f4", "name": "Note", "type": "string" },
+    "f5": { "id": "f5", "name": "Joined On", "type": "date" },
+    "f6": { "id": "f6", "name": "Last Seen At", "type": "datetime" }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "Decide",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" },
+        { "id": "c3", "fieldId": "f3" },
+        { "id": "c4", "fieldId": "f4" },
+        { "id": "c5", "fieldId": "f5" },
+        { "id": "c6", "fieldId": "f6" }
+      ],
+      "outputCols": [{ "id": "oc1", "name": "Verdict" }],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": { "c1": { "op": ">=", "val": "0" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "ok" }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 6,
+  "nTable": 1,
+  "nCol": 6,
+  "nOCol": 1,
+  "nRow": 1
+}

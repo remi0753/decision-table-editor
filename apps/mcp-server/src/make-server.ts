@@ -5,15 +5,18 @@ import {
   logicToZodInputShape,
   logicToZodOutputShape,
 } from '@leverie/schema';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import {
+  McpServer,
+  type RegisteredTool,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 import { PACKAGE_NAME, PACKAGE_VERSION } from './version.js';
 
 const SERVER_INFO = { name: PACKAGE_NAME, version: PACKAGE_VERSION };
 
 /**
- * Build an empty `McpServer` with no tools registered. Used when --strict is
- * off and the only loaded file failed validation; also the building block for
- * P1.3's directory mode.
+ * Build an empty `McpServer`. Directory mode and `--watch` reloads need to
+ * register tools onto a server they own, so the construction step is exposed
+ * separately from the single-file convenience builder below.
  */
 export function createServer(): McpServer {
   return new McpServer(SERVER_INFO, { capabilities: { tools: {} } });
@@ -33,11 +36,15 @@ export function makeLogicServer(logic: Logic): McpServer {
 }
 
 /**
- * Register a Logic as a tool on an existing `McpServer`. Extracted so P1.3
- * (directory mode) can mount multiple logics on one server.
+ * Register a Logic as a tool on an existing `McpServer`. Returns the SDK's
+ * `RegisteredTool` handle so callers can `.remove()` the tool on `--watch`
+ * reloads.
  */
-export function registerLogicTool(server: McpServer, logic: Logic): void {
-  server.registerTool(
+export function registerLogicTool(
+  server: McpServer,
+  logic: Logic,
+): RegisteredTool {
+  return server.registerTool(
     logicNameToToolSlug(logic.name),
     {
       title: logic.name,
