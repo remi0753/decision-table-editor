@@ -1,28 +1,30 @@
 {
-  "name": "@leverie/schema",
+  "name": "leverie-mcp",
   "version": "0.1.0",
-  "description": "Generates JSON Schema (input/output) from a LEVERIE Logic, for LLM tool integration (MCP, OpenAPI, function-calling).",
+  "description": "Standalone MCP server for LEVERIE decision logic — `npx leverie-mcp serve ./my-logic.json` exposes a Logic JSON to any MCP client over stdio.",
   "license": "Apache-2.0",
   "type": "module",
   "keywords": [
     "leverie",
-    "decision-table",
-    "json-schema",
     "mcp",
-    "openapi",
-    "function-calling",
+    "model-context-protocol",
+    "decision-table",
     "llm",
     "tool-use",
-    "agents"
+    "agents",
+    "cli"
   ],
-  "homepage": "https://github.com/remi0753/leverie/tree/main/packages/schema#readme",
+  "homepage": "https://github.com/remi0753/leverie/tree/main/apps/mcp-server#readme",
   "bugs": {
     "url": "https://github.com/remi0753/leverie/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/remi0753/leverie.git",
-    "directory": "packages/schema"
+    "directory": "apps/mcp-server"
+  },
+  "bin": {
+    "leverie-mcp": "./dist/cli.js"
   },
   "exports": {
     ".": "./src/index.ts"
@@ -30,19 +32,25 @@
   "files": [
     "src",
     "dist",
+    "README.md",
+    "LICENSE",
     "!src/**/*.test.ts"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "prepublishOnly": "tsc -p tsconfig.build.json"
+    "prepublishOnly": "tsc -p tsconfig.build.json && chmod +x dist/cli.js"
   },
   "dependencies": {
     "@leverie/engine": "workspace:*",
+    "@leverie/schema": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^4.1.6"
   },

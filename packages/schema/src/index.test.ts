@@ -1,12 +1,15 @@
 import type { Logic } from '@leverie/engine';
 import { evaluateTable } from '@leverie/engine';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import {
   evaluateLogicByName,
   logicNameToToolSlug,
   logicToInputSchema,
   logicToMcpTool,
   logicToOutputSchema,
+  logicToZodInputShape,
+  logicToZodOutputShape,
 } from './index.js';
 
 function makeLogic(): Logic {
@@ -131,6 +134,56 @@ describe('logicToMcpTool', () => {
     expect(tool.description).toContain('approve a loan');
     expect(tool.inputSchema.type).toBe('object');
     expect(tool.outputSchema.oneOf).toHaveLength(2);
+  });
+});
+
+describe('logicToZodInputShape', () => {
+  it('maps each field type to the expected Zod schema and makes every field optional', () => {
+    const shape = logicToZodInputShape(makeLogic());
+    expect(Object.keys(shape)).toEqual(
+      expect.arrayContaining([
+        'Customer Type',
+        'Amount',
+        'Has Guarantor',
+        'Application Date',
+      ]),
+    );
+
+    // All fields optional → undefined parses successfully on every key.
+    const wrapped = z.object(shape);
+    expect(wrapped.parse({}).Amount).toBeUndefined();
+
+    // Numbers reject strings; the JSON-Schema variant tolerates strings via
+    // engine coercion, but the Zod path is strict — that's the SDK contract.
+    expect(() => wrapped.parse({ Amount: 'not-a-number' })).toThrow();
+    expect(wrapped.parse({ Amount: 1500000 }).Amount).toBe(1500000);
+
+    // Enum constrained to the declared values.
+    expect(wrapped.parse({ 'Customer Type': 'Corp' })['Customer Type']).toBe(
+      'Corp',
+    );
+    expect(() => wrapped.parse({ 'Customer Type': 'Other' })).toThrow();
+  });
+});
+
+describe('logicToZodOutputShape', () => {
+  it('returns a single object schema with status + outputs + tableId, dedup-unioning output column names', () => {
+    const shape = logicToZodOutputShape(makeLogic());
+    expect(Object.keys(shape).sort()).toEqual(['outputs', 'status', 'tableId']);
+
+    const wrapped = z.object(shape);
+    const ok = wrapped.parse({
+      status: 'ok',
+      outputs: { Decision: 'Approve', Reason: 'looks good', Reviewer: 'alice' },
+    });
+    expect(ok.status).toBe('ok');
+
+    const noMatch = wrapped.parse({ status: 'no_match', tableId: 't1' });
+    expect(noMatch.tableId).toBe('t1');
+
+    // status is the only required field.
+    expect(() => wrapped.parse({})).toThrow();
+    expect(() => wrapped.parse({ status: 'invalid' })).toThrow();
   });
 });
 
