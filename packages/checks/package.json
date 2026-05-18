@@ -4,17 +4,36 @@
   "description": "Quality checks for LEVERIE decision tables (duplicates, unreachable rows, contradictions, coverage gaps).",
   "license": "Apache-2.0",
   "type": "module",
+  "keywords": [
+    "leverie",
+    "decision-table",
+    "validation",
+    "linter",
+    "static-analysis",
+    "dmn"
+  ],
+  "homepage": "https://github.com/remi0753/leverie/tree/main/packages/checks#readme",
+  "bugs": {
+    "url": "https://github.com/remi0753/leverie/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/remi0753/leverie.git",
+    "directory": "packages/checks"
+  },
   "exports": {
     ".": "./src/index.ts"
   },
   "files": [
     "src",
-    "dist"
+    "dist",
+    "!src/**/*.test.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "@leverie/engine": "workspace:*"
