@@ -4,17 +4,37 @@
   "description": "Pure, headless decision-logic evaluation engine for LEVERIE.",
   "license": "Apache-2.0",
   "type": "module",
+  "keywords": [
+    "leverie",
+    "decision-table",
+    "decision-engine",
+    "dmn",
+    "rules-engine",
+    "llm",
+    "agents"
+  ],
+  "homepage": "https://github.com/remi0753/leverie/tree/main/packages/engine#readme",
+  "bugs": {
+    "url": "https://github.com/remi0753/leverie/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/remi0753/leverie.git",
+    "directory": "packages/engine"
+  },
   "exports": {
     ".": "./src/index.ts"
   },
   "files": [
     "src",
-    "dist"
+    "dist",
+    "!src/**/*.test.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "prepublishOnly": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "zod": "^3.24.2"
