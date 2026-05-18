@@ -78,13 +78,16 @@ The editor continuously checks each table and highlights problems:
 ### Repository layout
 
 ```
-apps/
-  editor/        # browser SPA (this README focuses on running it)
-packages/
-  engine/        # @leverie/engine — evaluation engine
-  checks/        # @leverie/checks — quality checks
-  schema/        # @leverie/schema — JSON Schema generation
+apps/                # Deployable / distributable executables
+  editor/            # browser SPA (this README focuses on running it)
+  mcp-server/        # leverie-mcp — standalone MCP CLI (P1)
+packages/            # Importable libraries
+  engine/            # @leverie/engine — evaluation engine
+  checks/            # @leverie/checks — quality checks
+  schema/            # @leverie/schema — JSON Schema generation
 ```
+
+**Role split:** `apps/*` are things you run or distribute — the SPA, the CLI/Docker image (`leverie-mcp`), and the future cloud API server. `packages/*` are pure libraries consumed via `import` (publishable to npm as `@leverie/*`).
 
 ### Install and run locally
 

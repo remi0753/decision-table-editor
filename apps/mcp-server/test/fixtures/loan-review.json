@@ -1,0 +1,73 @@
+{
+  "version": "2",
+  "name": "Loan Review",
+  "description": "Decide whether to approve a loan based on customer type and amount.",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "Customer Type",
+      "type": "enum",
+      "enumValues": ["Corp", "Individual"]
+    },
+    "f2": { "id": "f2", "name": "Amount", "type": "number" },
+    "f3": { "id": "f3", "name": "Has Guarantor", "type": "bool" }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "Review",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" },
+        { "id": "c3", "fieldId": "f3" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "Decision" },
+        { "id": "oc2", "name": "Reason" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "Corp" },
+            "c2": { "op": ">=", "val": "1000000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "Approve", "oc2": "Large corporate loan" }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "=", "val": "Individual" },
+            "c3": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": { "oc1": "Approve", "oc2": "Individual with guarantor" }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "Individual" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Reject",
+              "oc2": "Individual without guarantor"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 3,
+  "nTable": 1,
+  "nCol": 3,
+  "nOCol": 2,
+  "nRow": 3
+}

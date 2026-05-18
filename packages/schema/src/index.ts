@@ -1,5 +1,6 @@
 import type { EvalResult, FieldDef, Logic, TraceStep } from '@leverie/engine';
 import { evaluateTable } from '@leverie/engine';
+import { z } from 'zod';
 
 /**
  * Minimal JSON Schema (draft 2020-12 / 7) subset that LEVERIE produces.
@@ -265,5 +266,114 @@ export function logicToMcpTool(logic: Logic): McpToolDefinition {
       `Evaluate the "${logic.name}" decision logic. Returns the matched conclusion or "no_match".`,
     inputSchema: logicToInputSchema(logic),
     outputSchema: logicToOutputSchema(logic),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Zod-shaped helpers for the MCP TypeScript SDK
+// ---------------------------------------------------------------------------
+//
+// The wire-level shape of an MCP tool is JSON Schema (covered by
+// `logicToInputSchema` / `logicToOutputSchema` / `logicToMcpTool` above).
+// However the high-level `McpServer.registerTool` API of
+// `@modelcontextprotocol/sdk` accepts only Zod schemas (specifically a
+// `ZodRawShape` — a `Record<string, ZodTypeAny>`) and converts them to JSON
+// Schema internally. The helpers below produce that Zod shape directly so
+// that callers wiring LEVERIE into `McpServer` don't have to build it twice.
+//
+// Both helpers intentionally return ZodRawShape (top-level property bag), not
+// pre-wrapped `z.object(...)`, because that is the contract
+// `McpServer.registerTool({ inputSchema, outputSchema })` expects.
+
+export type ZodRawShape = Record<string, z.ZodTypeAny>;
+
+function fieldToZod(field: FieldDef): z.ZodTypeAny {
+  let base: z.ZodTypeAny;
+  switch (field.type) {
+    case 'number':
+      base = z.number();
+      break;
+    case 'bool':
+      base = z.boolean();
+      break;
+    case 'enum':
+      base =
+        field.enumValues && field.enumValues.length > 0
+          ? z.enum(field.enumValues as [string, ...string[]])
+          : z.string();
+      break;
+    case 'date':
+      base = z
+        .string()
+        .describe(`Field: ${field.name} (ISO 8601 date, e.g. "2026-05-17")`);
+      return base.optional();
+    case 'datetime':
+      base = z.string().describe(`Field: ${field.name} (ISO 8601 datetime)`);
+      return base.optional();
+    default:
+      base = z.string();
+  }
+  return base.describe(`Field: ${field.name}`).optional();
+}
+
+/**
+ * Build a `ZodRawShape` describing the inputs accepted by this Logic, suitable
+ * for passing as `inputSchema` to `McpServer.registerTool` from
+ * `@modelcontextprotocol/sdk`.
+ *
+ * Properties are keyed by **field name** (matching `logicToInputSchema`), and
+ * all fields are optional — LEVERIE treats missing inputs as wildcard matches.
+ */
+export function logicToZodInputShape(logic: Logic): ZodRawShape {
+  const shape: ZodRawShape = {};
+  for (const field of Object.values(logic.fieldDefs)) {
+    shape[field.name] = fieldToZod(field);
+  }
+  return shape;
+}
+
+/**
+ * Build a `ZodRawShape` describing the evaluation result returned by this
+ * Logic, suitable for passing as `outputSchema` to `McpServer.registerTool`.
+ *
+ * The shape is a single object with three fields:
+ *   - `status`: `"ok" | "no_match"`
+ *   - `outputs`: nested object keyed by output column name (present when ok)
+ *   - `tableId`: identifier of the unmatched table (present when no_match)
+ *
+ * Note this is intentionally less strict than `logicToOutputSchema`'s `oneOf`
+ * union: the SDK's `McpServer` normalizes schemas to a single object shape and
+ * drops unions during JSON-Schema emission. Callers that need the precise
+ * discriminated-union JSON Schema should keep using `logicToOutputSchema`
+ * (e.g. when documenting tools for non-SDK consumers).
+ */
+export function logicToZodOutputShape(logic: Logic): ZodRawShape {
+  const outputNames = collectAllOutputColumnNames(logic);
+  const outputShape: ZodRawShape = {};
+  for (const name of outputNames) {
+    outputShape[name] = z
+      .string()
+      .optional()
+      .describe(`Output column: ${name}`);
+  }
+
+  return {
+    status: z
+      .enum(['ok', 'no_match'])
+      .describe(
+        '"ok" when a terminal conclusion was reached; "no_match" when evaluation ended without a matching row.',
+      ),
+    outputs: z
+      .object(outputShape)
+      .optional()
+      .describe(
+        'Outputs from the matched terminal conclusion. Present when status="ok".',
+      ),
+    tableId: z
+      .string()
+      .optional()
+      .describe(
+        'Identifier of the table where no row matched. Present when status="no_match".',
+      ),
   };
 }
