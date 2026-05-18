@@ -1,0 +1,39 @@
+# Dependency installs and build artefacts are recreated inside the image.
+**/node_modules
+**/dist
+**/.turbo
+**/*.tsbuildinfo
+
+# Editor app source — leverie-mcp doesn't need it, and excluding shrinks the
+# build context. Its package.json is copied explicitly by the Dockerfile.
+apps/editor/src
+apps/editor/public
+apps/editor/index.html
+apps/editor/vite.config.ts
+apps/editor/tsconfig*.json
+apps/editor/biome.json
+apps/editor/test
+apps/editor/e2e
+apps/editor/playwright.config.ts
+apps/editor/wrangler.toml
+apps/editor/.dev.vars*
+apps/editor/README.md
+apps/editor/LICENSE
+
+# Test data is large and not needed for the image.
+test-data
+
+# Tooling / repo metadata not needed inside the image.
+.git
+.github
+.vscode
+.claude
+.playwright-mcp
+doc
+CLAUDE.md
+README.md
+biome.json
+
+# Local-only files.
+.env*
+.DS_Store

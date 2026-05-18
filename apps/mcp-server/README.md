@@ -37,6 +37,54 @@ Then ask Claude: "Use the loan_review tool to decide whether a Corp customer bor
 
 Equivalent `mcpServers` blocks in their respective config files. See the Phase 1.6 docs once published for full client setup snippets.
 
+## Docker
+
+A prebuilt image is published to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/remi0753/leverie-mcp:latest
+```
+
+Tags: `latest`, full semver (`0.1.0`), major.minor (`0.1`), `edge` (head of `main`).
+
+Wire it into an MCP client the same way as the `npx` variant, but spawn `docker run` instead. Pass `-i` so stdin stays attached, mount your logic files read-only, and let the container exit when the client disconnects:
+
+```json
+{
+  "mcpServers": {
+    "leverie": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "/absolute/path/to/logics:/logics:ro",
+        "ghcr.io/remi0753/leverie-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+The default `CMD` is `serve /logics`, so a directory mount under `/logics` is all that's needed. To serve a single file, mount it explicitly and override the command:
+
+```json
+"args": [
+  "run", "-i", "--rm",
+  "-v", "/absolute/path/to/loan.json:/logics/loan.json:ro",
+  "ghcr.io/remi0753/leverie-mcp:latest",
+  "serve", "/logics/loan.json"
+]
+```
+
+Image is single-arch (`linux/amd64`). On Apple Silicon, Docker runs it under Rosetta/QEMU emulation — fine for a stdio MCP server but slower to start; native `npx leverie-mcp` is preferable in that case.
+
+### Building locally
+
+```bash
+docker build -f apps/mcp-server/docker/Dockerfile -t leverie-mcp:dev .
+```
+
+The build runs from the repository root (it needs the workspace `pnpm-lock.yaml` and the source of the `@leverie/engine` / `@leverie/schema` packages). Everything Docker-specific lives under [`apps/mcp-server/docker/`](./docker/).
+
 ## CLI
 
 ```
@@ -94,7 +142,7 @@ Calling the tool runs the Logic through `@leverie/engine`'s `evaluateLogicByName
 
 ## Status
 
-P1.3 (Standalone MCP, single-file + directory + `--watch`). Docker image and tool-annotation polish land in P1.4–P1.5. See [roadmap.md](https://github.com/remi0753/leverie/blob/main/doc/roadmap.md).
+P1.4 (Standalone MCP, single-file + directory + `--watch` + GHCR Docker image). Tool-annotation polish (description / slug refinement / trace shaping) lands in P1.5. See [roadmap.md](https://github.com/remi0753/leverie/blob/main/doc/roadmap.md).
 
 ## License
 
