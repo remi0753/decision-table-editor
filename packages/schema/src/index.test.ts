@@ -4,10 +4,12 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   evaluateLogicByName,
+  formatTrace,
   logicNameToToolSlug,
   logicToInputSchema,
   logicToMcpTool,
   logicToOutputSchema,
+  logicToToolDescription,
   logicToZodInputShape,
   logicToZodOutputShape,
 } from './index.js';
@@ -125,6 +127,55 @@ describe('logicNameToToolSlug', () => {
     expect(logicNameToToolSlug('')).toBe('logic');
     expect(logicNameToToolSlug('!!!')).toBe('logic');
   });
+
+  it('splits camelCase / PascalCase / acronym boundaries', () => {
+    expect(logicNameToToolSlug('loanReview')).toBe('loan_review');
+    expect(logicNameToToolSlug('LoanReview')).toBe('loan_review');
+    // Acronym followed by a word: HTTP + Server → http_server.
+    expect(logicNameToToolSlug('HTTPServer')).toBe('http_server');
+    expect(logicNameToToolSlug('parseJSONResponse')).toBe(
+      'parse_json_response',
+    );
+  });
+
+  it('prefixes with "tool_" when the result would start with a digit', () => {
+    // MCP clients commonly reject tool names whose first char is not a letter.
+    expect(logicNameToToolSlug('123Logic')).toBe('tool_123_logic');
+    expect(logicNameToToolSlug('2024 Review')).toBe('tool_2024_review');
+  });
+
+  it('caps overly long names at 64 chars', () => {
+    const long = 'a'.repeat(200);
+    const slug = logicNameToToolSlug(long);
+    expect(slug.length).toBeLessThanOrEqual(64);
+    expect(slug).toBe('a'.repeat(64));
+  });
+});
+
+describe('logicToToolDescription', () => {
+  it('keeps the author description and appends Inputs/Outputs sections', () => {
+    const desc = logicToToolDescription(makeLogic());
+    expect(desc.startsWith('Decide whether to approve a loan')).toBe(true);
+    // Field section
+    expect(desc).toContain('Inputs');
+    expect(desc).toContain('Customer Type (enum: Corp, Individual)');
+    expect(desc).toContain('Amount (number)');
+    expect(desc).toContain('Has Guarantor (bool)');
+    expect(desc).toContain('Application Date (ISO 8601 date)');
+    // Outputs section — union of all tables.
+    expect(desc).toContain('Outputs');
+    expect(desc).toContain('- Decision');
+    expect(desc).toContain('- Reason');
+    expect(desc).toContain('- Reviewer');
+  });
+
+  it('falls back to a generated description when logic.description is missing', () => {
+    const logic = makeLogic();
+    logic.description = undefined;
+    const desc = logicToToolDescription(logic);
+    expect(desc).toContain('Loan Review');
+    expect(desc).toContain('Inputs');
+  });
 });
 
 describe('logicToMcpTool', () => {
@@ -167,19 +218,43 @@ describe('logicToZodInputShape', () => {
 });
 
 describe('logicToZodOutputShape', () => {
-  it('returns a single object schema with status + outputs + tableId, dedup-unioning output column names', () => {
+  it('returns a single object schema with status + outputs + unmatchedTable + trace, dedup-unioning output column names', () => {
     const shape = logicToZodOutputShape(makeLogic());
-    expect(Object.keys(shape).sort()).toEqual(['outputs', 'status', 'tableId']);
+    expect(Object.keys(shape).sort()).toEqual([
+      'outputs',
+      'status',
+      'trace',
+      'unmatchedTable',
+    ]);
 
     const wrapped = z.object(shape);
     const ok = wrapped.parse({
       status: 'ok',
       outputs: { Decision: 'Approve', Reason: 'looks good', Reviewer: 'alice' },
+      trace: [
+        {
+          table: 'Initial Review',
+          depth: 0,
+          matchedRow: { index: 1, conclusion: 'terminal' },
+          skippedRows: [],
+        },
+      ],
     });
     expect(ok.status).toBe('ok');
 
-    const noMatch = wrapped.parse({ status: 'no_match', tableId: 't1' });
-    expect(noMatch.tableId).toBe('t1');
+    const noMatch = wrapped.parse({
+      status: 'no_match',
+      unmatchedTable: 'Initial Review',
+      trace: [
+        {
+          table: 'Initial Review',
+          depth: 0,
+          matchedRow: null,
+          skippedRows: [{ index: 1, failedField: 'Customer Type' }],
+        },
+      ],
+    });
+    expect(noMatch.unmatchedTable).toBe('Initial Review');
 
     // status is the only required field.
     expect(() => wrapped.parse({})).toThrow();
@@ -333,5 +408,102 @@ describe('Schema ↔ engine round-trip', () => {
     if (result.status === 'no_match') {
       expect(result.tableId).toBe('t1');
     }
+  });
+});
+
+describe('formatTrace', () => {
+  it('replaces internal IDs with table names, 1-based row indices, and field names', () => {
+    const logic = makeRunnableLogic();
+    // Individual customer → r2 matches immediately (r1 is skipped on Customer Type).
+    const result = evaluateLogicByName(logic, {
+      'Customer Type': 'Individual',
+    });
+    const formatted = formatTrace(logic, result.trace);
+    expect(formatted).toHaveLength(1);
+    const step = formatted[0]!;
+    expect(step.table).toBe('Review');
+    expect(step.depth).toBe(0);
+    expect(step.matchedRow).toEqual({ index: 2, conclusion: 'terminal' });
+    // r1 was skipped on the Customer Type cell ("Corp" != "Individual").
+    expect(step.skippedRows).toEqual([
+      { index: 1, failedField: 'Customer Type' },
+    ]);
+  });
+
+  it('returns matchedRow=null and lists every skipped row on no_match', () => {
+    const logic = makeRunnableLogic();
+    // Customer Type missing entirely → both r1 and r2 fail on the same column.
+    const result = evaluateLogicByName(logic, { Amount: '2000000' });
+    expect(result.status).toBe('no_match');
+    const formatted = formatTrace(logic, result.trace);
+    expect(formatted).toHaveLength(1);
+    expect(formatted[0]!.matchedRow).toBeNull();
+    expect(formatted[0]!.skippedRows).toEqual([
+      { index: 1, failedField: 'Customer Type' },
+      { index: 2, failedField: 'Customer Type' },
+    ]);
+  });
+
+  it('marks continue conclusions with nextTable', () => {
+    const logic: Logic = {
+      version: '2',
+      name: 'Chained',
+      description: 'Two-table chain.',
+      entryTableId: 't1',
+      fieldDefs: {
+        f1: {
+          id: 'f1',
+          name: 'Tier',
+          type: 'enum',
+          enumValues: ['gold', 'silver'],
+        },
+      },
+      tables: {
+        t1: {
+          id: 't1',
+          name: 'Triage',
+          cols: [{ id: 'c1', fieldId: 'f1' }],
+          outputCols: [],
+          rows: [
+            {
+              id: 'r1',
+              cells: { c1: { op: '=', val: 'gold' } },
+              conclusion: { type: 'continue', tableId: 't2' },
+            },
+          ],
+        },
+        t2: {
+          id: 't2',
+          name: 'Premium Path',
+          cols: [],
+          outputCols: [{ id: 'oc1', name: 'Verdict' }],
+          rows: [
+            {
+              id: 'r1',
+              cells: {},
+              conclusion: { type: 'terminal', outputs: { oc1: 'approve' } },
+            },
+          ],
+        },
+      },
+      nField: 1,
+      nTable: 2,
+      nCol: 1,
+      nOCol: 1,
+      nRow: 2,
+    };
+    const result = evaluateLogicByName(logic, { Tier: 'gold' });
+    const formatted = formatTrace(logic, result.trace);
+    expect(formatted).toHaveLength(2);
+    expect(formatted[0]!.matchedRow).toEqual({
+      index: 1,
+      conclusion: 'continue',
+      nextTable: 'Premium Path',
+    });
+    expect(formatted[1]!.table).toBe('Premium Path');
+    expect(formatted[1]!.matchedRow).toEqual({
+      index: 1,
+      conclusion: 'terminal',
+    });
   });
 });

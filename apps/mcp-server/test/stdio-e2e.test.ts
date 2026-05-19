@@ -47,10 +47,14 @@ describe('stdio E2E (real child process)', () => {
         name: 'loan_review',
         arguments: { 'Customer Type': 'Corp', Amount: 1500000 },
       });
-      expect(result.structuredContent).toEqual({
+      expect(result.structuredContent).toMatchObject({
         status: 'ok',
         outputs: { Decision: 'Approve', Reason: 'Large corporate loan' },
       });
+      // P1.5: trace returned alongside outputs, name-keyed (no internal IDs).
+      const trace = (result.structuredContent as { trace: unknown[] }).trace;
+      expect(Array.isArray(trace)).toBe(true);
+      expect(trace).toHaveLength(1);
     } finally {
       await client.close();
     }

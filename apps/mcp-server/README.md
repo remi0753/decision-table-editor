@@ -125,24 +125,44 @@ For a Logic with `name: "Loan Review"`, you get one MCP tool:
 
 | | |
 |---|---|
-| **name** | `loan_review` (slugified from the logic name) |
-| **description** | `logic.description`, or a generated fallback |
+| **name** | `loan_review` — slugified from the logic name. camelCase / PascalCase / acronyms are split (`HTTPServer` → `http_server`), digit-leading names are prefixed (`2024Review` → `tool_2024_review`), and the result is capped at 64 chars. |
+| **description** | `logic.description` (if set) followed by an auto-generated **Inputs** list (every field with its type / enum values) and an **Outputs** list (union of all output column names). This is what an LLM reads to decide whether to call the tool. |
 | **inputSchema** | JSON Schema derived from `fieldDefs` — one optional property per field, typed (`number`/`boolean`/`enum`/`string`/`date`/`datetime`) |
-| **outputSchema** | `{ status: 'ok' \| 'no_match', outputs?, tableId? }` |
+| **outputSchema** | `{ status: 'ok' \| 'no_match', outputs?, unmatchedTable?, trace }` |
 
-Calling the tool runs the Logic through `@leverie/engine`'s `evaluateLogicByName` and returns the matched conclusion (`status: 'ok'`) or `no_match` if no row fired.
+Calling the tool runs the Logic through `@leverie/engine`'s `evaluateLogicByName` and returns the matched conclusion (`status: 'ok'`) or `no_match` if no row fired. Either way, `structuredContent` includes a `trace` array shaped for LLM / human consumption:
+
+- Tables appear by **name**, not internal `t1` ID
+- Rows appear by **1-based index** (matching the editor UI), not internal `r1` ID
+- The column that caused a skipped row appears as its **field name**, not internal `c1` / `oc2` ID
+
+```jsonc
+// status: ok
+{
+  "status": "ok",
+  "outputs": { "Decision": "Approve", "Reason": "Large corporate loan" },
+  "trace": [
+    {
+      "table": "Review",
+      "depth": 0,
+      "matchedRow": { "index": 1, "conclusion": "terminal" },
+      "skippedRows": []
+    }
+  ]
+}
+```
 
 ## How it relates to other packages
 
 | Package | Role |
 |---|---|
 | [`@leverie/engine`](../../packages/engine) | Evaluates the Logic. `leverie-mcp` is a thin wrapper around it. |
-| [`@leverie/schema`](../../packages/schema) | Generates the JSON Schema and Zod shapes that the MCP tool exposes. |
-| [`@leverie/checks`](../../packages/checks) | Optional health-check pass (not yet wired into the CLI; planned for P1.5). |
+| [`@leverie/schema`](../../packages/schema) | Generates the JSON Schema and Zod shapes that the MCP tool exposes, plus the LLM-friendly tool description and trace formatter. |
+| [`@leverie/checks`](../../packages/checks) | Standalone health-check helpers (not yet wired into the CLI). |
 
 ## Status
 
-P1.4 (Standalone MCP, single-file + directory + `--watch` + GHCR Docker image). Tool-annotation polish (description / slug refinement / trace shaping) lands in P1.5. See [roadmap.md](https://github.com/remi0753/leverie/blob/main/doc/roadmap.md).
+P1.5 (Standalone MCP, single-file + directory + `--watch` + GHCR Docker image + slug / description / trace polish). See [roadmap.md](https://github.com/remi0753/leverie/blob/main/doc/roadmap.md).
 
 ## License
 

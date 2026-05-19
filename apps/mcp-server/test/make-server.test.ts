@@ -64,17 +64,31 @@ describe('makeLogicServer', () => {
   // the tool and on each input field are a Phase 1 differentiator — they're
   // what an LLM client reads to decide which tool to call and how to fill it
   // in. Treat them as part of the public contract, not free-form prose.
-  it('exposes logic.description as the tool description and a description on each input property', async () => {
+  it('exposes logic.description plus a generated Inputs/Outputs summary, and per-field descriptions', async () => {
     const client = await connect();
     try {
       const { tools } = await client.listTools();
       const tool = tools[0]!;
-      expect(tool.description).toBe(
+      // Author prose comes first.
+      expect(tool.description).toContain(
         'Decide whether to approve a loan based on customer type and amount.',
       );
+      // Followed by the generated structural summary — what makes the tool
+      // self-describing without the LLM having to inspect the schema.
+      expect(tool.description).toContain('Inputs');
+      expect(tool.description).toContain(
+        'Customer Type (enum: Corp, Individual)',
+      );
+      expect(tool.description).toContain('Amount (number)');
+      expect(tool.description).toContain('Outputs');
+      expect(tool.description).toContain('- Decision');
+      expect(tool.description).toContain('- Reason');
 
-      const props = (tool.inputSchema as { properties: Record<string, { description?: string }> })
-        .properties;
+      const props = (
+        tool.inputSchema as {
+          properties: Record<string, { description?: string }>;
+        }
+      ).properties;
       expect(props['Customer Type']!.description).toBe('Field: Customer Type');
       expect(props.Amount!.description).toBe('Field: Amount');
       expect(props['Has Guarantor']!.description).toBe('Field: Has Guarantor');
@@ -95,8 +109,9 @@ describe('makeLogicServer', () => {
       const tool = tools[0]!;
       expect(tool.name).toBe('all_types');
 
-      const props = (tool.inputSchema as { properties: Record<string, unknown> })
-        .properties;
+      const props = (
+        tool.inputSchema as { properties: Record<string, unknown> }
+      ).properties;
 
       expect(props.Count).toMatchObject({
         type: 'number',
@@ -128,7 +143,7 @@ describe('makeLogicServer', () => {
     }
   });
 
-  it('routes tools/call → evaluateLogicByName and returns ok structuredContent on a match', async () => {
+  it('routes tools/call → evaluateLogicByName and returns ok structuredContent on a match, with a name-keyed trace', async () => {
     const client = await connect();
     try {
       const result = await client.callTool({
@@ -138,22 +153,43 @@ describe('makeLogicServer', () => {
       expect(result.structuredContent).toEqual({
         status: 'ok',
         outputs: { Decision: 'Approve', Reason: 'Large corporate loan' },
+        trace: [
+          {
+            table: 'Review',
+            depth: 0,
+            matchedRow: { index: 1, conclusion: 'terminal' },
+            skippedRows: [],
+          },
+        ],
       });
     } finally {
       await client.close();
     }
   });
 
-  it('returns no_match structuredContent when no row matches', async () => {
+  it('returns no_match structuredContent with the unmatched table name and a trace of every skipped row', async () => {
     const client = await connect();
     try {
       const result = await client.callTool({
         name: 'loan_review',
         arguments: { 'Customer Type': 'Corp', Amount: 500 },
       });
+      // r1 fails on Amount (>= 1,000,000), r2 and r3 fail on Customer Type ("Individual"). No internal IDs leak.
       expect(result.structuredContent).toEqual({
         status: 'no_match',
-        tableId: 't1',
+        unmatchedTable: 'Review',
+        trace: [
+          {
+            table: 'Review',
+            depth: 0,
+            matchedRow: null,
+            skippedRows: [
+              { index: 1, failedField: 'Amount' },
+              { index: 2, failedField: 'Customer Type' },
+              { index: 3, failedField: 'Customer Type' },
+            ],
+          },
+        ],
       });
     } finally {
       await client.close();

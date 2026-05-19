@@ -1,7 +1,9 @@
 import type { Logic } from '@leverie/engine';
 import {
   evaluateLogicByName,
+  formatTrace,
   logicNameToToolSlug,
+  logicToToolDescription,
   logicToZodInputShape,
   logicToZodOutputShape,
 } from '@leverie/schema';
@@ -48,9 +50,7 @@ export function registerLogicTool(
     logicNameToToolSlug(logic.name),
     {
       title: logic.name,
-      description:
-        logic.description ??
-        `Evaluate the "${logic.name}" decision logic. Returns the matched conclusion or "no_match".`,
+      description: logicToToolDescription(logic),
       inputSchema: logicToZodInputShape(logic),
       outputSchema: logicToZodOutputShape(logic),
     },
@@ -62,14 +62,26 @@ export function registerLogicTool(
       }
 
       const result = evaluateLogicByName(logic, inputs);
+      const trace = formatTrace(logic, result.trace);
 
       const structuredContent =
         result.status === 'ok'
-          ? { status: 'ok' as const, outputs: result.outputs }
-          : { status: 'no_match' as const, tableId: result.tableId };
+          ? {
+              status: 'ok' as const,
+              outputs: result.outputs,
+              trace,
+            }
+          : {
+              status: 'no_match' as const,
+              unmatchedTable:
+                logic.tables[result.tableId]?.name ?? result.tableId,
+              trace,
+            };
 
       return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        content: [
+          { type: 'text', text: JSON.stringify(structuredContent, null, 2) },
+        ],
         structuredContent,
       };
     },
