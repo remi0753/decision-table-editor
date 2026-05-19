@@ -16,9 +16,29 @@ npx leverie-mcp serve ./logics/
 
 The command speaks the [Model Context Protocol](https://modelcontextprotocol.io/) over **stdio**. You don't run it directly in a terminal for normal use — you wire it up in your MCP client's config and the client spawns it on demand.
 
-## Claude Desktop
+## Prerequisites
 
-Add this to `claude_desktop_config.json`:
+- **Node.js 18+** on your `PATH`. `npx` ships with Node.
+- A Logic JSON file exported from the [LEVERIE editor](https://github.com/remi0753/leverie) — or a directory of them. Use an **absolute path** in every config snippet below: MCP clients spawn the server from their own working directory, and relative paths usually resolve somewhere unexpected.
+- No prior `npm install` step required: `npx -y leverie-mcp` fetches and caches the latest version automatically. Pin a version (`leverie-mcp@0.1.0`) for reproducible setups.
+
+> **Don't have a logic file yet?** Grab [`apps/mcp-server/test/fixtures/loan-review.json`](./test/fixtures/loan-review.json) from this repo and point your client at it to see the flow end-to-end.
+
+## Connect from your LLM client
+
+Every snippet below wires up the same shape — `command` + `args` for a stdio MCP server. Pick your client; the config locations differ but the JSON body is essentially identical.
+
+### Claude Desktop
+
+Config file:
+
+| OS | Path |
+|---|---|
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
+
+Open the file (create it if missing) and add a `leverie` entry under `mcpServers`:
 
 ```json
 {
@@ -31,11 +51,140 @@ Add this to `claude_desktop_config.json`:
 }
 ```
 
-Then ask Claude: "Use the loan_review tool to decide whether a Corp customer borrowing 1,500,000 should be approved."
+**Fully quit and reopen Claude Desktop** (closing the window is not enough — quit from the menu / tray). The hammer icon in the chat input should now list one tool per `*.json` in the directory.
 
-## Cursor / Cline
+Try it: *"Use the `loan_review` tool to decide whether a Corp customer borrowing 1,500,000 with a guarantor should be approved."*
 
-Equivalent `mcpServers` blocks in their respective config files. See the Phase 1.6 docs once published for full client setup snippets.
+### Cursor
+
+Cursor reads MCP server config from a `mcp.json` file. Use **project scope** when the logic file is checked into a specific repo, or **global scope** to share one set of tools across every project:
+
+| Scope | Path |
+|---|---|
+| Project | `<repo-root>/.cursor/mcp.json` |
+| Global (user) | `~/.cursor/mcp.json` |
+
+```json
+{
+  "mcpServers": {
+    "leverie": {
+      "command": "npx",
+      "args": ["-y", "leverie-mcp", "serve", "/absolute/path/to/logics/"]
+    }
+  }
+}
+```
+
+Open **Cursor Settings → MCP** to confirm the server is `enabled` and the tools are listed. In **Agent mode** ask the model to call `loan_review`.
+
+### Cline (VS Code extension)
+
+In VS Code, open the Cline side panel → **MCP Servers** tab → **Configure MCP Servers** (gear icon). That opens `cline_mcp_settings.json`:
+
+| OS | Path |
+|---|---|
+| macOS | `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` |
+| Windows | `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json` |
+| Linux | `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` |
+
+```json
+{
+  "mcpServers": {
+    "leverie": {
+      "command": "npx",
+      "args": ["-y", "leverie-mcp", "serve", "/absolute/path/to/logics/"],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+Save the file — Cline picks up the change without a reload. The MCP Servers panel shows a green dot per active server and lists its tools.
+
+> **VS Code Insiders / different editor build**: substitute `Code - Insiders` / `VSCodium` for `Code` in the path above.
+
+### VS Code (GitHub Copilot agent mode)
+
+VS Code's built-in MCP support reads `.vscode/mcp.json` from the open workspace:
+
+```json
+{
+  "servers": {
+    "leverie": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "leverie-mcp", "serve", "/absolute/path/to/logics/"]
+    }
+  }
+}
+```
+
+Reload the window (`Developer: Reload Window`) and open **Chat → Agent**. The tools picker lists every Logic.
+
+### Claude Code (CLI)
+
+One command registers the server in your user-level `~/.claude.json`:
+
+```bash
+claude mcp add leverie --scope user -- npx -y leverie-mcp serve /absolute/path/to/logics/
+```
+
+Use `--scope project` instead to write to `.mcp.json` in the current repo (checked in for the whole team). Verify with `claude mcp list`.
+
+### Any other stdio MCP client
+
+The wire format is the standard Model Context Protocol. The minimum a client needs to know is:
+
+- **Transport**: stdio
+- **Command**: `npx -y leverie-mcp serve <absolute-path>`
+- **Working directory**: irrelevant (paths in args are absolute)
+- **Environment**: none required
+
+## Verifying the setup
+
+If a client doesn't expose a "list tools" view, two quick smoke tests confirm the server itself is healthy. Both run outside the client and don't require any LLM.
+
+**1. The server starts and lists tools.** From a terminal:
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}
+{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
+{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+  | npx -y leverie-mcp serve /absolute/path/to/logics/
+```
+
+You should see a JSON-RPC response whose `result.tools[]` contains one entry per `*.json` file.
+
+**2. Calling a tool returns a verdict.** Pipe a `tools/call` request:
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}
+{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"loan_review","arguments":{"Customer Type":"Corp","Amount":1500000,"Has Guarantor":true}}}' \
+  | npx -y leverie-mcp serve /absolute/path/to/logics/loan-review.json
+```
+
+The response's `structuredContent` should report `status: "ok"` with the matched outputs and a `trace` array.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Client shows no `leverie` tools | Config didn't reload | Fully quit and relaunch the client (Claude Desktop especially — the tray/menu icon must close). Reload window for VS Code / Cursor. |
+| `ENOENT: spawn npx` in client logs | `npx` not on the PATH the client inherits | Use an absolute path to `npx` (e.g. `/usr/local/bin/npx` on macOS, the output of `which npx`). On Windows, install Node into the system PATH rather than per-user. |
+| `Cannot find logic file` | Relative path | Use an **absolute path** in `args`. MCP clients don't run from your shell's `cwd`. |
+| `slug collision` error on startup | Two `*.json` files in the directory produce the same tool name | Rename one of the logics (the `name` field), or load only one file with `serve /path/to/one.json`. |
+| `server exited with code 1` immediately on startup | The single file failed to parse | Run the same `serve` command in a terminal — the parse error prints to stderr. Or pass `--strict` to surface validation failures with the file path. |
+| Tools appear but calls return `no_match` for every input | Field names in the call don't match the Logic's `fieldDefs[].name` (the schema is case-sensitive and preserves spaces) | Check `tools/list` and use the exact names from `inputSchema.properties`. |
+| Server picks up an old version of the logic | `npx` cache or stale process | `npx leverie-mcp@latest …` or use `--watch` in dev. |
+
+Client-specific logs (handy when something doesn't appear in the UI):
+
+- **Claude Desktop**: `~/Library/Logs/Claude/mcp*.log` (macOS), `%APPDATA%\Claude\logs\mcp*.log` (Windows)
+- **Cline**: VS Code Output panel → "Cline" channel
+- **Cursor**: Help → Toggle Developer Tools → Console
+- **VS Code**: Output panel → "MCP" channel
 
 ## Docker
 
@@ -162,7 +311,7 @@ Calling the tool runs the Logic through `@leverie/engine`'s `evaluateLogicByName
 
 ## Status
 
-P1.5 (Standalone MCP, single-file + directory + `--watch` + GHCR Docker image + slug / description / trace polish). See [roadmap.md](https://github.com/remi0753/leverie/blob/main/doc/roadmap.md).
+P1.6 (Standalone MCP — single-file + directory + `--watch` + GHCR Docker image + slug / description / trace polish + per-client setup docs). See [roadmap.md](https://github.com/remi0753/leverie/blob/main/doc/roadmap.md).
 
 ## License
 
