@@ -226,6 +226,18 @@ export type TranslationSet = {
   csvErrNoInputCols: string;
   csvErrNoCases: string;
   csvAutoCase: (n: number) => string;
+
+  // Sample templates
+  samples: string;
+  samplesShort: string;
+  sampleGalleryTitle: string;
+  sampleGalleryDescription: string;
+  sampleGalleryFooter: string;
+  useSample: string;
+  startFromSample: string;
+  startFromSampleHint: string;
+  sampleLoaded: (name: string) => string;
+  orSeparator: string;
 };
 
 export const translations: Record<Lang, TranslationSet> = {
@@ -463,6 +475,20 @@ export const translations: Record<Lang, TranslationSet> = {
       'No input columns found. Check that field names in the header match the logic fields.',
     csvErrNoCases: 'No test cases found. Please add data rows.',
     csvAutoCase: (n) => `Case ${n}`,
+
+    samples: 'Sample templates',
+    samplesShort: 'Samples',
+    sampleGalleryTitle: 'Start from a sample',
+    sampleGalleryDescription:
+      'Pick a ready-made decision logic from a familiar business scenario, load it into the editor, and reach an evaluation in under five minutes.',
+    sampleGalleryFooter:
+      'Loading a sample replaces the current logic. Your previous logic stays in the browser only until you load or import something else.',
+    useSample: 'Load this sample',
+    startFromSample: 'Start from a sample',
+    startFromSampleHint:
+      'New here? Load a ready-made example (support routing, refunds, credit screening) to see a working decision logic in seconds.',
+    sampleLoaded: (name) => `Loaded sample: ${name}`,
+    orSeparator: 'or',
   },
 
   ja: {
@@ -700,5 +726,19 @@ export const translations: Record<Lang, TranslationSet> = {
     csvErrNoCases:
       'テストケースが1件もありません。データ行を追加してください。',
     csvAutoCase: (n) => `ケース${n}`,
+
+    samples: 'サンプルテンプレート',
+    samplesShort: 'サンプル',
+    sampleGalleryTitle: 'サンプルから始める',
+    sampleGalleryDescription:
+      '業務でよくあるシナリオの決定ロジックを選んでエディタに読み込み、5 分以内に評価まで体験できます。',
+    sampleGalleryFooter:
+      'サンプルを読み込むと現在のロジックは置き換わります。元のロジックは別のサンプル / インポートで上書きされるまでブラウザに残っています。',
+    useSample: 'このサンプルを読み込む',
+    startFromSample: 'サンプルから始める',
+    startFromSampleHint:
+      '初めての方はこちら。サポート振り分け・返金可否・与信スクリーニングなど、すぐ動く実例をワンクリックで読み込めます。',
+    sampleLoaded: (name) => `サンプルを読み込みました: ${name}`,
+    orSeparator: 'または',
   },
 };

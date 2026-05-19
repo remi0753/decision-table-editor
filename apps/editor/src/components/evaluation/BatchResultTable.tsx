@@ -1,8 +1,9 @@
 import type { BatchCaseResult, Logic } from '@leverie/engine';
+import { TraceView } from '@leverie/ui-runtime';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
+import { toUiRuntimeTranslations } from '@/i18n/uiRuntime';
 import { useT } from '@/i18n/useT';
-import { TraceView } from './TraceView';
 
 interface Props {
   results: BatchCaseResult[];
@@ -12,6 +13,7 @@ interface Props {
 export function BatchResultTable({ results, logic }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const t = useT();
+  const runtimeT = useMemo(() => toUiRuntimeTranslations(t), [t]);
 
   const totalCount = results.length;
   const matchCount = results.filter((r) => r.result.status === 'ok').length;
@@ -94,7 +96,11 @@ export function BatchResultTable({ results, logic }: Props) {
                 {expandedIndex === i && (
                   <tr>
                     <td colSpan={5} className="px-4 py-3 bg-gray-50 border-t">
-                      <TraceView result={r.result} logic={logic} />
+                      <TraceView
+                        result={r.result}
+                        logic={logic}
+                        translations={runtimeT}
+                      />
                     </td>
                   </tr>
                 )}
