@@ -323,6 +323,24 @@ CSV header conventions:
 
 ---
 
+### 6. Use your logic from an LLM (MCP)
+
+Once a logic is exported as JSON, you can expose it to Claude Desktop, Cursor, Cline, VS Code (Copilot agent mode), or any other [Model Context Protocol](https://modelcontextprotocol.io/) client via the **`leverie-mcp`** CLI:
+
+```bash
+# One file → one MCP tool
+npx leverie-mcp serve /absolute/path/to/my-logic.json
+
+# A directory → every *.json becomes its own tool
+npx leverie-mcp serve /absolute/path/to/logics/
+```
+
+You don't run this in a terminal day-to-day — you add it to your MCP client's config and the client spawns it on demand. Per-client setup snippets (Claude Desktop / Cursor / Cline / VS Code / Claude Code), an end-to-end verification recipe, and a troubleshooting table live in [apps/mcp-server/README.md](apps/mcp-server/README.md).
+
+A prebuilt Docker image is published to GitHub Container Registry as `ghcr.io/remi0753/leverie-mcp` for setups where `npx` isn't an option.
+
+---
+
 ## Tech stack
 
 | Category | Library |
