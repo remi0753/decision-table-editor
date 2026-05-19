@@ -13,7 +13,7 @@
 // Usage:
 //   node apply-publish-config.mjs <node_modules-dir>
 
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const target = process.argv[2];
@@ -43,4 +43,6 @@ function visit(dir) {
 }
 
 visit(target);
-process.stdout.write(`apply-publish-config: rewrote ${rewritten} package.json file(s)\n`);
+process.stdout.write(
+  `apply-publish-config: rewrote ${rewritten} package.json file(s)\n`,
+);

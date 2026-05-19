@@ -8,9 +8,7 @@ const TSX_BIN = fileURLToPath(
   new URL('../node_modules/.bin/tsx', import.meta.url),
 );
 const CLI_ENTRY = fileURLToPath(new URL('../src/cli.ts', import.meta.url));
-const PACKAGE_JSON = fileURLToPath(
-  new URL('../package.json', import.meta.url),
-);
+const PACKAGE_JSON = fileURLToPath(new URL('../package.json', import.meta.url));
 
 interface CliRun {
   stdout: string;

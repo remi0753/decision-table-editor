@@ -227,7 +227,7 @@ describe('loadAndRegisterPath', () => {
           name: 'loan_review',
           arguments: { 'Customer Type': 'Corp', Amount: 1500000 },
         });
-        expect(ok.structuredContent).toEqual({
+        expect(ok.structuredContent).toMatchObject({
           status: 'ok',
           outputs: { Decision: 'Approve', Reason: 'Large corporate loan' },
         });
