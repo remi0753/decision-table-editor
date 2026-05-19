@@ -4,6 +4,8 @@ dist
 CLAUDE.md
 .playwright-mcp
 .vscode
+AGENTS.md
+.codex
 
 # turborepo cache
 .turbo
