@@ -4,7 +4,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { GitBranch, Plus, Settings, Table2 } from 'lucide-react';
+import { GitBranch, Plus, Settings, Sparkles, Table2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { FlowChart } from '@/components/graph/FlowChart';
@@ -21,11 +21,12 @@ import { TableHeaderMenu } from './TableHeaderMenu';
 
 interface Props {
   tableId: string;
+  onOpenSampleGallery?: () => void;
 }
 
 type Tab = 'table' | 'flowchart';
 
-export function DecisionTable({ tableId }: Props) {
+export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
   const [showOutputPanel, setShowOutputPanel] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('table');
   const [highlightedRowIds, setHighlightedRowIds] = useState<Set<string>>(
@@ -270,12 +271,35 @@ export function DecisionTable({ tableId }: Props) {
 
             {(table.rows.length === 0 || table.cols.length === 0) && (
               <div className="flex items-center justify-center px-4 py-10 border-t bg-gray-50/50">
-                <div className="flex flex-col items-center gap-3 bg-white border border-gray-200 rounded-lg shadow-sm px-8 py-6">
+                <div className="flex flex-col items-center gap-3 bg-white border border-gray-200 rounded-lg shadow-sm px-8 py-6 max-w-md">
                   {table.rows.length === 0 && table.cols.length === 0 && (
                     <p className="text-sm text-gray-600 mb-1">
                       {t.emptyTableHelper}
                     </p>
                   )}
+                  {onOpenSampleGallery &&
+                    Object.keys(logic.fieldDefs).length === 0 &&
+                    table.rows.length === 0 &&
+                    table.cols.length === 0 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={onOpenSampleGallery}
+                          className="w-72 flex items-center justify-center gap-1.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded px-3 py-2"
+                        >
+                          <Sparkles size={16} strokeWidth={2.5} />
+                          {t.startFromSample}
+                        </button>
+                        <p className="text-xs text-gray-500 text-center -mt-1 max-w-xs">
+                          {t.startFromSampleHint}
+                        </p>
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-400 w-72">
+                          <span className="flex-1 border-t border-gray-200" />
+                          <span>{t.orSeparator}</span>
+                          <span className="flex-1 border-t border-gray-200" />
+                        </div>
+                      </>
+                    )}
                   {table.cols.length === 0 && (
                     <button
                       type="button"

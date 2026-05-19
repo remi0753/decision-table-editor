@@ -1,13 +1,24 @@
 import type { EvalResult, Logic, TraceStep } from '@leverie/engine';
-import { useT } from '@/i18n/useT';
+import {
+  defaultTranslations,
+  type UiRuntimeTranslations,
+} from './translations.js';
 
-interface Props {
+interface TraceViewProps {
   result: EvalResult;
   logic: Logic;
+  translations?: UiRuntimeTranslations;
 }
 
-function TraceStepView({ step, logic }: { step: TraceStep; logic: Logic }) {
-  const t = useT();
+function TraceStepView({
+  step,
+  logic,
+  t,
+}: {
+  step: TraceStep;
+  logic: Logic;
+  t: UiRuntimeTranslations;
+}) {
   const table = logic.tables[step.tableId];
   if (!table) return null;
 
@@ -48,8 +59,8 @@ function TraceStepView({ step, logic }: { step: TraceStep; logic: Logic }) {
   );
 }
 
-export function TraceView({ result, logic }: Props) {
-  const t = useT();
+export function TraceView({ result, logic, translations }: TraceViewProps) {
+  const t = translations ?? defaultTranslations.en;
 
   return (
     <div className="space-y-1">
@@ -58,6 +69,7 @@ export function TraceView({ result, logic }: Props) {
           key={`${step.tableId}-${step.depth}`}
           step={step}
           logic={logic}
+          t={t}
         />
       ))}
 

@@ -1,6 +1,15 @@
-import { Download, FilePlus, Redo2, Undo2, Upload } from 'lucide-react';
+import {
+  Download,
+  FilePlus,
+  Redo2,
+  Sparkles,
+  Undo2,
+  Upload,
+} from 'lucide-react';
+import { useState } from 'react';
 import { Toaster } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { SampleGalleryDialog } from '@/components/templates/SampleGalleryDialog';
 import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
@@ -24,6 +33,7 @@ export function AppLayout() {
   const canRedo = useHistoryStore((s) => s.future.length > 0);
   const importFn = useImportLogic();
   const t = useT();
+  const [sampleGalleryOpen, setSampleGalleryOpen] = useState(false);
 
   useAutoSave(logic);
 
@@ -86,6 +96,16 @@ export function AppLayout() {
               <FilePlus />
             </IconButton>
           </Tooltip>
+          <Tooltip content={t.samples}>
+            <IconButton
+              size="md"
+              tone="primary"
+              onClick={() => setSampleGalleryOpen(true)}
+              aria-label={t.samples}
+            >
+              <Sparkles />
+            </IconButton>
+          </Tooltip>
           <Tooltip content={t.importBtn}>
             <IconButton
               size="md"
@@ -114,9 +134,14 @@ export function AppLayout() {
           <LeftPane />
         </aside>
         <main className="flex-1 overflow-hidden bg-gray-50">
-          <RightPane />
+          <RightPane onOpenSampleGallery={() => setSampleGalleryOpen(true)} />
         </main>
       </div>
+
+      <SampleGalleryDialog
+        open={sampleGalleryOpen}
+        onOpenChange={setSampleGalleryOpen}
+      />
     </div>
   );
 }

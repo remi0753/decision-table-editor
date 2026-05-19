@@ -1,0 +1,62 @@
+{
+  "name": "@leverie/ui-runtime",
+  "version": "0.1.0",
+  "description": "Reusable React UI parts for running a LEVERIE Logic: input form (generated from fieldDefs), result panel, and execution trace view.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "keywords": [
+    "leverie",
+    "decision-table",
+    "react",
+    "ui",
+    "form",
+    "json-schema",
+    "runner"
+  ],
+  "homepage": "https://github.com/remi0753/leverie/tree/main/packages/ui-runtime#readme",
+  "bugs": {
+    "url": "https://github.com/remi0753/leverie/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/remi0753/leverie.git",
+    "directory": "packages/ui-runtime"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "prepublishOnly": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@leverie/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.6"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  }
+}

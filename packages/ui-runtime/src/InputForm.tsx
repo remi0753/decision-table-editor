@@ -1,16 +1,28 @@
 import type { Logic } from '@leverie/engine';
-import { useT } from '@/i18n/useT';
-import { useUiStore } from '@/store/uiStore';
+import {
+  defaultTranslations,
+  type UiRuntimeTranslations,
+} from './translations.js';
 
-interface Props {
+interface InputFormProps {
   logic: Logic;
+  values: Record<string, string>;
+  onChange: (fieldId: string, value: string) => void;
+  translations?: UiRuntimeTranslations;
+  className?: string;
 }
 
-export function InputForm({ logic }: Props) {
-  const evalInputs = useUiStore((s) => s.evalInputs);
-  const setEvalInput = useUiStore((s) => s.setEvalInput);
-  const t = useT();
+const inputBase =
+  'w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400';
 
+export function InputForm({
+  logic,
+  values,
+  onChange,
+  translations,
+  className,
+}: InputFormProps) {
+  const t = translations ?? defaultTranslations.en;
   const fields = Object.values(logic.fieldDefs);
 
   if (fields.length === 0) {
@@ -18,9 +30,9 @@ export function InputForm({ logic }: Props) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className={className ?? 'space-y-2'}>
       {fields.map((field) => {
-        const value = evalInputs[field.id] ?? '';
+        const value = values[field.id] ?? '';
         return (
           <div key={field.id}>
             <label
@@ -39,7 +51,7 @@ export function InputForm({ logic }: Props) {
                     <input
                       type="radio"
                       checked={value === v}
-                      onChange={() => setEvalInput(field.id, v)}
+                      onChange={() => onChange(field.id, v)}
                     />
                     {v === '' ? t.unset : v === 'true' ? t.yes : t.no}
                   </label>
@@ -49,8 +61,8 @@ export function InputForm({ logic }: Props) {
               <select
                 id={field.id}
                 value={value}
-                onChange={(e) => setEvalInput(field.id, e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+                onChange={(e) => onChange(field.id, e.target.value)}
+                className={inputBase}
               >
                 <option value="">{t.noSelection}</option>
                 {(field.enumValues ?? []).map((v) => (
@@ -64,24 +76,24 @@ export function InputForm({ logic }: Props) {
                 id={field.id}
                 type="date"
                 value={value}
-                onChange={(e) => setEvalInput(field.id, e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+                onChange={(e) => onChange(field.id, e.target.value)}
+                className={inputBase}
               />
             ) : field.type === 'datetime' ? (
               <input
                 id={field.id}
                 type="datetime-local"
                 value={value}
-                onChange={(e) => setEvalInput(field.id, e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+                onChange={(e) => onChange(field.id, e.target.value)}
+                className={inputBase}
               />
             ) : (
               <input
                 id={field.id}
                 type={field.type === 'number' ? 'number' : 'text'}
                 value={value}
-                onChange={(e) => setEvalInput(field.id, e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+                onChange={(e) => onChange(field.id, e.target.value)}
+                className={inputBase}
                 placeholder={t.inputPlaceholder(field.name)}
               />
             )}

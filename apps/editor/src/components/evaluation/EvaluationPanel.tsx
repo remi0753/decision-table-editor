@@ -1,13 +1,13 @@
 import { evaluateTable } from '@leverie/engine';
+import { InputForm, TraceView } from '@leverie/ui-runtime';
 import { ChevronDown, ChevronUp, Play, RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { toUiRuntimeTranslations } from '@/i18n/uiRuntime';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { BatchPanel } from './BatchPanel';
-import { InputForm } from './InputForm';
-import { TraceView } from './TraceView';
 
 type Tab = 'single' | 'batch';
 
@@ -15,6 +15,7 @@ export function EvaluationPanel() {
   const [activeTab, setActiveTab] = useState<Tab>('single');
   const logic = useLogicStore((s) => s.logic);
   const evalInputs = useUiStore((s) => s.evalInputs);
+  const setEvalInput = useUiStore((s) => s.setEvalInput);
   const clearEvalInputs = useUiStore((s) => s.clearEvalInputs);
   const result = useUiStore((s) => s.evalResult);
   const setResult = useUiStore((s) => s.setEvalResult);
@@ -22,6 +23,7 @@ export function EvaluationPanel() {
   const open = useUiStore((s) => s.evalDrawerOpen);
   const toggleDrawer = useUiStore((s) => s.toggleEvalDrawer);
   const t = useT();
+  const runtimeT = useMemo(() => toUiRuntimeTranslations(t), [t]);
 
   const handleEvaluate = () => {
     const res = evaluateTable(logic.entryTableId, evalInputs, logic);
@@ -76,7 +78,12 @@ export function EvaluationPanel() {
           <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             {activeTab === 'single' && (
               <>
-                <InputForm logic={logic} />
+                <InputForm
+                  logic={logic}
+                  values={evalInputs}
+                  onChange={setEvalInput}
+                  translations={runtimeT}
+                />
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -98,7 +105,11 @@ export function EvaluationPanel() {
                     <div className="text-xs font-medium text-gray-500 mb-2">
                       {t.traceLabel}
                     </div>
-                    <TraceView result={result} logic={logic} />
+                    <TraceView
+                      result={result}
+                      logic={logic}
+                      translations={runtimeT}
+                    />
                   </div>
                 )}
               </>
