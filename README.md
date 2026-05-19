@@ -337,6 +337,8 @@ npx leverie-mcp serve /absolute/path/to/logics/
 
 You don't run this in a terminal day-to-day — you add it to your MCP client's config and the client spawns it on demand. Per-client setup snippets (Claude Desktop / Cursor / Cline / VS Code / Claude Code), an end-to-end verification recipe, and a troubleshooting table live in [apps/mcp-server/README.md](apps/mcp-server/README.md).
 
+Three ready-to-run sample logics live in [examples/](examples/) — point your client at that directory and you immediately get a `loan_review`, `support_ticket_routing`, and `refund_eligibility` tool with worked LLM prompts.
+
 A prebuilt Docker image is published to GitHub Container Registry as `ghcr.io/remi0753/leverie-mcp` for setups where `npx` isn't an option.
 
 ---

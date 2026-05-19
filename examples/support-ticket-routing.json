@@ -1,0 +1,168 @@
+{
+  "version": "2",
+  "name": "Support Ticket Routing",
+  "description": "Route an incoming support ticket to the correct queue with an SLA, based on priority, customer tier, whether the customer is hitting a production outage, and the ticket category. Three-table chain: Triage decides whether to escalate or fall through to standard routing, and the chosen table produces the final Queue + SLA.",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "Priority",
+      "type": "enum",
+      "enumValues": ["P0", "P1", "P2", "P3"]
+    },
+    "f2": {
+      "id": "f2",
+      "name": "Customer Tier",
+      "type": "enum",
+      "enumValues": ["free", "pro", "enterprise"]
+    },
+    "f3": { "id": "f3", "name": "Has Outage", "type": "bool" },
+    "f4": {
+      "id": "f4",
+      "name": "Category",
+      "type": "enum",
+      "enumValues": ["billing", "technical", "account", "general"]
+    }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "Triage",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "Queue" },
+        { "id": "oc2", "name": "SLA" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "P0" },
+            "c2": { "op": "=", "val": "enterprise" }
+          },
+          "conclusion": { "type": "continue", "tableId": "t2" }
+        },
+        {
+          "id": "r2",
+          "cells": { "c1": { "op": "=", "val": "P0" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Urgent queue",
+              "oc2": "1 hour"
+            }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "P1" },
+            "c2": { "op": "=", "val": "enterprise" }
+          },
+          "conclusion": { "type": "continue", "tableId": "t2" }
+        },
+        {
+          "id": "r4",
+          "cells": {},
+          "conclusion": { "type": "continue", "tableId": "t3" }
+        }
+      ]
+    },
+    "t2": {
+      "id": "t2",
+      "name": "Escalation",
+      "cols": [{ "id": "c3", "fieldId": "f3" }],
+      "outputCols": [
+        { "id": "oc3", "name": "Queue" },
+        { "id": "oc4", "name": "SLA" }
+      ],
+      "rows": [
+        {
+          "id": "r5",
+          "cells": { "c3": { "op": "=", "val": "true" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "Page on-call engineer",
+              "oc4": "15 minutes"
+            }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc3": "Tier-2 escalation",
+              "oc4": "4 hours"
+            }
+          }
+        }
+      ]
+    },
+    "t3": {
+      "id": "t3",
+      "name": "Standard Routing",
+      "cols": [{ "id": "c4", "fieldId": "f4" }],
+      "outputCols": [
+        { "id": "oc5", "name": "Queue" },
+        { "id": "oc6", "name": "SLA" }
+      ],
+      "rows": [
+        {
+          "id": "r7",
+          "cells": { "c4": { "op": "=", "val": "billing" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc5": "Billing team",
+              "oc6": "1 business day"
+            }
+          }
+        },
+        {
+          "id": "r8",
+          "cells": { "c4": { "op": "=", "val": "technical" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc5": "Engineering",
+              "oc6": "2 business days"
+            }
+          }
+        },
+        {
+          "id": "r9",
+          "cells": { "c4": { "op": "=", "val": "account" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc5": "Account team",
+              "oc6": "1 business day"
+            }
+          }
+        },
+        {
+          "id": "r10",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc5": "General queue",
+              "oc6": "3 business days"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 5,
+  "nTable": 4,
+  "nCol": 5,
+  "nOCol": 7,
+  "nRow": 11
+}

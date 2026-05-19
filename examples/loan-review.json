@@ -1,0 +1,107 @@
+{
+  "version": "2",
+  "name": "Loan Review",
+  "description": "Approve or reject a loan application based on customer type, requested amount, and whether a guarantor is on file. Single-table policy that mixes enum, number, and bool inputs.",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "Customer Type",
+      "type": "enum",
+      "enumValues": ["Corp", "Individual"]
+    },
+    "f2": { "id": "f2", "name": "Amount", "type": "number" },
+    "f3": { "id": "f3", "name": "Has Guarantor", "type": "bool" }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "Review",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" },
+        { "id": "c3", "fieldId": "f3" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "Decision" },
+        { "id": "oc2", "name": "Reason" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "c1": { "op": "=", "val": "Corp" },
+            "c2": { "op": ">=", "val": "5000000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Manual review",
+              "oc2": "Corporate loan above 5,000,000 needs senior approval"
+            }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "c1": { "op": "=", "val": "Corp" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Approve",
+              "oc2": "Standard corporate loan"
+            }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "Individual" },
+            "c3": { "op": "=", "val": "true" },
+            "c2": { "op": "<", "val": "1000000" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Approve",
+              "oc2": "Individual loan within guarantor coverage"
+            }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "c1": { "op": "=", "val": "Individual" },
+            "c3": { "op": "=", "val": "true" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Manual review",
+              "oc2": "Individual loan above 1,000,000 needs reviewer check"
+            }
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "c1": { "op": "=", "val": "Individual" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Reject",
+              "oc2": "Individual loan requires a guarantor"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 4,
+  "nTable": 2,
+  "nCol": 4,
+  "nOCol": 3,
+  "nRow": 6
+}

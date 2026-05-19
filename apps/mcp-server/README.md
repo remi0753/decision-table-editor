@@ -22,7 +22,7 @@ The command speaks the [Model Context Protocol](https://modelcontextprotocol.io/
 - A Logic JSON file exported from the [LEVERIE editor](https://github.com/remi0753/leverie) — or a directory of them. Use an **absolute path** in every config snippet below: MCP clients spawn the server from their own working directory, and relative paths usually resolve somewhere unexpected.
 - No prior `npm install` step required: `npx -y leverie-mcp` fetches and caches the latest version automatically. Pin a version (`leverie-mcp@0.1.0`) for reproducible setups.
 
-> **Don't have a logic file yet?** Grab [`apps/mcp-server/test/fixtures/loan-review.json`](./test/fixtures/loan-review.json) from this repo and point your client at it to see the flow end-to-end.
+> **Don't have a logic file yet?** Point your client at [`examples/`](../../examples/) in this repo — three ready-to-run samples (loan review, support ticket routing, refund eligibility) with worked LLM prompts.
 
 ## Connect from your LLM client
 
@@ -311,7 +311,7 @@ Calling the tool runs the Logic through `@leverie/engine`'s `evaluateLogicByName
 
 ## Status
 
-P1.6 (Standalone MCP — single-file + directory + `--watch` + GHCR Docker image + slug / description / trace polish + per-client setup docs). See [roadmap.md](https://github.com/remi0753/leverie/blob/main/doc/roadmap.md).
+P1.7 (Standalone MCP — single-file + directory + `--watch` + GHCR Docker image + slug / description / trace polish + per-client setup docs + worked sample logics under [`examples/`](../../examples/)). See [roadmap.md](https://github.com/remi0753/leverie/blob/main/doc/roadmap.md).
 
 ## License
 

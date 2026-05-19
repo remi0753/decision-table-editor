@@ -1,0 +1,133 @@
+{
+  "version": "2",
+  "name": "Refund Eligibility",
+  "description": "Decide whether an order qualifies for a full refund, a partial refund (restocking fee), or no refund. Combines item category, days since purchase, customer loyalty tier, order total, and damage flag to capture a real customer-service refund policy.",
+  "entryTableId": "t1",
+  "fieldDefs": {
+    "f1": {
+      "id": "f1",
+      "name": "Item Category",
+      "type": "enum",
+      "enumValues": ["electronics", "clothing", "consumables", "services"]
+    },
+    "f2": { "id": "f2", "name": "Days Since Order", "type": "number" },
+    "f3": {
+      "id": "f3",
+      "name": "Customer Tier",
+      "type": "enum",
+      "enumValues": ["standard", "gold", "platinum"]
+    },
+    "f4": { "id": "f4", "name": "Order Total", "type": "number" },
+    "f5": { "id": "f5", "name": "Is Damaged", "type": "bool" }
+  },
+  "tables": {
+    "t1": {
+      "id": "t1",
+      "name": "Eligibility",
+      "cols": [
+        { "id": "c1", "fieldId": "f1" },
+        { "id": "c2", "fieldId": "f2" },
+        { "id": "c3", "fieldId": "f3" },
+        { "id": "c4", "fieldId": "f4" },
+        { "id": "c5", "fieldId": "f5" }
+      ],
+      "outputCols": [
+        { "id": "oc1", "name": "Decision" },
+        { "id": "oc2", "name": "Reason" }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": { "c5": { "op": "=", "val": "true" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Approve",
+              "oc2": "Damaged item: full refund regardless of age"
+            }
+          }
+        },
+        {
+          "id": "r2",
+          "cells": { "c1": { "op": "=", "val": "services" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Reject",
+              "oc2": "Services are non-refundable once delivered"
+            }
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "c1": { "op": "=", "val": "consumables" },
+            "c2": { "op": ">", "val": "7" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Reject",
+              "oc2": "Consumables non-refundable after 7 days"
+            }
+          }
+        },
+        {
+          "id": "r4",
+          "cells": { "c2": { "op": "<=", "val": "14" } },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Approve",
+              "oc2": "Within the standard 14-day return window"
+            }
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "c2": { "op": "<=", "val": "30" },
+            "c3": { "op": "in", "val": ["gold", "platinum"] }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Approve",
+              "oc2": "Loyalty tier: extended 30-day window"
+            }
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "c2": { "op": "between", "val": ["15", "30"] },
+            "c4": { "op": ">=", "val": "200" }
+          },
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Partial refund",
+              "oc2": "Outside standard window but high-value order: 15% restocking fee applies"
+            }
+          }
+        },
+        {
+          "id": "r7",
+          "cells": {},
+          "conclusion": {
+            "type": "terminal",
+            "outputs": {
+              "oc1": "Reject",
+              "oc2": "Outside the refund window"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "nField": 6,
+  "nTable": 2,
+  "nCol": 6,
+  "nOCol": 3,
+  "nRow": 8
+}
