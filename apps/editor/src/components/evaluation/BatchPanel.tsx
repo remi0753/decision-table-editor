@@ -10,9 +10,10 @@ import { BatchResultTable } from './BatchResultTable';
 
 interface Props {
   logic: Logic;
+  onInspect?: () => void;
 }
 
-export function BatchPanel({ logic }: Props) {
+export function BatchPanel({ logic, onInspect }: Props) {
   const batchFileName = useUiStore((s) => s.batchFileName);
   const batchCases = useUiStore((s) => s.batchCases);
   const batchResults = useUiStore((s) => s.batchResults);
@@ -104,7 +105,11 @@ export function BatchPanel({ logic }: Props) {
 
       {batchResults && (
         <div className="border-t pt-3">
-          <BatchResultTable results={batchResults} logic={logic} />
+          <BatchResultTable
+            results={batchResults}
+            logic={logic}
+            onInspect={onInspect}
+          />
         </div>
       )}
     </div>

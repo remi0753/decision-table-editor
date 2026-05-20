@@ -1,18 +1,18 @@
 import { evaluateTable } from '@leverie/engine';
 import { InputForm, TraceView } from '@leverie/ui-runtime';
-import { ChevronDown, ChevronUp, Play, RotateCcw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import {
+  PanelRightClose,
+  PanelRightOpen,
+  Play,
+  RotateCcw,
+} from 'lucide-react';
+import { useMemo } from 'react';
 import { toUiRuntimeTranslations } from '@/i18n/uiRuntime';
 import { useT } from '@/i18n/useT';
-import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
-import { BatchPanel } from './BatchPanel';
-
-type Tab = 'single' | 'batch';
 
 export function EvaluationPanel() {
-  const [activeTab, setActiveTab] = useState<Tab>('single');
   const logic = useLogicStore((s) => s.logic);
   const evalInputs = useUiStore((s) => s.evalInputs);
   const setEvalInput = useUiStore((s) => s.setEvalInput);
@@ -35,90 +35,78 @@ export function EvaluationPanel() {
     clearResult();
   };
 
-  return (
-    <div
-      className={cn(
-        'border-t bg-white shrink-0 flex flex-col',
-        open ? 'h-[60vh]' : 'h-auto',
-      )}
-    >
+  if (!open) {
+    return (
       <button
         type="button"
         onClick={toggleDrawer}
-        className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 text-left shrink-0 border-b border-transparent data-[open=true]:border-gray-200"
-        data-open={open}
+        aria-label={t.evaluationPanel}
+        className="w-11 shrink-0 border-l bg-white hover:bg-violet-50 transition-colors flex flex-col items-center py-3 gap-3 text-gray-500"
       >
-        <span className="font-medium text-sm">{t.evaluationPanel}</span>
-        {open ? (
-          <ChevronDown size={16} className="text-gray-400" />
-        ) : (
-          <ChevronUp size={16} className="text-gray-400" />
-        )}
+        <PanelRightOpen size={16} />
+        <span
+          className="text-xs font-medium tracking-wider"
+          style={{ writingMode: 'vertical-rl' }}
+        >
+          {t.evaluationPanel}
+        </span>
       </button>
+    );
+  }
 
-      {open && (
-        <div className="flex-1 min-h-0 flex flex-col">
-          <div className="flex border-b shrink-0 px-4">
-            {(['single', 'batch'] as Tab[]).map((tab) => (
-              <button
-                type="button"
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 pb-2 pt-1 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab
-                    ? 'border-violet-600 text-violet-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab === 'single' ? t.singleEval : t.batchEval}
-              </button>
-            ))}
-          </div>
+  return (
+    <aside className="w-[360px] shrink-0 border-l bg-white flex flex-col">
+      <div className="flex items-center justify-between px-4 h-10 border-b shrink-0">
+        <span className="font-medium text-sm text-gray-700">
+          {t.evaluationPanel}
+        </span>
+        <button
+          type="button"
+          onClick={toggleDrawer}
+          aria-label={t.evaluationPanel}
+          className="p-1 -mr-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+        >
+          <PanelRightClose size={16} />
+        </button>
+      </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-            {activeTab === 'single' && (
-              <>
-                <InputForm
-                  logic={logic}
-                  values={evalInputs}
-                  onChange={setEvalInput}
-                  translations={runtimeT}
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleEvaluate}
-                    className="flex items-center gap-1 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
-                  >
-                    <Play size={14} /> {t.runEval}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="flex items-center gap-1 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
-                  >
-                    <RotateCcw size={14} /> {t.reset}
-                  </button>
-                </div>
-                {result && (
-                  <div className="border-t pt-4">
-                    <div className="text-xs font-medium text-gray-500 mb-2">
-                      {t.traceLabel}
-                    </div>
-                    <TraceView
-                      result={result}
-                      logic={logic}
-                      translations={runtimeT}
-                    />
-                  </div>
-                )}
-              </>
-            )}
-
-            {activeTab === 'batch' && <BatchPanel logic={logic} />}
-          </div>
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+        <InputForm
+          logic={logic}
+          values={evalInputs}
+          onChange={setEvalInput}
+          translations={runtimeT}
+          className="space-y-3"
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleEvaluate}
+            className="flex items-center gap-1 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
+          >
+            <Play size={14} /> {t.runEval}
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="flex items-center gap-1 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
+          >
+            <RotateCcw size={14} /> {t.reset}
+          </button>
         </div>
-      )}
-    </div>
+        {result && (
+          <div className="border-t pt-4">
+            <div className="text-xs font-medium text-gray-500 mb-2">
+              {t.traceLabel}
+            </div>
+            <TraceView
+              result={result}
+              logic={logic}
+              translations={runtimeT}
+            />
+          </div>
+        )}
+      </div>
+    </aside>
   );
 }

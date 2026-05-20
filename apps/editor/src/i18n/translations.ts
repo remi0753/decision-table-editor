@@ -178,6 +178,13 @@ export type TranslationSet = {
   matchedResult: string;
   noMatchResult: string;
   clickForTrace: string;
+  batchTest: string;
+  batchDialogTitle: string;
+  batchDialogDescription: string;
+  inspectInEditor: string;
+  inspectInEditorTooltip: string;
+  inspectInEditorFailHint: string;
+  inspectInEditorPassHint: string;
 
   // ConfirmDialog defaults
   confirmDefault: string;
@@ -409,6 +416,16 @@ export const translations: Record<Lang, TranslationSet> = {
     matchedResult: '✓ Matched',
     noMatchResult: '✗ No match',
     clickForTrace: 'Click a row to view trace',
+    batchTest: 'Batch test',
+    batchDialogTitle: 'Batch test',
+    batchDialogDescription:
+      'Validate this logic against many cases at once. Upload a CSV, run all cases, then jump back to the table to fix anything that did not behave as expected.',
+    inspectInEditor: 'Edit',
+    inspectInEditorTooltip: 'Close this dialog and jump to the related rule',
+    inspectInEditorFailHint:
+      'No rule matched. Jump to the table where evaluation stopped to add a new rule.',
+    inspectInEditorPassHint:
+      'A rule matched. Jump to that row to review or adjust it.',
 
     confirmDefault: 'Confirm',
     cancelDefault: 'Cancel',
@@ -657,6 +674,17 @@ export const translations: Record<Lang, TranslationSet> = {
     matchedResult: '✓ マッチ',
     noMatchResult: '✗ 不一致',
     clickForTrace: '行をクリックするとトレースを表示',
+    batchTest: 'バッチテスト',
+    batchDialogTitle: 'バッチテスト',
+    batchDialogDescription:
+      '複数ケースをまとめて検証します。CSVを読み込み、一括で評価し、想定どおりに動かなかったケースからテーブルに戻って修正できます。',
+    inspectInEditor: '編集',
+    inspectInEditorTooltip:
+      'このダイアログを閉じて、該当ルールに移動します',
+    inspectInEditorFailHint:
+      'マッチするルールがありませんでした。評価が止まったテーブルに移動して、ルールを追加してください。',
+    inspectInEditorPassHint:
+      'ルールにマッチしました。該当行に移動して内容を確認・修正できます。',
 
     confirmDefault: '確認',
     cancelDefault: 'キャンセル',
