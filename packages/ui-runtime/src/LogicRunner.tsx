@@ -53,15 +53,17 @@ export function LogicRunner({
         <button
           type="button"
           onClick={handleRun}
-          className="bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
+          className="flex items-center gap-1 rounded bg-violet-600 px-3 py-1.5 text-sm text-white hover:bg-violet-700"
         >
+          <PlayIcon />
           {runLabel ?? 'Evaluate'}
         </button>
         <button
           type="button"
           onClick={handleReset}
-          className="border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
+          className="flex items-center gap-1 rounded border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
         >
+          <RotateCcwIcon />
           {resetLabel ?? 'Reset'}
         </button>
       </div>
@@ -74,5 +76,38 @@ export function LogicRunner({
         </div>
       )}
     </div>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+    >
+      <polygon points="6 4 20 12 6 20 6 4" />
+    </svg>
+  );
+}
+
+function RotateCcwIcon() {
+  return (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+    </svg>
   );
 }

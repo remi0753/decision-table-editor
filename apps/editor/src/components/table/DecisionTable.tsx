@@ -5,7 +5,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { GitBranch, Plus, Settings, Sparkles, Table2 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FlowChart } from '@/components/graph/FlowChart';
 import { IconButton } from '@/components/ui/IconButton';
@@ -14,6 +14,7 @@ import { useQualityChecks } from '@/hooks/useQualityChecks';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
+import { useUiStore } from '@/store/uiStore';
 import { ColumnHeader } from './ColumnHeader';
 import { OutputColsPanel } from './OutputColsPanel';
 import { SortableRow } from './RowHandle';
@@ -32,6 +33,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
   const [highlightedRowIds, setHighlightedRowIds] = useState<Set<string>>(
     new Set(),
   );
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const logic = useLogicStore((s) => s.logic);
   const addCol = useLogicStore((s) => s.addCol);
@@ -40,6 +42,8 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
   const moveCol = useLogicStore((s) => s.moveCol);
   const renameTable = useLogicStore((s) => s.renameTable);
   const setEntryTable = useLogicStore((s) => s.setEntryTable);
+  const highlightTarget = useUiStore((s) => s.highlightTarget);
+  const setHighlightTarget = useUiStore((s) => s.setHighlightTarget);
   const t = useT();
 
   const table = logic.tables[tableId];
@@ -56,6 +60,30 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
     setHighlightedRowIds(new Set(rowIds));
     setActiveTab('table');
   }, []);
+
+  useEffect(() => {
+    if (!highlightTarget || highlightTarget.tableId !== tableId) return;
+    setActiveTab('table');
+    if (highlightTarget.rowId) {
+      setHighlightedRowIds(new Set([highlightTarget.rowId]));
+      requestAnimationFrame(() => {
+        const el = tableContainerRef.current?.querySelector(
+          `[data-row-id="${CSS.escape(highlightTarget.rowId!)}"]`,
+        );
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    } else {
+      tableContainerRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+    const clearTimer = window.setTimeout(() => {
+      setHighlightedRowIds(new Set());
+      setHighlightTarget(null);
+    }, 4000);
+    return () => window.clearTimeout(clearTimer);
+  }, [highlightTarget, tableId, setHighlightTarget]);
 
   if (!table) return <div className="p-4 text-gray-400">{t.tableNotFound}</div>;
 
@@ -158,7 +186,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
         {/* Table view */}
         {activeTab === 'table' && (
           <>
-            <div className="overflow-x-auto pb-3">
+            <div ref={tableContainerRef} className="overflow-x-auto pb-3">
               <table
                 className="border-collapse text-sm"
                 style={{ tableLayout: 'fixed' }}

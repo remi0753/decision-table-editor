@@ -38,6 +38,11 @@ interface UiStore {
   setBatchData: (fileName: string, cases: BatchCase[]) => void;
   setBatchResults: (results: BatchCaseResult[]) => void;
   clearBatch: () => void;
+
+  highlightTarget: { tableId: string; rowId?: string } | null;
+  setHighlightTarget: (
+    target: { tableId: string; rowId?: string } | null,
+  ) => void;
 }
 
 const PREFS_KEY = 'leverie-ui-prefs';
@@ -49,7 +54,7 @@ interface PersistedPrefs {
 
 const DEFAULT_PREFS: PersistedPrefs = {
   leftPaneSections: { dag: true, tables: true, fields: true },
-  evalDrawerOpen: false,
+  evalDrawerOpen: true,
 };
 
 const loadPrefs = (): PersistedPrefs => {
@@ -142,4 +147,7 @@ export const useUiStore = create<UiStore>((set) => ({
   setBatchResults: (batchResults) => set({ batchResults }),
   clearBatch: () =>
     set({ batchFileName: null, batchCases: [], batchResults: null }),
+
+  highlightTarget: null,
+  setHighlightTarget: (highlightTarget) => set({ highlightTarget }),
 }));

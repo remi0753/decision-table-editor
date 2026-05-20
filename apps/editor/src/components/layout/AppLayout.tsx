@@ -1,6 +1,7 @@
 import {
   Download,
   FilePlus,
+  FlaskConical,
   Redo2,
   Sparkles,
   Undo2,
@@ -9,6 +10,7 @@ import {
 import { useState } from 'react';
 import { Toaster } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { BatchDialog } from '@/components/evaluation/BatchDialog';
 import { SampleGalleryDialog } from '@/components/templates/SampleGalleryDialog';
 import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -34,6 +36,7 @@ export function AppLayout() {
   const importFn = useImportLogic();
   const t = useT();
   const [sampleGalleryOpen, setSampleGalleryOpen] = useState(false);
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
 
   useAutoSave(logic);
 
@@ -106,6 +109,16 @@ export function AppLayout() {
               <Sparkles />
             </IconButton>
           </Tooltip>
+          <Tooltip content={t.batchTest}>
+            <IconButton
+              size="md"
+              tone="primary"
+              onClick={() => setBatchDialogOpen(true)}
+              aria-label={t.batchTest}
+            >
+              <FlaskConical />
+            </IconButton>
+          </Tooltip>
           <Tooltip content={t.importBtn}>
             <IconButton
               size="md"
@@ -141,6 +154,11 @@ export function AppLayout() {
       <SampleGalleryDialog
         open={sampleGalleryOpen}
         onOpenChange={setSampleGalleryOpen}
+      />
+      <BatchDialog
+        open={batchDialogOpen}
+        onOpenChange={setBatchDialogOpen}
+        logic={logic}
       />
     </div>
   );
