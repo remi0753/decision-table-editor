@@ -76,9 +76,7 @@ export const user = pgTable(
       .defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
-  (t) => ({
-    emailUniq: uniqueIndex('user_email_uniq').on(t.email),
-  }),
+  (t) => [uniqueIndex('user_email_uniq').on(t.email)],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -107,16 +105,16 @@ export const org = pgTable(
     updatedActorType: text('updated_actor_type'),
     updatedActorId: uuid('updated_actor_id'),
   },
-  (t) => ({
-    slugFormatChk: check(
+  (t) => [
+    check(
       'org_slug_format_chk',
       sql`${t.slug} ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'`,
     ),
-    lifecycleStatusChk: check(
+    check(
       'org_lifecycle_status_chk',
       sql`${t.lifecycleStatus} IN ('active', 'deleting', 'purging')`,
     ),
-    lifecycleConsistencyChk: check(
+    check(
       'org_lifecycle_consistency_chk',
       sql`(
         ${t.lifecycleStatus} = 'active'
@@ -128,32 +126,32 @@ export const org = pgTable(
         AND ${t.purgeRequestedAt} IS NOT NULL
       )`,
     ),
-    createdActorTypeChk: check(
+    check(
       'org_created_actor_type_chk',
       sql`${t.createdActorType} IN ('user', 'system')`,
     ),
-    updatedActorTypeChk: check(
+    check(
       'org_updated_actor_type_chk',
       sql`${t.updatedActorType} IS NULL OR ${t.updatedActorType} IN ('user', 'system')`,
     ),
-    createdActorConsistencyChk: check(
+    check(
       'org_created_actor_consistency_chk',
       sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
           OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
     ),
-    updatedActorConsistencyChk: check(
+    check(
       'org_updated_actor_consistency_chk',
       sql`(${t.updatedActorType} IS NULL AND ${t.updatedActorId} IS NULL)
           OR (${t.updatedActorType} = 'user' AND ${t.updatedActorId} IS NOT NULL)
           OR (${t.updatedActorType} = 'system' AND ${t.updatedActorId} IS NULL)`,
     ),
-    slugNotPurgedUniq: uniqueIndex('org_slug_not_purged_uniq')
+    uniqueIndex('org_slug_not_purged_uniq')
       .on(t.slug)
       .where(sql`lifecycle_status IN ('active', 'deleting', 'purging')`),
-    purgeQueueIdx: index('org_lifecycle_purge_queue_idx')
+    index('org_lifecycle_purge_queue_idx')
       .on(t.purgeRequestedAt)
       .where(sql`lifecycle_status IN ('deleting', 'purging')`),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -183,25 +181,25 @@ export const workspace = pgTable(
     updatedActorType: text('updated_actor_type'),
     updatedActorId: uuid('updated_actor_id'),
   },
-  (t) => ({
-    slugFormatChk: check(
+  (t) => [
+    check(
       'workspace_slug_format_chk',
       sql`${t.slug} ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'`,
     ),
-    createdActorTypeChk: check(
+    check(
       'workspace_created_actor_type_chk',
       sql`${t.createdActorType} IN ('user', 'system')`,
     ),
-    updatedActorTypeChk: check(
+    check(
       'workspace_updated_actor_type_chk',
       sql`${t.updatedActorType} IS NULL OR ${t.updatedActorType} IN ('user', 'system')`,
     ),
-    createdActorConsistencyChk: check(
+    check(
       'workspace_created_actor_consistency_chk',
       sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
           OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
     ),
-    updatedActorConsistencyChk: check(
+    check(
       'workspace_updated_actor_consistency_chk',
       sql`(${t.updatedActorType} IS NULL AND ${t.updatedActorId} IS NULL)
           OR (${t.updatedActorType} = 'user' AND ${t.updatedActorId} IS NOT NULL)
@@ -211,14 +209,14 @@ export const workspace = pgTable(
     // serves as the FK target for audit_event(org_id, workspace_id). UNIQUE
     // CONSTRAINTs are emitted inside CREATE TABLE so they're available before
     // any subsequent ALTER TABLE ADD FOREIGN KEY runs in the same migration.
-    orgIdIdUniq: unique('workspace_org_id_id_uniq').on(t.orgId, t.id),
-    orgSlugActiveUniq: uniqueIndex('workspace_org_slug_active_uniq')
+    unique('workspace_org_id_id_uniq').on(t.orgId, t.id),
+    uniqueIndex('workspace_org_slug_active_uniq')
       .on(t.orgId, t.slug)
       .where(sql`deleted_at IS NULL`),
-    orgActiveIdx: index('workspace_org_id_active_idx')
+    index('workspace_org_id_active_idx')
       .on(t.orgId, t.createdAt.desc())
       .where(sql`deleted_at IS NULL`),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -248,27 +246,27 @@ export const membership = pgTable(
       .defaultNow(),
     removedAt: timestamp('removed_at', { withTimezone: true }),
   },
-  (t) => ({
-    roleChk: check(
+  (t) => [
+    check(
       'membership_role_chk',
       sql`${t.role} IN ('owner', 'admin', 'editor', 'viewer', 'runner')`,
     ),
-    invitedActorTypeChk: check(
+    check(
       'membership_invited_actor_type_chk',
       sql`${t.invitedActorType} IN ('user', 'system')`,
     ),
-    invitedActorConsistencyChk: check(
+    check(
       'membership_invited_actor_consistency_chk',
       sql`(${t.invitedActorType} = 'user' AND ${t.invitedActorId} IS NOT NULL)
           OR (${t.invitedActorType} = 'system' AND ${t.invitedActorId} IS NULL)`,
     ),
-    orgUserNotRemovedUniq: uniqueIndex('membership_org_user_not_removed_uniq')
+    uniqueIndex('membership_org_user_not_removed_uniq')
       .on(t.orgId, t.userId)
       .where(sql`removed_at IS NULL`),
-    userNotRemovedIdx: index('membership_user_not_removed_idx')
+    index('membership_user_not_removed_idx')
       .on(t.userId)
       .where(sql`removed_at IS NULL`),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -296,28 +294,28 @@ export const invitation = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => ({
-    roleChk: check(
+  (t) => [
+    check(
       'invitation_role_chk',
       sql`${t.role} IN ('owner', 'admin', 'editor', 'viewer', 'runner')`,
     ),
-    invitedActorTypeChk: check(
+    check(
       'invitation_invited_actor_type_chk',
       sql`${t.invitedActorType} IN ('user', 'system')`,
     ),
-    acceptedActorTypeChk: check(
+    check(
       'invitation_accepted_actor_type_chk',
       sql`${t.acceptedActorType} IS NULL OR ${t.acceptedActorType} IN ('user', 'system')`,
     ),
-    terminalStateChk: check(
+    check(
       'invitation_terminal_state_chk',
       sql`${t.acceptedAt} IS NULL OR ${t.revokedAt} IS NULL`,
     ),
-    acceptBeforeExpiryChk: check(
+    check(
       'invitation_accept_before_expiry_chk',
       sql`${t.acceptedAt} IS NULL OR ${t.acceptedAt} <= ${t.expiresAt}`,
     ),
-    acceptedPairChk: check(
+    check(
       'invitation_accepted_pair_chk',
       sql`(${t.acceptedAt} IS NULL
             AND ${t.acceptedActorType} IS NULL
@@ -329,21 +327,19 @@ export const invitation = pgTable(
               OR (${t.acceptedActorType} = 'system' AND ${t.acceptedActorId} IS NULL)
             ))`,
     ),
-    invitedActorConsistencyChk: check(
+    check(
       'invitation_invited_actor_consistency_chk',
       sql`(${t.invitedActorType} = 'user' AND ${t.invitedActorId} IS NOT NULL)
           OR (${t.invitedActorType} = 'system' AND ${t.invitedActorId} IS NULL)`,
     ),
-    tokenDigestUniq: uniqueIndex('invitation_token_digest_uniq').on(
-      t.tokenDigest,
-    ),
-    orgEmailOpenUniq: uniqueIndex('invitation_org_email_open_uniq')
+    uniqueIndex('invitation_token_digest_uniq').on(t.tokenDigest),
+    uniqueIndex('invitation_org_email_open_uniq')
       .on(t.orgId, t.email)
       .where(sql`accepted_at IS NULL AND revoked_at IS NULL`),
-    emailOpenIdx: index('invitation_email_open_idx')
+    index('invitation_email_open_idx')
       .on(t.email)
       .where(sql`accepted_at IS NULL AND revoked_at IS NULL`),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -382,57 +378,54 @@ export const logic = pgTable(
     updatedActorType: text('updated_actor_type'),
     updatedActorId: uuid('updated_actor_id'),
   },
-  (t) => ({
-    slugFormatChk: check(
+  (t) => [
+    check(
       'logic_slug_format_chk',
       sql`${t.slug} ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'`,
     ),
-    draftSchemaVersionMatchesChk: check(
+    check(
       'logic_draft_schema_version_matches_chk',
       sql`jsonb_typeof(${t.draftData}->'version') = 'string'
           AND ${t.draftSchemaVersion} = ${t.draftData}->>'version'`,
     ),
-    createdActorTypeChk: check(
+    check(
       'logic_created_actor_type_chk',
       sql`${t.createdActorType} IN ('user', 'system')`,
     ),
-    updatedActorTypeChk: check(
+    check(
       'logic_updated_actor_type_chk',
       sql`${t.updatedActorType} IS NULL OR ${t.updatedActorType} IN ('user', 'api_key', 'system')`,
     ),
-    draftUpdatedActorTypeChk: check(
+    check(
       'logic_draft_updated_actor_type_chk',
       sql`${t.draftUpdatedActorType} IN ('user', 'system')`,
     ),
-    createdActorConsistencyChk: check(
+    check(
       'logic_created_actor_consistency_chk',
       sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
           OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
     ),
-    updatedActorConsistencyChk: check(
+    check(
       'logic_updated_actor_consistency_chk',
       sql`(${t.updatedActorType} IS NULL AND ${t.updatedActorId} IS NULL)
           OR (${t.updatedActorType} IN ('user', 'api_key') AND ${t.updatedActorId} IS NOT NULL)
           OR (${t.updatedActorType} = 'system' AND ${t.updatedActorId} IS NULL)`,
     ),
-    draftUpdatedActorConsistencyChk: check(
+    check(
       'logic_draft_updated_actor_consistency_chk',
       sql`(${t.draftUpdatedActorType} = 'user' AND ${t.draftUpdatedActorId} IS NOT NULL)
           OR (${t.draftUpdatedActorType} = 'system' AND ${t.draftUpdatedActorId} IS NULL)`,
     ),
     // FK target for execution_log / api_key_logic_scope — see workspace
     // comment above for why this is a UNIQUE CONSTRAINT, not an index.
-    workspaceIdIdUniq: unique('logic_workspace_id_id_uniq').on(
-      t.workspaceId,
-      t.id,
-    ),
-    workspaceSlugActiveUniq: uniqueIndex('logic_workspace_slug_active_uniq')
+    unique('logic_workspace_id_id_uniq').on(t.workspaceId, t.id),
+    uniqueIndex('logic_workspace_slug_active_uniq')
       .on(t.workspaceId, t.slug)
       .where(sql`deleted_at IS NULL`),
-    workspaceActiveIdx: index('logic_workspace_active_idx')
+    index('logic_workspace_active_idx')
       .on(t.workspaceId, t.draftUpdatedAt.desc())
       .where(sql`deleted_at IS NULL`),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -456,43 +449,40 @@ export const logicVersion = pgTable(
     publishedActorType: text('published_actor_type').notNull(),
     publishedActorId: uuid('published_actor_id'),
   },
-  (t) => ({
-    versionNumberPositiveChk: check(
+  (t) => [
+    check(
       'logic_version_version_number_positive_chk',
       sql`${t.versionNumber} > 0`,
     ),
-    schemaVersionMatchesChk: check(
+    check(
       'logic_version_schema_version_matches_chk',
       sql`jsonb_typeof(${t.data}->'version') = 'string'
           AND ${t.schemaVersion} = ${t.data}->>'version'`,
     ),
-    publishedActorTypeChk: check(
+    check(
       'logic_version_published_actor_type_chk',
       sql`${t.publishedActorType} IN ('user', 'system')`,
     ),
-    publishedActorConsistencyChk: check(
+    check(
       'logic_version_published_actor_consistency_chk',
       sql`(${t.publishedActorType} = 'user' AND ${t.publishedActorId} IS NOT NULL)
           OR (${t.publishedActorType} = 'system' AND ${t.publishedActorId} IS NULL)`,
     ),
-    logicNumberUniq: unique('logic_version_logic_number_uniq').on(
-      t.logicId,
-      t.versionNumber,
-    ),
+    unique('logic_version_logic_number_uniq').on(t.logicId, t.versionNumber),
     // FK target for logic.production_version_id composite FK (added in
     // the initial migration).
-    logicIdIdUniq: unique('logic_version_logic_id_id_uniq').on(t.logicId, t.id),
+    unique('logic_version_logic_id_id_uniq').on(t.logicId, t.id),
     // FK target for execution_log's 3-tuple composite FK.
-    logicIdIdNumberUniq: unique('logic_version_logic_id_id_number_uniq').on(
+    unique('logic_version_logic_id_id_number_uniq').on(
       t.logicId,
       t.id,
       t.versionNumber,
     ),
-    logicIdDescIdx: index('logic_version_logic_id_desc_idx').on(
+    index('logic_version_logic_id_desc_idx').on(
       t.logicId,
       t.versionNumber.desc(),
     ),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -522,38 +512,32 @@ export const apiKey = pgTable(
     createdActorType: text('created_actor_type').notNull(),
     createdActorId: uuid('created_actor_id'),
   },
-  (t) => ({
-    roleChk: check(
-      'api_key_role_chk',
-      sql`${t.role} IN ('editor', 'viewer', 'runner')`,
-    ),
-    scopeModeChk: check(
+  (t) => [
+    check('api_key_role_chk', sql`${t.role} IN ('editor', 'viewer', 'runner')`),
+    check(
       'api_key_scope_mode_chk',
       sql`${t.scopeMode} IN ('all', 'allowlist')`,
     ),
-    createdActorTypeChk: check(
+    check(
       'api_key_created_actor_type_chk',
       sql`${t.createdActorType} IN ('user', 'system')`,
     ),
-    createdActorConsistencyChk: check(
+    check(
       'api_key_created_actor_consistency_chk',
       sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
           OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
     ),
     // FK target for api_key_logic_scope / execution_log / audit_event
     // composite FKs — same reason as workspace.orgIdIdUniq above.
-    workspaceIdIdUniq: unique('api_key_workspace_id_id_uniq').on(
-      t.workspaceId,
-      t.id,
-    ),
-    lookupDigestUniq: uniqueIndex('api_key_lookup_digest_uniq').on(
+    unique('api_key_workspace_id_id_uniq').on(t.workspaceId, t.id),
+    uniqueIndex('api_key_lookup_digest_uniq').on(
       t.lookupSecretVersion,
       t.lookupDigest,
     ),
-    workspaceNotRevokedIdx: index('api_key_workspace_not_revoked_idx')
+    index('api_key_workspace_not_revoked_idx')
       .on(t.workspaceId, t.createdAt.desc())
       .where(sql`revoked_at IS NULL`),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -569,23 +553,23 @@ export const apiKeyLogicScope = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => ({
-    pk: primaryKey({ columns: [t.workspaceId, t.apiKeyId, t.logicId] }),
-    apiKeyFk: foreignKey({
+  (t) => [
+    primaryKey({ columns: [t.workspaceId, t.apiKeyId, t.logicId] }),
+    foreignKey({
       columns: [t.workspaceId, t.apiKeyId],
       foreignColumns: [apiKey.workspaceId, apiKey.id],
       name: 'api_key_logic_scope_api_key_fk',
     }).onDelete('cascade'),
-    logicFk: foreignKey({
+    foreignKey({
       columns: [t.workspaceId, t.logicId],
       foreignColumns: [logic.workspaceId, logic.id],
       name: 'api_key_logic_scope_logic_fk',
     }).onDelete('cascade'),
-    workspaceLogicIdx: index('api_key_logic_scope_workspace_logic_idx').on(
+    index('api_key_logic_scope_workspace_logic_idx').on(
       t.workspaceId,
       t.logicId,
     ),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -622,36 +606,36 @@ export const executionLog = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => ({
-    requestedVersionTypeChk: check(
+  (t) => [
+    check(
       'execution_log_requested_version_type_chk',
       sql`${t.requestedVersionType} IN ('draft', 'latest', 'production', 'version')`,
     ),
-    requestedVersionNumberPositiveChk: check(
+    check(
       'execution_log_requested_version_number_positive_chk',
       sql`${t.requestedVersionNumber} IS NULL OR ${t.requestedVersionNumber} > 0`,
     ),
-    resolvedVersionNumberPositiveChk: check(
+    check(
       'execution_log_resolved_version_number_positive_chk',
       sql`${t.resolvedVersionNumber} IS NULL OR ${t.resolvedVersionNumber} > 0`,
     ),
-    statusChk: check(
+    check(
       'execution_log_status_chk',
       sql`${t.status} IN ('ok', 'no_match', 'error')`,
     ),
-    callerActorTypeChk: check(
+    check(
       'execution_log_caller_actor_type_chk',
       sql`${t.callerActorType} IN ('user', 'api_key', 'system')`,
     ),
-    callerChannelChk: check(
+    check(
       'execution_log_caller_channel_chk',
       sql`${t.callerChannel} IN ('web', 'api_key', 'mcp', 'system')`,
     ),
-    latencyMsNonNegativeChk: check(
+    check(
       'execution_log_latency_ms_non_negative_chk',
       sql`${t.latencyMs} >= 0`,
     ),
-    statusPayloadChk: check(
+    check(
       'execution_log_status_payload_chk',
       sql`(${t.status} IN ('ok', 'no_match')
             AND ${t.inputs} IS NOT NULL
@@ -664,7 +648,7 @@ export const executionLog = pgTable(
             AND ${t.trace} IS NULL
             AND ${t.errorMessage} IS NOT NULL)`,
     ),
-    requestedVersionChk: check(
+    check(
       'execution_log_requested_version_chk',
       sql`(${t.requestedVersionType} = 'draft'
             AND ${t.logicVersionId} IS NULL
@@ -680,7 +664,7 @@ export const executionLog = pgTable(
             AND ${t.resolvedVersionNumber} IS NOT NULL
             AND ${t.requestedVersionNumber} = ${t.resolvedVersionNumber})`,
     ),
-    callerChk: check(
+    check(
       'execution_log_caller_chk',
       sql`(${t.callerActorType} = 'user'
             AND ${t.callerChannel} = 'web'
@@ -695,12 +679,12 @@ export const executionLog = pgTable(
             AND ${t.callerUserId} IS NULL
             AND ${t.callerApiKeyId} IS NULL)`,
     ),
-    workspaceLogicFk: foreignKey({
+    foreignKey({
       columns: [t.workspaceId, t.logicId],
       foreignColumns: [logic.workspaceId, logic.id],
       name: 'execution_log_workspace_logic_fk',
     }).onDelete('cascade'),
-    versionTupleFk: foreignKey({
+    foreignKey({
       columns: [t.logicId, t.logicVersionId, t.resolvedVersionNumber],
       foreignColumns: [
         logicVersion.logicId,
@@ -709,33 +693,34 @@ export const executionLog = pgTable(
       ],
       name: 'execution_log_version_tuple_fk',
     }).onDelete('no action'),
-    callerApiKeyFk: foreignKey({
+    foreignKey({
       columns: [t.workspaceId, t.callerApiKeyId],
       foreignColumns: [apiKey.workspaceId, apiKey.id],
       name: 'execution_log_caller_api_key_fk',
     }).onDelete('no action'),
-    logicCreatedIdx: index('execution_log_logic_created_idx').on(
-      t.logicId,
-      t.createdAt.desc(),
-    ),
-    workspaceCreatedIdx: index('execution_log_workspace_created_idx').on(
+    index('execution_log_logic_created_idx').on(t.logicId, t.createdAt.desc()),
+    index('execution_log_workspace_created_idx').on(
       t.workspaceId,
       t.createdAt.desc(),
     ),
-    createdAtIdx: index('execution_log_created_at_idx').on(t.createdAt),
-    workspaceRequestedTypeCreatedIdx: index(
-      'execution_log_workspace_requested_type_created_idx',
-    ).on(t.workspaceId, t.requestedVersionType, t.createdAt.desc()),
-    requestIdIdx: index('execution_log_request_id_idx')
+    index('execution_log_created_at_idx').on(t.createdAt),
+    index('execution_log_workspace_requested_type_created_idx').on(
+      t.workspaceId,
+      t.requestedVersionType,
+      t.createdAt.desc(),
+    ),
+    index('execution_log_request_id_idx')
       .on(t.requestId)
       .where(sql`request_id IS NOT NULL`),
-    errorCodeCreatedIdx: index('execution_log_error_code_created_idx')
+    index('execution_log_error_code_created_idx')
       .on(t.errorCode, t.createdAt.desc())
       .where(sql`error_code IS NOT NULL`),
-    workspaceChannelCreatedIdx: index(
-      'execution_log_workspace_channel_created_idx',
-    ).on(t.workspaceId, t.callerChannel, t.createdAt.desc()),
-  }),
+    index('execution_log_workspace_channel_created_idx').on(
+      t.workspaceId,
+      t.callerChannel,
+      t.createdAt.desc(),
+    ),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -767,72 +752,66 @@ export const auditEvent = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => ({
-    eventClassChk: check(
+  (t) => [
+    check(
       'audit_event_event_class_chk',
       sql`${t.eventClass} IN ('security', 'product', 'system')`,
     ),
-    actorTypeChk: check(
+    check(
       'audit_event_actor_type_chk',
       sql`${t.actorType} IN ('user', 'api_key', 'system')`,
     ),
-    actorPersonaChk: check(
+    check(
       'audit_event_actor_persona_chk',
       sql`${t.actorPersona} IN ('installer', 'author', 'unknown')`,
     ),
-    actorChannelChk: check(
+    check(
       'audit_event_actor_channel_chk',
       sql`${t.actorChannel} IN ('web', 'api_key', 'mcp', 'system')`,
     ),
-    actorConsistencyChk: check(
+    check(
       'audit_event_actor_consistency_chk',
       sql`(${t.actorType} = 'user' AND ${t.actorUserId} IS NOT NULL AND ${t.actorApiKeyId} IS NULL)
           OR (${t.actorType} = 'api_key' AND ${t.actorUserId} IS NULL AND ${t.actorApiKeyId} IS NOT NULL)
           OR (${t.actorType} = 'system' AND ${t.actorUserId} IS NULL AND ${t.actorApiKeyId} IS NULL)`,
     ),
-    apiKeyActorWorkspaceChk: check(
+    check(
       'audit_event_api_key_actor_workspace_chk',
       sql`${t.actorType} <> 'api_key' OR ${t.workspaceId} IS NOT NULL`,
     ),
-    channelConsistencyChk: check(
+    check(
       'audit_event_channel_consistency_chk',
       sql`(${t.actorType} = 'user' AND ${t.actorChannel} IN ('web', 'mcp'))
           OR (${t.actorType} = 'api_key' AND ${t.actorChannel} IN ('api_key', 'mcp'))
           OR (${t.actorType} = 'system' AND ${t.actorChannel} = 'system')`,
     ),
-    orgWorkspaceFk: foreignKey({
+    foreignKey({
       columns: [t.orgId, t.workspaceId],
       foreignColumns: [workspace.orgId, workspace.id],
       name: 'audit_event_org_workspace_fk',
     }).onDelete('cascade'),
-    actorApiKeyFk: foreignKey({
+    foreignKey({
       columns: [t.workspaceId, t.actorApiKeyId],
       foreignColumns: [apiKey.workspaceId, apiKey.id],
       name: 'audit_event_actor_api_key_fk',
     }).onDelete('no action'),
-    orgCreatedIdx: index('audit_event_org_created_idx').on(
-      t.orgId,
-      t.createdAt.desc(),
-    ),
-    workspaceCreatedIdx: index('audit_event_workspace_created_idx')
+    index('audit_event_org_created_idx').on(t.orgId, t.createdAt.desc()),
+    index('audit_event_workspace_created_idx')
       .on(t.workspaceId, t.createdAt.desc())
       .where(sql`workspace_id IS NOT NULL`),
-    targetIdx: index('audit_event_target_idx').on(t.targetType, t.targetId),
-    personaActionCreatedIdx: index('audit_event_persona_action_created_idx').on(
+    index('audit_event_target_idx').on(t.targetType, t.targetId),
+    index('audit_event_persona_action_created_idx').on(
       t.actorPersona,
       t.action,
       t.createdAt.desc(),
     ),
-    classCreatedIdx: index('audit_event_class_created_idx').on(
-      t.eventClass,
-      t.createdAt,
-    ),
-    channelActionCreatedIdx: index('audit_event_channel_action_created_idx').on(
+    index('audit_event_class_created_idx').on(t.eventClass, t.createdAt),
+    index('audit_event_channel_action_created_idx').on(
       t.actorChannel,
       t.action,
       t.createdAt.desc(),
     ),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -858,8 +837,8 @@ export const orgDeletionJob = pgTable(
     requestedActorType: text('requested_actor_type').notNull(),
     requestedActorId: uuid('requested_actor_id'),
   },
-  (t) => ({
-    statusChk: check(
+  (t) => [
+    check(
       'org_deletion_job_status_chk',
       sql`(${t.status} = 'queued'
             AND ${t.startedAt} IS NULL
@@ -878,28 +857,28 @@ export const orgDeletionJob = pgTable(
             AND ${t.completedAt} IS NOT NULL
             AND ${t.lastError} IS NULL)`,
     ),
-    requestedActorTypeChk: check(
+    check(
       'org_deletion_job_requested_actor_type_chk',
       sql`${t.requestedActorType} IN ('user', 'system')`,
     ),
-    requestedActorConsistencyChk: check(
+    check(
       'org_deletion_job_requested_actor_consistency_chk',
       sql`(${t.requestedActorType} = 'user' AND ${t.requestedActorId} IS NOT NULL)
           OR (${t.requestedActorType} = 'system' AND ${t.requestedActorId} IS NULL)`,
     ),
-    queuedIdx: index('org_deletion_job_queued_idx')
+    index('org_deletion_job_queued_idx')
       .on(t.requestedAt)
       .where(sql`status = 'queued'`),
-    failedIdx: index('org_deletion_job_failed_idx')
+    index('org_deletion_job_failed_idx')
       .on(t.requestedAt.desc())
       .where(sql`status = 'failed'`),
-    orgIdIdx: index('org_deletion_job_org_id_idx')
+    index('org_deletion_job_org_id_idx')
       .on(t.orgId)
       .where(sql`org_id IS NOT NULL`),
-    completedAtIdx: index('org_deletion_job_completed_at_idx')
+    index('org_deletion_job_completed_at_idx')
       .on(t.completedAt.desc())
       .where(sql`completed_at IS NOT NULL`),
-  }),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────

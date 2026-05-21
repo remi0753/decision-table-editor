@@ -1,9 +1,6 @@
 import type { Env } from './env.js';
 
-const LOCAL_DEV_ORIGINS = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-];
+const LOCAL_DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
 function originOf(url: string) {
   try {
@@ -22,7 +19,9 @@ function parseConfiguredOrigins(value?: string) {
   );
 }
 
-export function getAllowedOrigins(env: Pick<Env, 'BETTER_AUTH_URL' | 'CORS_ALLOWED_ORIGINS'>) {
+export function getAllowedOrigins(
+  env: Pick<Env, 'BETTER_AUTH_URL' | 'CORS_ALLOWED_ORIGINS'>,
+) {
   const baseOrigin = originOf(env.BETTER_AUTH_URL);
   const configuredOrigins = parseConfiguredOrigins(env.CORS_ALLOWED_ORIGINS);
   const devOrigins =
