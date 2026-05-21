@@ -4,7 +4,9 @@ import { createAuth } from './auth.js';
 import { createDb } from './db/client.js';
 import type { Env } from './env.js';
 import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
+import { logicRoutes } from './routes/logics.js';
 import { orgRoutes } from './routes/orgs.js';
+import { workspaceRoutes } from './routes/workspaces.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -52,5 +54,7 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => {
 });
 
 app.route('/', orgRoutes);
+app.route('/', workspaceRoutes);
+app.route('/', logicRoutes);
 
 export default app;

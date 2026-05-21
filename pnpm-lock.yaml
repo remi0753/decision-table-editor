@@ -20,6 +20,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@leverie/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
       '@neondatabase/serverless':
         specifier: ^0.10.4
         version: 0.10.4
