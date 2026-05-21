@@ -38,12 +38,15 @@ app.get('/healthz', async (c) => {
 // sign-up / sign-in / OAuth / session refresh / sign-out endpoints internally.
 app.on(['GET', 'POST'], '/api/auth/*', (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const auth = createAuth(
-    db,
-    c.env.BETTER_AUTH_URL,
-    c.env.BETTER_AUTH_SECRET,
-    getAllowedOrigins(c.env),
-  );
+  const auth = createAuth(db, {
+    baseURL: c.env.BETTER_AUTH_URL,
+    secret: c.env.BETTER_AUTH_SECRET,
+    trustedOrigins: getAllowedOrigins(c.env),
+    googleClientId: c.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: c.env.GOOGLE_CLIENT_SECRET,
+    resendApiKey: c.env.RESEND_API_KEY,
+    emailFrom: c.env.EMAIL_FROM,
+  });
   return auth.handler(c.req.raw);
 });
 
@@ -51,12 +54,15 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => {
 // membership + workspace concepts are wired.
 app.get('/api/me', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
-  const auth = createAuth(
-    db,
-    c.env.BETTER_AUTH_URL,
-    c.env.BETTER_AUTH_SECRET,
-    getAllowedOrigins(c.env),
-  );
+  const auth = createAuth(db, {
+    baseURL: c.env.BETTER_AUTH_URL,
+    secret: c.env.BETTER_AUTH_SECRET,
+    trustedOrigins: getAllowedOrigins(c.env),
+    googleClientId: c.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: c.env.GOOGLE_CLIENT_SECRET,
+    resendApiKey: c.env.RESEND_API_KEY,
+    emailFrom: c.env.EMAIL_FROM,
+  });
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ user: null }, 401);
   return c.json({ user: session.user, session: session.session });
