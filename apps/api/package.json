@@ -1,0 +1,35 @@
+{
+  "name": "@leverie/api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "LEVERIE Cloud API — Hono on Cloudflare Workers, backed by Neon Postgres via Drizzle. Authentication by Better Auth. Surface: /api/* on leverie.dev (path-based).",
+  "license": "FSL-1.1-ALv2",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run --outdir=dist",
+    "deploy:preview": "wrangler deploy --env preview",
+    "deploy:prod": "wrangler deploy --env prod",
+    "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down -v",
+    "db:psql": "docker compose exec postgres psql -U dev -d leverie_dev",
+    "smoke:origin": "bash scripts/origin-smoke.sh",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "better-auth": "^1.1.4",
+    "drizzle-orm": "^0.36.4",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "drizzle-kit": "^0.28.1",
+    "pg": "^8.13.1",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.95.0"
+  }
+}

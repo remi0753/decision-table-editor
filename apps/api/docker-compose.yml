@@ -1,0 +1,41 @@
+# Local Postgres 18 + Neon HTTP proxy for `pnpm dev`.
+#
+# Production uses Neon Cloud directly; locally we run a Neon-compatible HTTP
+# proxy so the Worker code path (Workers → HTTP → Postgres) matches production
+# byte-for-byte. See [design_p3_infrastructure.md §2.3].
+#
+# Postgres 18 matches the production target ([design_p3_schema.md §1.2]).
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: leverie_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      # Postgres 18+ stores data under /var/lib/postgresql/<major>/data, so we
+      # mount the parent dir (not /var/lib/postgresql/data as in <=17).
+      # https://github.com/docker-library/postgres/pull/1259
+      - pgdata:/var/lib/postgresql
+      - ./scripts/init-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d leverie_dev"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  neon-proxy:
+    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+    environment:
+      PG_CONNECTION_STRING: postgres://dev:dev@postgres:5432/leverie_dev
+    ports:
+      - "4444:4444"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

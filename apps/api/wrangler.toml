@@ -1,0 +1,63 @@
+name = "leverie-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Workers Routes (production): leverie.dev/api/* → this Worker.
+# See [design_p3_infrastructure.md §3.2] for the path-based origin rationale.
+# Routes are configured per environment below; preview / prod target different
+# zones so dev iteration doesn't touch the production hostname.
+
+[dev]
+port = 8787
+local_protocol = "http"
+
+# Non-secret env vars (shared across all environments unless overridden).
+[vars]
+BETTER_AUTH_URL = "http://localhost:8787"
+CORS_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+
+# ──────────────────────────────────────────────────────────────────────────
+# Preview environment (branch deploys + manual smoke testing)
+# ──────────────────────────────────────────────────────────────────────────
+[env.preview]
+name = "leverie-api-preview"
+
+[env.preview.vars]
+BETTER_AUTH_URL = "https://preview.leverie.dev"
+# Same-origin path-based API needs no cross-origin callers by default. If the
+# api.leverie.dev fallback is exercised, set this to the SPA origins that may
+# send credentialed requests.
+CORS_ALLOWED_ORIGINS = ""
+
+# Add when Cloudflare zone is set up:
+# routes = [
+#   { pattern = "preview.leverie.dev/api/*", zone_name = "leverie.dev" }
+# ]
+
+# ──────────────────────────────────────────────────────────────────────────
+# Production environment
+# ──────────────────────────────────────────────────────────────────────────
+[env.prod]
+name = "leverie-api-prod"
+
+[env.prod.vars]
+BETTER_AUTH_URL = "https://leverie.dev"
+CORS_ALLOWED_ORIGINS = ""
+
+# Add when Cloudflare zone is set up:
+# routes = [
+#   { pattern = "leverie.dev/api/*", zone_name = "leverie.dev" }
+# ]
+
+# ──────────────────────────────────────────────────────────────────────────
+# Cron Triggers — see [design_p3_infrastructure.md §2.5] for the job list.
+# Wired up in P3.5 onward; left empty for the P3.2.a scaffold.
+# ──────────────────────────────────────────────────────────────────────────
+# [triggers]
+# crons = [
+#   "0 * * * *",  # org_deletion_job dispatcher (hourly)
+#   "30 3 * * *", # invitation expiry sweep (daily)
+#   "0 4 * * *",  # execution_log retention sweep (daily)
+#   "0 5 * * *",  # audit_event retention sweep (daily)
+# ]

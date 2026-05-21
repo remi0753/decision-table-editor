@@ -1,11 +1,6 @@
 import { evaluateTable } from '@leverie/engine';
 import { InputForm, TraceView } from '@leverie/ui-runtime';
-import {
-  PanelRightClose,
-  PanelRightOpen,
-  Play,
-  RotateCcw,
-} from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Play, RotateCcw } from 'lucide-react';
 import { useMemo } from 'react';
 import { toUiRuntimeTranslations } from '@/i18n/uiRuntime';
 import { useT } from '@/i18n/useT';
@@ -99,11 +94,7 @@ export function EvaluationPanel() {
             <div className="text-xs font-medium text-gray-500 mb-2">
               {t.traceLabel}
             </div>
-            <TraceView
-              result={result}
-              logic={logic}
-              translations={runtimeT}
-            />
+            <TraceView result={result} logic={logic} translations={runtimeT} />
           </div>
         )}
       </div>

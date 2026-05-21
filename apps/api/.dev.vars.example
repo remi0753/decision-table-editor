@@ -1,0 +1,16 @@
+# Copy to `.dev.vars` (gitignored). `wrangler dev` loads this file automatically.
+
+# Local: docker-compose neon-proxy + Postgres
+DATABASE_URL="postgres://dev:dev@localhost:5432/leverie_dev"
+
+# Random 32+ byte string for session signing.
+# Generate with: openssl rand -base64 32
+BETTER_AUTH_SECRET="REPLACE_ME_WITH_openssl_rand_base64_32"
+
+# Public base URL of this worker. `wrangler dev` listens on :8787.
+BETTER_AUTH_URL="http://localhost:8787"
+
+# Comma-separated cross-origin callers. Production path-based API normally
+# needs no CORS; local Vite dev defaults are allowed when BETTER_AUTH_URL is
+# localhost even if this is omitted.
+CORS_ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
