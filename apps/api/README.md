@@ -4,7 +4,7 @@ LEVERIE Cloud API — Hono on Cloudflare Workers, backed by Neon Postgres via Dr
 
 **Surface**: `leverie.dev/api/*` (path-based, same origin as Editor / Runner UI). See [doc/design_p3_infrastructure.md §3.2](../../doc/design_p3_infrastructure.md) for the origin rationale.
 
-**Status**: P3.3 auth foundation. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, GitHub Actions run Drizzle migrations against local / preview / production database targets, and Better Auth now has email/password, magic-link, Google OAuth, and Resend delivery wiring.
+**Status**: P3.4 tenant foundation. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, GitHub Actions run Drizzle migrations against local / preview / production database targets, Better Auth has email/password, magic-link, Google OAuth, and Resend delivery wiring, and the first org / workspace / membership / invitation APIs are available.
 
 ---
 
@@ -37,7 +37,16 @@ Worker listens on `http://localhost:8787`. Endpoints:
 - `GET /` — liveness ping
 - `GET /healthz` — DB-roundtrip health check
 - `GET / POST /api/auth/*` — Better Auth router (sign-up / sign-in / magic link / OAuth / session / sign-out)
-- `GET /api/me` — current session resolver (placeholder; P3.4 makes it tenant-aware)
+- `GET /api/me` — current session plus org memberships
+- `GET / POST /api/orgs` — org list / create
+- `PATCH / DELETE /api/orgs/:orgId` — org metadata update / deletion request
+- `GET / POST /api/orgs/:orgId/workspaces` — workspace list / create
+- `PATCH / DELETE /api/workspaces/:workspaceId` — workspace update / soft delete
+- `GET /api/orgs/:orgId/members` — member list
+- `PATCH / DELETE /api/orgs/:orgId/members/:membershipId` — member management
+- `GET / POST /api/orgs/:orgId/invitations` — invitation list / create
+- `POST /api/orgs/:orgId/invitations/:invitationId/revoke` — revoke pending invitation
+- `GET / POST /api/invitations/accept` — accept invitation with a token
 
 ---
 
@@ -162,6 +171,72 @@ and [Google OAuth for web server applications](https://developers.google.com/ide
 
 ---
 
+## P3.4 tenant API smoke flow
+
+The examples below assume a running local Worker and use cookie jars so Better
+Auth session cookies round-trip correctly.
+
+```bash
+BASE="http://localhost:8787"
+OWNER_COOKIE="/tmp/leverie-owner-cookie.txt"
+AUTHOR_COOKIE="/tmp/leverie-author-cookie.txt"
+
+# 1) Sign up the owner.
+curl -fsS -c "$OWNER_COOKIE" "$BASE/api/auth/sign-up/email" \
+  -H 'content-type: application/json' \
+  -d '{"email":"owner@example.test","password":"password123456","name":"Owner"}'
+
+# 2) Create an org. This also creates owner membership and a default workspace.
+curl -fsS -b "$OWNER_COOKIE" "$BASE/api/orgs" \
+  -H 'content-type: application/json' \
+  -d '{"name":"Acme Ops","slug":"acme-ops"}'
+
+# 3) List org memberships for the signed-in owner.
+curl -fsS -b "$OWNER_COOKIE" "$BASE/api/me"
+```
+
+Use the `org.id` returned by step 2:
+
+```bash
+ORG_ID="paste-org-id"
+
+# 4) Create another workspace.
+curl -fsS -b "$OWNER_COOKIE" "$BASE/api/orgs/$ORG_ID/workspaces" \
+  -H 'content-type: application/json' \
+  -d '{"name":"Claims Review","slug":"claims-review"}'
+
+# 5) Invite an Author. With RESEND_API_KEY configured, Resend sends the email.
+#    The response also includes acceptUrl to keep local smoke testing simple.
+curl -fsS -b "$OWNER_COOKIE" "$BASE/api/orgs/$ORG_ID/invitations" \
+  -H 'content-type: application/json' \
+  -d '{"email":"author@example.test","role":"editor"}'
+```
+
+Sign up or sign in as the invited user, then accept the invitation token from
+the returned `acceptUrl` or the delivered email:
+
+```bash
+curl -fsS -c "$AUTHOR_COOKIE" "$BASE/api/auth/sign-up/email" \
+  -H 'content-type: application/json' \
+  -d '{"email":"author@example.test","password":"password123456","name":"Author"}'
+
+TOKEN="paste-token-from-accept-url"
+curl -fsS -b "$AUTHOR_COOKIE" "$BASE/api/invitations/accept" \
+  -H 'content-type: application/json' \
+  -d "{\"token\":\"$TOKEN\"}"
+```
+
+Role rules in this slice:
+
+- `owner` and `admin` can manage members and invitations.
+- Only `owner` can invite or grant another `owner`.
+- `editor` and higher can create or update workspaces.
+- `owner` can request org deletion; this soft-deletes the org and queues an
+  `org_deletion_job` for the later purge worker.
+- Removing or demoting the last active `owner` is rejected.
+
+---
+
 ## Migration CI
 
 [api-migrations.yml](../../.github/workflows/api-migrations.yml) owns the P3.2.f database workflow:
@@ -194,7 +269,6 @@ The following are wired in later sub-steps:
 
 | Sub-step | Adds |
 |---|---|
-| **P3.4** | Org / workspace / membership CRUD, invitation flow, 5 roles |
 | **P3.5** | Logic CRUD + versioning + publish |
 | **P3.8〜P3.10** | Runner UI integration (read-only endpoints) |
 
