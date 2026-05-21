@@ -88,6 +88,7 @@ function PlayIcon() {
       fill="currentColor"
       aria-hidden
     >
+      <title>Evaluate</title>
       <polygon points="6 4 20 12 6 20 6 4" />
     </svg>
   );
@@ -106,6 +107,7 @@ function RotateCcwIcon() {
       strokeLinejoin="round"
       aria-hidden
     >
+      <title>Reset</title>
       <polyline points="1 4 1 10 7 10" />
       <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
     </svg>
