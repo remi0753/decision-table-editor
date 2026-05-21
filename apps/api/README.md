@@ -4,7 +4,7 @@ LEVERIE Cloud API — Hono on Cloudflare Workers, backed by Neon Postgres via Dr
 
 **Surface**: `leverie.dev/api/*` (path-based, same origin as Editor / Runner UI). See [doc/design_p3_infrastructure.md §3.2](../../doc/design_p3_infrastructure.md) for the origin rationale.
 
-**Status**: P3.4 tenant foundation. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, GitHub Actions run Drizzle migrations against local / preview / production database targets, Better Auth has email/password, magic-link, Google OAuth, and Resend delivery wiring, and the first org / workspace / membership / invitation APIs are available.
+**Status**: Cloud foundation in progress. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, GitHub Actions run Drizzle migrations against local / preview / production database targets, Better Auth has email/password, magic-link, Google OAuth, and Resend delivery wiring, and the tenant + logic CRUD/versioning APIs are available.
 
 ---
 
@@ -42,6 +42,13 @@ Worker listens on `http://localhost:8787`. Endpoints:
 - `PATCH / DELETE /api/orgs/:orgId` — org metadata update / deletion request
 - `GET / POST /api/orgs/:orgId/workspaces` — workspace list / create
 - `PATCH / DELETE /api/workspaces/:workspaceId` — workspace update / soft delete
+- `GET / POST /api/workspaces/:workspaceId/logics` — logic list / create
+- `GET / PATCH / DELETE /api/logics/:logicId` — logic get / draft or metadata update / soft delete
+- `GET /api/logics/:logicId/versions` — published version list
+- `GET /api/logics/:logicId/versions/:versionNumber` — published version get
+- `POST /api/logics/:logicId/publish` — publish draft snapshot, optionally pinning production
+- `POST /api/logics/:logicId/production` — pin production to an existing published version
+- `GET /api/logics/:logicId/diff?from=production&to=draft` — diff `draft`, `production`, `latest`, or `vN`
 - `GET /api/orgs/:orgId/members` — member list
 - `PATCH / DELETE /api/orgs/:orgId/members/:membershipId` — member management
 - `GET / POST /api/orgs/:orgId/invitations` — invitation list / create
@@ -95,7 +102,7 @@ Workers Routes (production `leverie.dev/api/*` → this Worker) are commented ou
 
 ---
 
-## P3.3 auth providers
+## Auth Providers
 
 The API currently enables:
 
@@ -171,7 +178,7 @@ and [Google OAuth for web server applications](https://developers.google.com/ide
 
 ---
 
-## P3.4 tenant API smoke flow
+## Tenant API Smoke Flow
 
 The examples below assume a running local Worker and use cookie jars so Better
 Auth session cookies round-trip correctly.
@@ -239,7 +246,7 @@ Role rules in this slice:
 
 ## Migration CI
 
-[api-migrations.yml](../../.github/workflows/api-migrations.yml) owns the P3.2.f database workflow:
+[api-migrations.yml](../../.github/workflows/api-migrations.yml) owns the database migration workflow:
 
 | Trigger | What runs |
 |---|---|
@@ -265,12 +272,8 @@ Required GitHub configuration:
 
 ## What this scaffold does NOT yet include
 
-The following are wired in later sub-steps:
-
-| Sub-step | Adds |
-|---|---|
-| **P3.5** | Logic CRUD + versioning + publish |
-| **P3.8〜P3.10** | Runner UI integration (read-only endpoints) |
+Runner UI integration is still wired later, including the read-only endpoint
+shape used by stakeholder review and shared runner links.
 
 ---
 
@@ -278,4 +281,5 @@ The following are wired in later sub-steps:
 
 This scaffold reuses the docker-compose setup verified in [`spikes/p3-foundation/`](../../spikes/p3-foundation/) — Postgres 18 (volume at `/var/lib/postgresql` for the PG18 layout) + [local-neon-http-proxy](https://github.com/TimoWilhelm/local-neon-http-proxy) on :4444 so `@neondatabase/serverless` exercises the same Workers → HTTP → Postgres path as production.
 
-When P3.2.a is stable, the spike can be archived to `spikes/_archive/` or deleted.
+When the API foundation is stable, the spike can be archived to
+`spikes/_archive/` or deleted.
