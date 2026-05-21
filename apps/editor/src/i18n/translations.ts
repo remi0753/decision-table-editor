@@ -679,8 +679,7 @@ export const translations: Record<Lang, TranslationSet> = {
     batchDialogDescription:
       '複数ケースをまとめて検証します。CSVを読み込み、一括で評価し、想定どおりに動かなかったケースからテーブルに戻って修正できます。',
     inspectInEditor: '編集',
-    inspectInEditorTooltip:
-      'このダイアログを閉じて、該当ルールに移動します',
+    inspectInEditorTooltip: 'このダイアログを閉じて、該当ルールに移動します',
     inspectInEditorFailHint:
       'マッチするルールがありませんでした。評価が止まったテーブルに移動して、ルールを追加してください。',
     inspectInEditorPassHint:

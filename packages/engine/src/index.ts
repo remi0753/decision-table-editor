@@ -30,3 +30,8 @@ export type {
   TraceStep,
   WarningType,
 } from './types/logic.js';
+export type {
+  LogicValidationError,
+  LogicValidationResult,
+} from './validate.js';
+export { validateLogicForSave } from './validate.js';

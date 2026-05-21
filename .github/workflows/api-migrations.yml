@@ -1,0 +1,215 @@
+name: API migrations
+
+# P3.2.f — Drizzle migrations for the Cloud API.
+#
+# Required GitHub configuration:
+#   Variables:
+#     NEON_PROJECT_ID              Neon project id
+#     NEON_PREVIEW_PARENT_BRANCH   Parent branch name/id for PR DB branches (default: main)
+#     NEON_PREVIEW_DATABASE        Database name for create-branch-action (default: neondb)
+#     NEON_PREVIEW_ROLE            Migration role for PR branches (default: neondb_owner)
+#   Secrets:
+#     NEON_API_KEY                 Neon API key with branch management access
+#     NEON_PROD_DATABASE_URL       Production Neon connection string for drizzle-kit migrate
+#     NEON_PREVIEW_DATABASE_URL    Shared preview Neon connection string for manual preview migrations
+#
+# PR branch naming:
+#   gh-pr-<number>
+# Branches are created with a 14-day expiration and also deleted when the PR
+# closes. Fork PRs run local migration validation only; they never receive Neon
+# credentials.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+    paths:
+      - "apps/api/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/actions/setup-pnpm/action.yml"
+      - ".github/workflows/api-migrations.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/actions/setup-pnpm/action.yml"
+      - ".github/workflows/api-migrations.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target migration environment"
+        required: true
+        default: "preview"
+        type: choice
+        options:
+          - preview
+          - prod
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: api-migrations-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+env:
+  API_DIR: apps/api
+  PREVIEW_BRANCH_NAME: gh-pr-${{ github.event.pull_request.number }}
+
+jobs:
+  local-validate:
+    name: Validate migrations locally
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: dev
+          POSTGRES_DB: leverie_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dev -d leverie_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node and pnpm
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Drizzle migrations
+        working-directory: ${{ env.API_DIR }}
+        run: pnpm db:migrate
+        env:
+          DRIZZLE_DATABASE_URL: postgres://dev:dev@localhost:5432/leverie_dev
+
+      - name: Typecheck API
+        run: pnpm --filter @leverie/api typecheck
+
+      - name: Build API Worker dry-run
+        run: pnpm --filter @leverie/api build
+
+  preview-migrate:
+    name: Migrate Neon preview branch
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: local-validate
+    runs-on: ubuntu-latest
+
+    environment:
+      name: api-preview
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node and pnpm
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compute preview branch expiration
+        run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+
+      - name: Create or reuse Neon preview branch
+        id: neon
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch_name: ${{ env.PREVIEW_BRANCH_NAME }}
+          parent_branch: ${{ vars.NEON_PREVIEW_PARENT_BRANCH || 'main' }}
+          database: ${{ vars.NEON_PREVIEW_DATABASE || 'neondb' }}
+          role: ${{ vars.NEON_PREVIEW_ROLE || 'neondb_owner' }}
+          expires_at: ${{ env.EXPIRES_AT }}
+
+      - name: Run Drizzle migrations on preview branch
+        working-directory: ${{ env.API_DIR }}
+        run: pnpm db:migrate
+        env:
+          DRIZZLE_DATABASE_URL: ${{ steps.neon.outputs.db_url }}
+
+  preview-cleanup:
+    name: Delete Neon preview branch
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    environment:
+      name: api-preview
+
+    steps:
+      - name: Delete Neon preview branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch: ${{ env.PREVIEW_BRANCH_NAME }}
+
+  prod-migrate:
+    name: Migrate Neon production branch
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'prod')
+    runs-on: ubuntu-latest
+
+    environment:
+      name: api-prod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node and pnpm
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Drizzle migrations on production branch
+        working-directory: ${{ env.API_DIR }}
+        run: pnpm db:migrate
+        env:
+          DRIZZLE_DATABASE_URL: ${{ secrets.NEON_PROD_DATABASE_URL }}
+
+  manual-preview-migrate:
+    name: Migrate named Neon preview branch
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'preview'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: api-preview
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node and pnpm
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Drizzle migrations on shared preview branch
+        working-directory: ${{ env.API_DIR }}
+        run: pnpm db:migrate
+        env:
+          DRIZZLE_DATABASE_URL: ${{ secrets.NEON_PREVIEW_DATABASE_URL }}

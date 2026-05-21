@@ -1,0 +1,9 @@
+node_modules/
+.dev.vars
+.wrangler/
+dist/
+*.log
+.DS_Store
+
+# drizzle-kit generated migrations are kept under version control.
+# (drizzle/ is intentionally NOT ignored)

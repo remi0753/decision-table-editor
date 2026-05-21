@@ -1,5 +1,5 @@
-import * as Dialog from '@radix-ui/react-dialog';
 import type { Logic } from '@leverie/engine';
+import * as Dialog from '@radix-ui/react-dialog';
 import { FlaskConical, X } from 'lucide-react';
 import { useT } from '@/i18n/useT';
 import { BatchPanel } from './BatchPanel';
