@@ -92,32 +92,35 @@ function FieldInput({
       { v: 'false', label: t.no },
     ];
     return (
-      <div
-        role="radiogroup"
+      <fieldset
         aria-label={field.name}
         className="flex w-full rounded-md border border-gray-300 bg-white p-0.5"
       >
         {options.map((o) => {
           const active = value === o.v;
+          const optionId = o.v === '' ? field.id : `${field.id}-${o.v}`;
           return (
-            <button
+            <label
               key={o.v}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onChange(o.v)}
-              className={
-                'flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ' +
-                (active
-                  ? 'bg-violet-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50')
-              }
+              htmlFor={optionId}
+              className="flex-1 cursor-pointer"
             >
-              {o.label}
-            </button>
+              <input
+                id={optionId}
+                type="radio"
+                name={field.id}
+                value={o.v}
+                checked={active}
+                onChange={() => onChange(o.v)}
+                className="peer sr-only"
+              />
+              <span className="block rounded px-2 py-1 text-center text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 peer-checked:bg-violet-600 peer-checked:text-white peer-checked:shadow-sm">
+                {o.label}
+              </span>
+            </label>
           );
         })}
-      </div>
+      </fieldset>
     );
   }
 
@@ -208,6 +211,7 @@ function TypeIcon({ type }: { type: FieldType }) {
     case 'number':
       return (
         <svg {...common}>
+          <title>Number field</title>
           <line x1="4" y1="9" x2="20" y2="9" />
           <line x1="4" y1="15" x2="20" y2="15" />
           <line x1="10" y1="3" x2="8" y2="21" />
@@ -217,6 +221,7 @@ function TypeIcon({ type }: { type: FieldType }) {
     case 'string':
       return (
         <svg {...common}>
+          <title>Text field</title>
           <polyline points="4 7 4 4 20 4 20 7" />
           <line x1="9" y1="20" x2="15" y2="20" />
           <line x1="12" y1="4" x2="12" y2="20" />
@@ -225,6 +230,7 @@ function TypeIcon({ type }: { type: FieldType }) {
     case 'bool':
       return (
         <svg {...common}>
+          <title>Boolean field</title>
           <rect x="2" y="7" width="20" height="10" rx="5" />
           <circle cx="8" cy="12" r="2.5" fill="currentColor" />
         </svg>
@@ -232,6 +238,7 @@ function TypeIcon({ type }: { type: FieldType }) {
     case 'enum':
       return (
         <svg {...common}>
+          <title>Choice field</title>
           <line x1="9" y1="6" x2="20" y2="6" />
           <line x1="9" y1="12" x2="20" y2="12" />
           <line x1="9" y1="18" x2="20" y2="18" />
@@ -243,6 +250,7 @@ function TypeIcon({ type }: { type: FieldType }) {
     case 'date':
       return (
         <svg {...common}>
+          <title>Date field</title>
           <rect x="3" y="4" width="18" height="18" rx="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
@@ -252,6 +260,7 @@ function TypeIcon({ type }: { type: FieldType }) {
     case 'datetime':
       return (
         <svg {...common}>
+          <title>Date and time field</title>
           <rect x="3" y="4" width="18" height="14" rx="2" />
           <line x1="3" y1="9" x2="21" y2="9" />
           <line x1="8" y1="2" x2="8" y2="6" />
@@ -276,6 +285,7 @@ function ChevronDownIcon({ className }: { className?: string }) {
       className={className}
       aria-hidden
     >
+      <title>Open options</title>
       <polyline points="6 9 12 15 18 9" />
     </svg>
   );
