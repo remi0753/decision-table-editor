@@ -1,8 +1,20 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { magicLink } from 'better-auth/plugins';
 import { eq } from 'drizzle-orm';
 import type { Database } from './db/client.js';
 import { user as userTable } from './db/schema.js';
+import { sendMagicLinkEmail } from './email.js';
+
+type AuthConfig = {
+  baseURL: string;
+  secret: string;
+  trustedOrigins: string[];
+  googleClientId?: string;
+  googleClientSecret?: string;
+  resendApiKey?: string;
+  emailFrom?: string;
+};
 
 const generateDatabaseId = ({ model }: { model: string }) => {
   if (model === 'user') return false;
@@ -22,19 +34,39 @@ const emailVerifiedToTimestamp = (value: unknown) => {
 // Better Auth exposes `emailVerified` as a boolean, while the production schema
 // stores the verification instant in `email_verified_at`. The field override
 // below keeps the auth API shape stable and maps storage to our timestamp.
-export function createAuth(
-  db: Database,
-  baseURL: string,
-  secret: string,
-  trustedOrigins: string[],
-) {
+export function createAuth(db: Database, config: AuthConfig) {
+  const googleProvider =
+    config.googleClientId && config.googleClientSecret
+      ? {
+          google: {
+            clientId: config.googleClientId,
+            clientSecret: config.googleClientSecret,
+          },
+        }
+      : undefined;
+
   return betterAuth({
-    baseURL,
-    secret,
-    trustedOrigins,
+    appName: 'LEVERIE',
+    baseURL: config.baseURL,
+    secret: config.secret,
+    trustedOrigins: config.trustedOrigins,
     database: drizzleAdapter(db, {
       provider: 'pg',
     }),
+    socialProviders: googleProvider,
+    plugins: [
+      magicLink({
+        sendMagicLink: async ({ email, url }) => {
+          await sendMagicLinkEmail(
+            {
+              resendApiKey: config.resendApiKey,
+              from: config.emailFrom,
+            },
+            { email, url },
+          );
+        },
+      }),
+    ],
     advanced: {
       database: {
         // Let the production user table's `uuidv7()` DB default generate user

@@ -14,3 +14,14 @@ BETTER_AUTH_URL="http://localhost:8787"
 # needs no CORS; local Vite dev defaults are allowed when BETTER_AUTH_URL is
 # localhost even if this is omitted.
 CORS_ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
+
+# P3.3 auth providers. Google OAuth works locally when the Google Cloud OAuth
+# client has this redirect URI:
+#   http://localhost:8787/api/auth/callback/google
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+
+# Resend is optional for local dev. When RESEND_API_KEY is empty, magic-link
+# emails are printed to the Wrangler console instead of being sent.
+RESEND_API_KEY=""
+EMAIL_FROM="LEVERIE <auth@leverie.dev>"

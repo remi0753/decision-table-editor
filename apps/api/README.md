@@ -4,7 +4,7 @@ LEVERIE Cloud API — Hono on Cloudflare Workers, backed by Neon Postgres via Dr
 
 **Surface**: `leverie.dev/api/*` (path-based, same origin as Editor / Runner UI). See [doc/design_p3_infrastructure.md §3.2](../../doc/design_p3_infrastructure.md) for the origin rationale.
 
-**Status**: P3.2.f foundation. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, and GitHub Actions now run Drizzle migrations against local / preview / production database targets.
+**Status**: P3.3 auth foundation. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, GitHub Actions run Drizzle migrations against local / preview / production database targets, and Better Auth now has email/password, magic-link, Google OAuth, and Resend delivery wiring.
 
 ---
 
@@ -20,6 +20,7 @@ pnpm install
 cp .dev.vars.example .dev.vars
 # edit BETTER_AUTH_SECRET to a real random value:
 #   openssl rand -base64 32
+# for Google OAuth / Resend, see "Local Google OAuth setup" below
 
 # 3) Postgres 18 + Neon HTTP proxy
 pnpm db:up
@@ -35,7 +36,7 @@ Worker listens on `http://localhost:8787`. Endpoints:
 
 - `GET /` — liveness ping
 - `GET /healthz` — DB-roundtrip health check
-- `GET / POST /api/auth/*` — Better Auth router (sign-up / sign-in / OAuth / session / sign-out)
+- `GET / POST /api/auth/*` — Better Auth router (sign-up / sign-in / magic link / OAuth / session / sign-out)
 - `GET /api/me` — current session resolver (placeholder; P3.4 makes it tenant-aware)
 
 ---
@@ -71,15 +72,93 @@ primary API shape is same-origin `leverie.dev/api/*`. Set it only when exercisin
 the `api.leverie.dev` fallback, as a comma-separated list of SPA origins allowed
 to send credentialed requests.
 
-Secrets (`DATABASE_URL`, `BETTER_AUTH_SECRET`) are set per-environment via:
+Secrets (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`) are set per-environment via:
 
 ```bash
 wrangler secret put DATABASE_URL --env preview
 wrangler secret put DATABASE_URL --env prod
-# repeat for BETTER_AUTH_SECRET
+# repeat for BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+# and RESEND_API_KEY when email delivery is enabled
 ```
 
 Workers Routes (production `leverie.dev/api/*` → this Worker) are commented out in [wrangler.toml](./wrangler.toml) until the Cloudflare zone is wired up for deploy.
+
+---
+
+## P3.3 auth providers
+
+The API currently enables:
+
+- Email/password sign-up and sign-in.
+- Magic-link sign-in through Better Auth's magic-link plugin.
+- Google OAuth when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are present.
+- Resend-backed email delivery when `RESEND_API_KEY` is present. Without a
+  Resend key, local magic links are printed to the Wrangler console.
+
+Useful auth endpoints while testing:
+
+```bash
+# Start Google OAuth. The response includes a Google redirect URL.
+curl -i http://localhost:8787/api/auth/sign-in/social \
+  -H 'content-type: application/json' \
+  -d '{"provider":"google","callbackURL":"http://localhost:5173/"}'
+
+# Send a magic link. With no RESEND_API_KEY, watch the Wrangler console.
+curl -i http://localhost:8787/api/auth/sign-in/magic-link \
+  -H 'content-type: application/json' \
+  -d '{"email":"you@example.com","callbackURL":"http://localhost:5173/"}'
+```
+
+### Local Google OAuth setup
+
+Google OAuth can be tested against the local Worker without tunneling.
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and select or
+   create a development project.
+2. Configure the OAuth consent screen / branding page. For local development,
+   use "External" in testing mode unless the project belongs to a Google
+   Workspace organization. Add your own Google account as a test user if the app
+   is in testing mode.
+3. Create an OAuth client with application type **Web application**.
+4. Add this authorized redirect URI exactly:
+
+```text
+http://localhost:8787/api/auth/callback/google
+```
+
+5. Copy the generated client ID and client secret into `apps/api/.dev.vars`:
+
+```bash
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+```
+
+6. Keep `BETTER_AUTH_URL="http://localhost:8787"` for local Worker testing.
+   Better Auth builds the Google callback URL from this base URL.
+7. Start local dependencies and the Worker:
+
+```bash
+pnpm db:up
+pnpm db:migrate
+pnpm dev
+```
+
+8. Trigger OAuth from the frontend or by posting to
+   `http://localhost:8787/api/auth/sign-in/social` with provider `google`.
+
+If Google returns `redirect_uri_mismatch`, compare the URI shown in Google's
+error details with the exact URI above. The scheme, hostname, port, and path
+must match the registered redirect URI.
+
+For production, register the production callback separately:
+
+```text
+https://leverie.dev/api/auth/callback/google
+```
+
+References: [Google OAuth client management](https://support.google.com/cloud/answer/6158849?hl=en)
+and [Google OAuth for web server applications](https://developers.google.com/identity/protocols/oauth2/web-server).
 
 ---
 
@@ -115,7 +194,6 @@ The following are wired in later sub-steps:
 
 | Sub-step | Adds |
 |---|---|
-| **P3.3** | Google OAuth provider, Resend for magic links / invitation emails |
 | **P3.4** | Org / workspace / membership CRUD, invitation flow, 5 roles |
 | **P3.5** | Logic CRUD + versioning + publish |
 | **P3.8〜P3.10** | Runner UI integration (read-only endpoints) |
