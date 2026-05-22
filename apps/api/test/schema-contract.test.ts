@@ -4,10 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 const apiRoot = resolve(import.meta.dirname, '..');
 const repoRoot = resolve(apiRoot, '../..');
-const migration = readFileSync(
-  resolve(apiRoot, 'drizzle/0000_normal_pride.sql'),
-  'utf8',
-);
+const migrations = [
+  'drizzle/0000_normal_pride.sql',
+  'drizzle/0001_petite_toro.sql',
+]
+  .map((path) => readFileSync(resolve(apiRoot, path), 'utf8'))
+  .join('\n');
 const schemaSource = readFileSync(resolve(apiRoot, 'src/db/schema.ts'), 'utf8');
 const logicRoutesSource = readFileSync(
   resolve(apiRoot, 'src/routes/logics.ts'),
@@ -34,7 +36,7 @@ const productTables = [
 ];
 
 function expectSql(fragment: string) {
-  expect(migration).toContain(fragment);
+  expect(migrations).toContain(fragment);
 }
 
 describe('P3 schema contract', () => {
@@ -52,7 +54,7 @@ describe('P3 schema contract', () => {
     for (const table of productTables.filter(
       (table) => table !== 'api_key_logic_scope',
     )) {
-      expect(migration).toMatch(
+      expect(migrations).toMatch(
         new RegExp(
           `CREATE TABLE IF NOT EXISTS "${table}"[\\s\\S]*"id" uuid PRIMARY KEY DEFAULT uuidv7\\(\\) NOT NULL`,
         ),
@@ -71,6 +73,9 @@ describe('P3 schema contract', () => {
     expectSql(
       'CONSTRAINT "logic_version_logic_id_id_number_uniq" UNIQUE("logic_id","id","version_number")',
     );
+    expectSql(
+      'CONSTRAINT "logic_version_workspace_id_id_uniq" UNIQUE("workspace_id","id")',
+    );
 
     expectSql(
       'FOREIGN KEY ("workspace_id","api_key_id") REFERENCES "public"."api_key"("workspace_id","id")',
@@ -79,10 +84,16 @@ describe('P3 schema contract', () => {
       'FOREIGN KEY ("workspace_id","logic_id") REFERENCES "public"."logic"("workspace_id","id")',
     );
     expectSql(
+      'ALTER TABLE "logic_version" ADD CONSTRAINT "logic_version_workspace_logic_fk" FOREIGN KEY ("workspace_id","logic_id") REFERENCES "public"."logic"("workspace_id","id")',
+    );
+    expectSql(
       'FOREIGN KEY ("org_id","workspace_id") REFERENCES "public"."workspace"("org_id","id")',
     );
     expectSql(
       'FOREIGN KEY (id, production_version_id)\n  REFERENCES logic_version (logic_id, id)',
+    );
+    expectSql(
+      'FOREIGN KEY (workspace_id, production_version_id)\n  REFERENCES logic_version (workspace_id, id)',
     );
   });
 

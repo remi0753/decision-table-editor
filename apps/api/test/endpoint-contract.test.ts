@@ -69,7 +69,7 @@ describe('API endpoint contract', () => {
       "allowHeaders: ['Content-Type', 'Authorization']",
     );
     expect(indexSource).toContain(
-      "allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']",
+      "allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']",
     );
   });
 });

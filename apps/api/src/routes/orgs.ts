@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../db/client.js';
 import {
@@ -13,7 +13,6 @@ import { sendInvitationEmail } from '../email.js';
 import type { Env } from '../env.js';
 import {
   type AppContext,
-  activeOwnerCount,
   assertSlug,
   canGrantRole,
   canManageMembers,
@@ -37,6 +36,14 @@ function invitationUrl(c: AppContext, token: string) {
   const url = new URL('/api/invitations/accept', c.env.BETTER_AUTH_URL);
   url.searchParams.set('token', token);
   return url.toString();
+}
+
+function rowsFromExecute<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (result && typeof result === 'object' && 'rows' in result) {
+    return (result as { rows: T[] }).rows;
+  }
+  return [];
 }
 
 export const orgRoutes = new Hono<{ Bindings: Env }>();
@@ -336,18 +343,47 @@ orgRoutes.patch('/api/orgs/:orgId/members/:membershipId', async (c) => {
     .limit(1);
   if (!target) return jsonError(c, 404, 'not_found', 'Member not found.');
 
+  let updated: typeof membership.$inferSelect | undefined;
   if (target.role === 'owner' && nextRole !== 'owner') {
-    const owners = await activeOwnerCount(db, orgId);
-    if (owners <= 1) {
+    const result = await db.execute(sql`
+      WITH lock AS (
+        SELECT pg_advisory_xact_lock(hashtextextended(${orgId}, 0))
+      ),
+      owner_count AS (
+        SELECT count(*) AS value
+        FROM membership, lock
+        WHERE org_id = ${orgId}::uuid
+          AND role = 'owner'
+          AND removed_at IS NULL
+      )
+      UPDATE membership
+      SET role = ${nextRole}
+      FROM owner_count
+      WHERE membership.id = ${membershipId}::uuid
+        AND membership.org_id = ${orgId}::uuid
+        AND membership.removed_at IS NULL
+        AND owner_count.value > 1
+      RETURNING *
+    `);
+    const [row] = rowsFromExecute<typeof membership.$inferSelect>(result);
+    if (!row) {
       return jsonError(c, 409, 'last_owner', 'Cannot remove the last owner.');
     }
+    updated = row;
+  } else {
+    const [row] = await db
+      .update(membership)
+      .set({ role: nextRole })
+      .where(
+        and(
+          eq(membership.id, membershipId),
+          eq(membership.orgId, orgId),
+          isNull(membership.removedAt),
+        ),
+      )
+      .returning();
+    updated = row;
   }
-
-  const [updated] = await db
-    .update(membership)
-    .set({ role: nextRole })
-    .where(eq(membership.id, membershipId))
-    .returning();
 
   await writeAudit(db, {
     orgId,
@@ -385,18 +421,47 @@ orgRoutes.delete('/api/orgs/:orgId/members/:membershipId', async (c) => {
     .limit(1);
   if (!target) return jsonError(c, 404, 'not_found', 'Member not found.');
 
+  let removed: typeof membership.$inferSelect | undefined;
   if (target.role === 'owner') {
-    const owners = await activeOwnerCount(db, orgId);
-    if (owners <= 1) {
+    const result = await db.execute(sql`
+      WITH lock AS (
+        SELECT pg_advisory_xact_lock(hashtextextended(${orgId}, 0))
+      ),
+      owner_count AS (
+        SELECT count(*) AS value
+        FROM membership, lock
+        WHERE org_id = ${orgId}::uuid
+          AND role = 'owner'
+          AND removed_at IS NULL
+      )
+      UPDATE membership
+      SET removed_at = now()
+      FROM owner_count
+      WHERE membership.id = ${membershipId}::uuid
+        AND membership.org_id = ${orgId}::uuid
+        AND membership.removed_at IS NULL
+        AND owner_count.value > 1
+      RETURNING *
+    `);
+    const [row] = rowsFromExecute<typeof membership.$inferSelect>(result);
+    if (!row) {
       return jsonError(c, 409, 'last_owner', 'Cannot remove the last owner.');
     }
+    removed = row;
+  } else {
+    const [row] = await db
+      .update(membership)
+      .set({ removedAt: new Date() })
+      .where(
+        and(
+          eq(membership.id, membershipId),
+          eq(membership.orgId, orgId),
+          isNull(membership.removedAt),
+        ),
+      )
+      .returning();
+    removed = row;
   }
-
-  const [removed] = await db
-    .update(membership)
-    .set({ removedAt: new Date() })
-    .where(eq(membership.id, membershipId))
-    .returning();
 
   await writeAudit(db, {
     orgId,
