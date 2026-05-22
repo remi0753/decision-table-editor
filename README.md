@@ -109,6 +109,7 @@ Open **http://localhost:5173** in your browser.
 | `pnpm build:packages` | Build all `packages/*` (engine / checks / schema) into their `dist/` directories. |
 | `pnpm build:local` | Run Biome lint + TypeScript type-check + editor build. Use this before pushing. |
 | `pnpm test` | Run Vitest across all packages. |
+| `pnpm test:e2e` | Run local Playwright E2E against `apps/api`, `apps/editor`, and Docker Postgres. See [doc/e2e_testing.md](doc/e2e_testing.md). |
 | `pnpm typecheck` | Run `tsc --noEmit` across all packages. |
 | `pnpm lint` | Run Biome lint check. |
 | `pnpm lint:fix` | Apply Biome auto-fixes. |

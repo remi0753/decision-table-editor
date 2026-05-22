@@ -13,13 +13,17 @@
     "build:publishable": "turbo run build --filter='./packages/*' --filter=leverie-mcp",
     "build:local": "pnpm run lint && pnpm run typecheck && pnpm run build",
     "test": "turbo run test",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "typecheck": "turbo run typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write ."
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@biomejs/biome": "2.4.15",
+    "@types/node": "^22.15.17",
     "turbo": "^2.3.3",
     "typescript": "^5.7.3"
   }
