@@ -102,7 +102,7 @@ export function createAuth(db: Database, config: AuthConfig) {
           fieldName: 'deletedAt',
           required: false,
           input: false,
-          returned: false,
+          returned: true,
         },
       },
     },
@@ -127,8 +127,10 @@ export function createAuth(db: Database, config: AuthConfig) {
             await db
               .update(userTable)
               .set({
+                email: `deleted-${user.id}@deleted.leverie.invalid`,
                 name: 'Deleted user',
                 image: null,
+                emailVerifiedAt: null,
                 deletedAt: new Date(),
               })
               .where(eq(userTable.id, user.id));

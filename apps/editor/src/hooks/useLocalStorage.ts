@@ -5,8 +5,10 @@ import { toast } from 'sonner';
 
 const STORAGE_KEY = 'decision-table-editor-v2';
 
-export function useAutoSave(logic: Logic) {
+export function useAutoSave(logic: Logic, enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
+
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(logic));
     } catch {
@@ -14,7 +16,7 @@ export function useAutoSave(logic: Logic) {
         'データの自動保存に失敗しました。「エクスポート」からファイルに保存してください。',
       );
     }
-  }, [logic]);
+  }, [logic, enabled]);
 }
 
 export function loadFromStorage(): Logic | null {

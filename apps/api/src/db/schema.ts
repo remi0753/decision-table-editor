@@ -436,9 +436,8 @@ export const logicVersion = pgTable(
   'logic_version',
   {
     id: uuid('id').primaryKey().default(uuidv7),
-    logicId: uuid('logic_id')
-      .notNull()
-      .references(() => logic.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id').notNull(),
+    logicId: uuid('logic_id').notNull(),
     versionNumber: integer('version_number').notNull(),
     schemaVersion: text('schema_version').notNull().default('2'),
     data: jsonb('data').notNull(),
@@ -469,6 +468,7 @@ export const logicVersion = pgTable(
           OR (${t.publishedActorType} = 'system' AND ${t.publishedActorId} IS NULL)`,
     ),
     unique('logic_version_logic_number_uniq').on(t.logicId, t.versionNumber),
+    unique('logic_version_workspace_id_id_uniq').on(t.workspaceId, t.id),
     // FK target for logic.production_version_id composite FK (added in
     // the initial migration).
     unique('logic_version_logic_id_id_uniq').on(t.logicId, t.id),
@@ -482,6 +482,11 @@ export const logicVersion = pgTable(
       t.logicId,
       t.versionNumber.desc(),
     ),
+    foreignKey({
+      columns: [t.workspaceId, t.logicId],
+      foreignColumns: [logic.workspaceId, logic.id],
+      name: 'logic_version_workspace_logic_fk',
+    }).onDelete('cascade'),
   ],
 );
 

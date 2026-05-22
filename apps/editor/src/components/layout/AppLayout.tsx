@@ -10,14 +10,18 @@ import {
 import { useState } from 'react';
 import { Toaster } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { CloudMenu } from '@/components/cloud/CloudMenu';
+import { CloudWorkspacePicker } from '@/components/cloud/CloudWorkspacePicker';
 import { BatchDialog } from '@/components/evaluation/BatchDialog';
 import { SampleGalleryDialog } from '@/components/templates/SampleGalleryDialog';
 import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useCloudAutoSave } from '@/hooks/useCloudAutoSave';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
 import { useAutoSave } from '@/hooks/useLocalStorage';
 import type { Lang } from '@/i18n/translations';
 import { useT } from '@/i18n/useT';
+import { useCloudStore } from '@/store/cloudStore';
 import { redo, undo, useHistoryStore } from '@/store/historyStore';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
@@ -33,12 +37,14 @@ export function AppLayout() {
   const setLang = useUiStore((s) => s.setLang);
   const canUndo = useHistoryStore((s) => s.past.length > 0);
   const canRedo = useHistoryStore((s) => s.future.length > 0);
+  const cloudMode = useCloudStore((s) => s.mode);
   const importFn = useImportLogic();
   const t = useT();
   const [sampleGalleryOpen, setSampleGalleryOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
 
-  useAutoSave(logic);
+  useAutoSave(logic, cloudMode === 'local');
+  useCloudAutoSave(logic);
 
   const handleNew = () => {
     if (window.confirm(t.newLogicConfirm)) {
@@ -65,6 +71,8 @@ export function AppLayout() {
             <option value="en">EN</option>
             <option value="ja">日本語</option>
           </select>
+          <div className="w-px h-5 bg-gray-200" />
+          <CloudMenu />
           <div className="w-px h-5 bg-gray-200" />
           <Tooltip content={t.undo}>
             <IconButton
@@ -160,6 +168,7 @@ export function AppLayout() {
         onOpenChange={setBatchDialogOpen}
         logic={logic}
       />
+      <CloudWorkspacePicker />
     </div>
   );
 }

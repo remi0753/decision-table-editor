@@ -57,9 +57,10 @@ vi.mock('../src/email.js', () => ({
   sendInvitationEmail: vi.fn(async () => undefined),
 }));
 
-function createFakeDb(options: { select?: unknown[][] } = {}) {
+function createFakeDb(options: { select?: unknown[][]; execute?: unknown[][] } = {}) {
   const writes: WriteOperation[] = [];
   const selectQueue = [...(options.select ?? [])];
+  const executeQueue = [...(options.execute ?? [])];
 
   return {
     writes,
@@ -73,7 +74,22 @@ function createFakeDb(options: { select?: unknown[][] } = {}) {
     update(table: unknown) {
       return writeBuilder(writes, { table });
     },
-    execute: vi.fn(async () => [{ ok: 1 }]),
+    execute: vi.fn(async () => executeQueue.shift() ?? [{ ok: 1 }]),
+    transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
+      callback({
+        select() {
+          const result = selectQueue.shift() ?? [];
+          return queryBuilder(result);
+        },
+        insert(table: unknown) {
+          return writeBuilder(writes, { table });
+        },
+        update(table: unknown) {
+          return writeBuilder(writes, { table });
+        },
+        execute: vi.fn(async () => [{ ok: 1 }]),
+      }),
+    ),
   };
 }
 
@@ -492,7 +508,33 @@ describe('logic route behavior', () => {
           },
         ],
         [membership('editor')],
-        [{ value: 1 }],
+      ],
+      execute: [
+        [
+          {
+            version_id: 'version-2',
+            version_workspace_id: 'workspace-1',
+            version_logic_id: 'logic-1',
+            version_number: 2,
+            version_schema_version: '2',
+            version_release_notes: 'Ready',
+            version_published_at: new Date('2026-05-22T00:00:00.000Z'),
+            version_published_actor_type: 'user',
+            version_published_actor_id: ownerUser.id,
+            logic_id: 'logic-1',
+            logic_workspace_id: 'workspace-1',
+            logic_slug: 'approval',
+            logic_name: 'Approval',
+            logic_description: null,
+            logic_draft_data: data,
+            logic_draft_schema_version: '2',
+            logic_draft_revision: 3,
+            logic_production_version_id: 'version-2',
+            logic_draft_updated_at: new Date('2026-05-22T00:00:00.000Z'),
+            logic_created_at: new Date('2026-05-22T00:00:00.000Z'),
+            logic_updated_at: new Date('2026-05-22T00:00:00.000Z'),
+          },
+        ],
       ],
     });
     const app = await loadApp();
@@ -509,21 +551,20 @@ describe('logic route behavior', () => {
     expect(response.status).toBe(201);
     const body = await response.json();
     expect(body.version).toMatchObject({
+      workspaceId: 'workspace-1',
       logicId: 'logic-1',
       versionNumber: 2,
       schemaVersion: '2',
-      data,
       releaseNotes: 'Ready',
       publishedActorType: 'user',
       publishedActorId: ownerUser.id,
     });
-    expect(currentDb.writes).toHaveLength(3);
-    expect(currentDb.writes[1]?.set).toMatchObject({
+    expect(body.logic).toMatchObject({
+      id: 'logic-1',
       productionVersionId: body.version.id,
-      updatedActorType: 'user',
-      updatedActorId: ownerUser.id,
     });
-    expect(currentDb.writes[2]?.values).toMatchObject({
+    expect(currentDb.writes).toHaveLength(1);
+    expect(currentDb.writes[0]?.values).toMatchObject({
       orgId: 'org-1',
       workspaceId: 'workspace-1',
       action: 'logic.published_to_production',

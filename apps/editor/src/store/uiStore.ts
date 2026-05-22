@@ -54,7 +54,7 @@ interface PersistedPrefs {
 
 const DEFAULT_PREFS: PersistedPrefs = {
   leftPaneSections: { dag: true, tables: true, fields: true },
-  evalDrawerOpen: true,
+  evalDrawerOpen: false,
 };
 
 const loadPrefs = (): PersistedPrefs => {

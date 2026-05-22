@@ -1,4 +1,4 @@
-import { and, count, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { createAuth } from '../auth.js';
@@ -34,6 +34,7 @@ export type SessionUser = {
   id: string;
   email: string;
   name?: string | null;
+  deletedAt?: Date | string | null;
 };
 
 export type MembershipRow = {
@@ -183,7 +184,13 @@ export async function requireUser(c: AppContext, db: Database) {
   const auth = authForRequest(c, db);
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return null;
-  return session.user as SessionUser;
+  const sessionUser = session.user as SessionUser;
+  if (sessionUser.deletedAt) return null;
+  return {
+    id: sessionUser.id,
+    email: sessionUser.email,
+    name: sessionUser.name,
+  };
 }
 
 export async function getActiveMembership(
@@ -245,20 +252,6 @@ export function canEditLogics(role: Role) {
 export function canGrantRole(actorRole: Role, targetRole: Role) {
   if (actorRole === 'owner') return true;
   return actorRole === 'admin' && targetRole !== 'owner';
-}
-
-export async function activeOwnerCount(db: Database, orgId: string) {
-  const [row] = await db
-    .select({ value: count() })
-    .from(membership)
-    .where(
-      and(
-        eq(membership.orgId, orgId),
-        eq(membership.role, 'owner'),
-        isNull(membership.removedAt),
-      ),
-    );
-  return row?.value ?? 0;
 }
 
 export async function writeAudit(

@@ -17,6 +17,23 @@ export type TranslationSet = {
   undo: string;
   redo: string;
   langLabel: string;
+  cloudChecking: string;
+  cloudSaved: string;
+  cloudSaving: string;
+  cloudConflict: string;
+  cloudError: string;
+  cloudConnected: string;
+  localSaved: string;
+  localModeDescription: string;
+  signIn: string;
+  signUp: string;
+  signOut: string;
+  createAccount: string;
+  useExistingAccount: string;
+  publish: string;
+  namePlaceholder: string;
+  emailPlaceholder: string;
+  passwordPlaceholder: string;
 
   // LeftPane
   logicNameLabel: string;
@@ -263,6 +280,24 @@ export const translations: Record<Lang, TranslationSet> = {
     undo: 'Undo (⌘Z)',
     redo: 'Redo (⇧⌘Z)',
     langLabel: 'EN',
+    cloudChecking: 'Checking cloud session...',
+    cloudSaved: 'Cloud saved',
+    cloudSaving: 'Saving to cloud...',
+    cloudConflict: 'Cloud conflict',
+    cloudError: 'Cloud save failed',
+    cloudConnected: 'Connected to cloud.',
+    localSaved: 'Saved in this browser',
+    localModeDescription:
+      'Sign in to save drafts and published versions to your workspace.',
+    signIn: 'Sign in',
+    signUp: 'Sign up',
+    signOut: 'Sign out',
+    createAccount: 'Create account',
+    useExistingAccount: 'Use existing',
+    publish: 'Publish',
+    namePlaceholder: 'Name',
+    emailPlaceholder: 'Email',
+    passwordPlaceholder: 'Password',
 
     logicNameLabel: 'Logic Name',
     logicNamePlaceholder: 'Logic name',
@@ -523,6 +558,24 @@ export const translations: Record<Lang, TranslationSet> = {
     undo: '元に戻す（⌘Z）',
     redo: 'やり直し（⇧⌘Z）',
     langLabel: '日本語',
+    cloudChecking: 'クラウドセッションを確認中...',
+    cloudSaved: 'クラウドに保存済み',
+    cloudSaving: 'クラウドに保存中...',
+    cloudConflict: 'クラウド側で競合',
+    cloudError: 'クラウド保存に失敗',
+    cloudConnected: 'クラウドに接続しました。',
+    localSaved: 'このブラウザに保存中',
+    localModeDescription:
+      'サインインすると draft と公開バージョンをワークスペースに保存します。',
+    signIn: 'サインイン',
+    signUp: '登録',
+    signOut: 'サインアウト',
+    createAccount: '新規登録',
+    useExistingAccount: '既存アカウント',
+    publish: '公開',
+    namePlaceholder: '名前',
+    emailPlaceholder: 'メール',
+    passwordPlaceholder: 'パスワード',
 
     logicNameLabel: 'ロジック名',
     logicNamePlaceholder: 'ロジック名',

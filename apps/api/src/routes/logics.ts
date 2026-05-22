@@ -46,6 +46,55 @@ type LogicRow = typeof logic.$inferSelect;
 type WorkspaceRow = typeof workspace.$inferSelect;
 type WorkspaceAccess = MembershipAccess & { workspace: WorkspaceRow };
 type LogicAccess = WorkspaceAccess & { logic: LogicRow };
+type SerializedLogicInput = Pick<
+  LogicRow,
+  | 'id'
+  | 'workspaceId'
+  | 'slug'
+  | 'name'
+  | 'description'
+  | 'draftData'
+  | 'draftSchemaVersion'
+  | 'draftRevision'
+  | 'productionVersionId'
+  | 'draftUpdatedAt'
+  | 'createdAt'
+  | 'updatedAt'
+>;
+type SerializedVersion = {
+  id: string;
+  workspaceId: string;
+  logicId: string;
+  versionNumber: number;
+  schemaVersion: string;
+  releaseNotes: string | null;
+  publishedAt: Date;
+  publishedActorType: string;
+  publishedActorId: string | null;
+};
+type PublishRow = {
+  version_id: string;
+  version_workspace_id: string;
+  version_logic_id: string;
+  version_number: number;
+  version_schema_version: string;
+  version_release_notes: string | null;
+  version_published_at: Date;
+  version_published_actor_type: string;
+  version_published_actor_id: string | null;
+  logic_id: string;
+  logic_workspace_id: string;
+  logic_slug: string;
+  logic_name: string;
+  logic_description: string | null;
+  logic_draft_data: Logic;
+  logic_draft_schema_version: string;
+  logic_draft_revision: number;
+  logic_production_version_id: string | null;
+  logic_draft_updated_at: Date;
+  logic_created_at: Date;
+  logic_updated_at: Date;
+};
 
 type JsonDiffChange = {
   path: string[];
@@ -123,7 +172,7 @@ async function loadLogicAccess(
   return { logic: row.logic, workspace: row.workspace, ...access };
 }
 
-function serializeLogic(row: LogicRow) {
+function serializeLogic(row: SerializedLogicInput) {
   return {
     id: row.id,
     workspaceId: row.workspaceId,
@@ -143,6 +192,7 @@ function serializeLogic(row: LogicRow) {
 function logicVersionSelect() {
   return {
     id: logicVersion.id,
+    workspaceId: logicVersion.workspaceId,
     logicId: logicVersion.logicId,
     versionNumber: logicVersion.versionNumber,
     schemaVersion: logicVersion.schemaVersion,
@@ -151,6 +201,14 @@ function logicVersionSelect() {
     publishedActorType: logicVersion.publishedActorType,
     publishedActorId: logicVersion.publishedActorId,
   };
+}
+
+function rowsFromExecute<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (result && typeof result === 'object' && 'rows' in result) {
+    return (result as { rows: T[] }).rows;
+  }
+  return [];
 }
 
 async function latestVersion(db: Database, logicId: string) {
@@ -436,10 +494,28 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
   const [updated] = await db
     .update(logic)
     .set(update)
-    .where(and(eq(logic.id, logicId), isNull(logic.deletedAt)))
+    .where(
+      and(
+        eq(logic.id, logicId),
+        isNull(logic.deletedAt),
+        expectedDraftRevision === undefined
+          ? undefined
+          : eq(logic.draftRevision, expectedDraftRevision),
+      ),
+    )
     .returning();
 
-  if (!updated) return jsonError(c, 404, 'not_found', 'Logic not found.');
+  if (!updated) {
+    if (expectedDraftRevision !== undefined && draftData !== undefined) {
+      return jsonError(
+        c,
+        409,
+        'draft_revision_conflict',
+        'Draft has changed since it was loaded.',
+      );
+    }
+    return jsonError(c, 404, 'not_found', 'Logic not found.');
+  }
 
   await writeAudit(db, {
     orgId: access.workspace.orgId,
@@ -546,43 +622,132 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
   const validation = validateLogicBody(c, access.logic.draftData);
   if ('error' in validation) return validation.error;
 
-  const [maxRow] = await db
-    .select({
-      value: sql<number>`coalesce(max(${logicVersion.versionNumber}), 0)`,
-    })
-    .from(logicVersion)
-    .where(eq(logicVersion.logicId, logicId));
+  let created: SerializedVersion | undefined;
+  let updatedLogic: SerializedLogicInput = access.logic;
+  try {
+    const result = await db.execute(sql`
+      WITH lock AS (
+        SELECT pg_advisory_xact_lock(hashtextextended(${logicId}, 0))
+      ),
+      next_version AS (
+        SELECT coalesce(max(version_number), 0) + 1 AS version_number
+        FROM logic_version
+        WHERE logic_id = ${logicId}
+      ),
+      inserted AS (
+        INSERT INTO logic_version (
+          workspace_id,
+          logic_id,
+          version_number,
+          schema_version,
+          data,
+          release_notes,
+          published_actor_type,
+          published_actor_id
+        )
+        SELECT
+          ${access.logic.workspaceId}::uuid,
+          ${logicId}::uuid,
+          next_version.version_number,
+          ${validation.logic.version},
+          ${JSON.stringify(validation.logic)}::jsonb,
+          ${releaseNotes ?? null},
+          'user',
+          ${access.user.id}::uuid
+        FROM next_version, lock
+        RETURNING *
+      ),
+      updated AS (
+        UPDATE logic
+        SET
+          production_version_id = inserted.id,
+          updated_actor_type = 'user',
+          updated_actor_id = ${access.user.id}::uuid
+        FROM inserted
+        WHERE ${pinProduction}::boolean
+          AND logic.id = ${logicId}::uuid
+        RETURNING logic.*
+      ),
+      logic_result AS (
+        SELECT * FROM updated
+        UNION ALL
+        SELECT logic.*
+        FROM logic, inserted
+        WHERE NOT ${pinProduction}::boolean
+          AND logic.id = ${logicId}::uuid
+      )
+      SELECT
+        inserted.id AS version_id,
+        inserted.workspace_id AS version_workspace_id,
+        inserted.logic_id AS version_logic_id,
+        inserted.version_number AS version_number,
+        inserted.schema_version AS version_schema_version,
+        inserted.release_notes AS version_release_notes,
+        inserted.published_at AS version_published_at,
+        inserted.published_actor_type AS version_published_actor_type,
+        inserted.published_actor_id AS version_published_actor_id,
+        logic_result.id AS logic_id,
+        logic_result.workspace_id AS logic_workspace_id,
+        logic_result.slug AS logic_slug,
+        logic_result.name AS logic_name,
+        logic_result.description AS logic_description,
+        logic_result.draft_data AS logic_draft_data,
+        logic_result.draft_schema_version AS logic_draft_schema_version,
+        logic_result.draft_revision AS logic_draft_revision,
+        logic_result.production_version_id AS logic_production_version_id,
+        logic_result.draft_updated_at AS logic_draft_updated_at,
+        logic_result.created_at AS logic_created_at,
+        logic_result.updated_at AS logic_updated_at
+      FROM inserted
+      JOIN logic_result ON true
+    `);
+    const [row] = rowsFromExecute<PublishRow>(result);
+    if (!row) {
+      return jsonError(c, 500, 'publish_failed', 'Could not publish version.');
+    }
 
-  const nextVersionNumber = Number(maxRow?.value ?? 0) + 1;
-  const [created] = await db
-    .insert(logicVersion)
-    .values({
-      logicId,
-      versionNumber: nextVersionNumber,
-      schemaVersion: validation.logic.version,
-      data: validation.logic,
-      releaseNotes,
-      publishedActorType: 'user',
-      publishedActorId: access.user.id,
-    })
-    .returning();
-
+    created = {
+      id: row.version_id,
+      workspaceId: row.version_workspace_id,
+      logicId: row.version_logic_id,
+      versionNumber: row.version_number,
+      schemaVersion: row.version_schema_version,
+      releaseNotes: row.version_release_notes,
+      publishedAt: row.version_published_at,
+      publishedActorType: row.version_published_actor_type,
+      publishedActorId: row.version_published_actor_id,
+    };
+    updatedLogic = {
+      id: row.logic_id,
+      workspaceId: row.logic_workspace_id,
+      slug: row.logic_slug,
+      name: row.logic_name,
+      description: row.logic_description,
+      draftData: row.logic_draft_data,
+      draftSchemaVersion: row.logic_draft_schema_version,
+      draftRevision: row.logic_draft_revision,
+      productionVersionId: row.logic_production_version_id,
+      draftUpdatedAt: row.logic_draft_updated_at,
+      createdAt: row.logic_created_at,
+      updatedAt: row.logic_updated_at,
+    };
+  } catch (error) {
+    const maybeError = error as { code?: string; constraint?: string };
+    if (
+      maybeError.code === '23505' &&
+      maybeError.constraint === 'logic_version_logic_number_uniq'
+    ) {
+      return jsonError(
+        c,
+        409,
+        'publish_conflict',
+        'A new version was published at the same time. Try again.',
+      );
+    }
+    throw error;
+  }
   if (!created) {
     return jsonError(c, 500, 'publish_failed', 'Could not publish version.');
-  }
-
-  let updatedLogic = access.logic;
-  if (pinProduction) {
-    const [updated] = await db
-      .update(logic)
-      .set({
-        productionVersionId: created.id,
-        updatedActorType: 'user',
-        updatedActorId: access.user.id,
-      })
-      .where(eq(logic.id, logicId))
-      .returning();
-    updatedLogic = updated ?? updatedLogic;
   }
 
   await writeAudit(db, {
