@@ -38,8 +38,10 @@ export function CloudWorkspacePicker() {
   }, [workspaces]);
 
   useEffect(() => {
-    setLogicId(logics[0]?.id ?? NEW_LOGIC);
-  }, [logics]);
+    setLogicId(
+      choices?.preferNewLogic ? NEW_LOGIC : (logics[0]?.id ?? NEW_LOGIC),
+    );
+  }, [choices?.preferNewLogic, logics]);
 
   if (mode !== 'selecting' || !choices) return null;
 
@@ -142,7 +144,9 @@ export function CloudWorkspacePicker() {
             className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
-            {saveState === 'saving' ? 'Connecting...' : 'Use selected workspace'}
+            {saveState === 'saving'
+              ? 'Connecting...'
+              : 'Use selected workspace'}
           </button>
         </form>
       </div>
