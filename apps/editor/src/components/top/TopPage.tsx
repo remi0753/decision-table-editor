@@ -235,6 +235,73 @@ export function TopPage() {
           </div>
         </section>
       </main>
+
+      <footer className="bg-violet-950 px-4 pb-10 pt-16 text-white md:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr] md:gap-12">
+            <div>
+              <a
+                href="/"
+                aria-label="LEVERIE top"
+                className="text-xl font-bold tracking-[0.18em] text-white"
+              >
+                LEVERIE
+              </a>
+              <p className="mt-4 max-w-sm text-sm leading-6 text-white/60">
+                Business rules in the shape teams already understand — a
+                spreadsheet-style decision table your team can build, verify,
+                and share.
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/50">
+                Product
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-white/80">
+                <li>
+                  <a href="#value" className="hover:text-white">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#flow" className="hover:text-white">
+                    How it works
+                  </a>
+                </li>
+                <li>
+                  <a href="#fit" className="hover:text-white">
+                    Use cases
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/50">
+                Get started
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-white/80">
+                <li>
+                  <a
+                    href="/edit"
+                    onClick={startGuestEditor}
+                    className="hover:text-white"
+                  >
+                    Open the editor
+                  </a>
+                </li>
+                <li>
+                  <a href="/auth" className="hover:text-white">
+                    Sign in
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 border-t border-white/10 pt-6 text-xs text-white/50">
+            © {new Date().getFullYear()} LEVERIE
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
