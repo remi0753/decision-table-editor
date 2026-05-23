@@ -17,6 +17,8 @@ export type CloudOrgMembership = {
   org: CloudOrg;
 };
 
+export type CloudRole = CloudOrgMembership['role'];
+
 export type CloudOrg = {
   id: string;
   slug: string;
@@ -48,6 +50,23 @@ export type CloudVersion = {
   logicId: string;
   versionNumber: number;
   publishedAt: string;
+};
+
+export type RunnerVersion = CloudVersion & {
+  workspaceId: string;
+  schemaVersion: string;
+  releaseNotes?: string | null;
+  data: Logic;
+};
+
+export type RunnerLogicResponse = {
+  workspace: CloudWorkspace;
+  logic: CloudLogic;
+  version: RunnerVersion;
+  runner: {
+    role: CloudRole;
+    canEdit: boolean;
+  };
 };
 
 export class CloudApiError extends Error {
@@ -133,8 +152,20 @@ export async function createLogic(workspaceId: string, logic: Logic) {
 }
 
 export async function getLogic(logicId: string) {
-  return api<{ logic: CloudLogic; latestVersion: CloudVersion | null }>(
-    `/api/logics/${logicId}`,
+  return api<{
+    logic: CloudLogic;
+    latestVersion: CloudVersion | null;
+    productionVersion: CloudVersion | null;
+  }>(`/api/logics/${logicId}`);
+}
+
+export async function getRunnerLogic(
+  workspaceId: string,
+  logicId: string,
+  versionNumber: number,
+) {
+  return api<RunnerLogicResponse>(
+    `/api/run/${workspaceId}/${logicId}@v${versionNumber}`,
   );
 }
 

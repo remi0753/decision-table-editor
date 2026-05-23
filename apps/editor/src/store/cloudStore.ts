@@ -5,7 +5,9 @@ import {
   CloudApiError,
   type CloudLogic,
   type CloudOrg,
+  type CloudRole,
   type CloudUser,
+  type CloudVersion,
   type CloudWorkspace,
   createLogic,
   createOrg,
@@ -25,6 +27,7 @@ type CloudMode = 'checking' | 'local' | 'cloud' | 'selecting';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'conflict';
 export type CloudChoices = {
   orgs: CloudOrg[];
+  roleByOrgId: Record<string, CloudRole>;
   workspacesByOrgId: Record<string, CloudWorkspace[]>;
   logicsByWorkspaceId: Record<string, CloudLogic[]>;
   preferNewLogic?: boolean;
@@ -35,10 +38,13 @@ type CloudStore = {
   saveState: SaveState;
   user: CloudUser | null;
   org: CloudOrg | null;
+  orgRole: CloudRole | null;
   workspace: CloudWorkspace | null;
   choices: CloudChoices | null;
   logicId: string | null;
   draftRevision: number | null;
+  latestVersion: CloudVersion | null;
+  productionVersion: CloudVersion | null;
   lastSavedAt: Date | null;
   error: string | null;
   initializeCloud: (
@@ -95,9 +101,12 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   saveState: 'idle',
   user: null,
   org: null,
+  orgRole: null,
   workspace: null,
   logicId: null,
   draftRevision: null,
+  latestVersion: null,
+  productionVersion: null,
   lastSavedAt: null,
   error: null,
   choices: null,
@@ -110,17 +119,24 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       try {
         const me = await getMe();
         let orgs = me.orgs.map((membership) => membership.org);
+        const roleByOrgId: Record<string, CloudRole> = Object.fromEntries(
+          me.orgs.map(
+            (membership) => [membership.org.id, membership.role] as const,
+          ),
+        );
         let org = orgs[0];
         if (!org && options?.requireAuth) {
           const created = await createOrg('My organization');
           org = created.org;
           orgs = [org];
+          roleByOrgId[org.id] = 'owner';
         }
         if (!org) {
           set({
             mode: 'local',
             user: me.user,
             org: null,
+            orgRole: null,
             choices: null,
             error: null,
           });
@@ -145,6 +161,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             org: null,
             choices: {
               orgs,
+              roleByOrgId,
               workspacesByOrgId,
               logicsByWorkspaceId,
               preferNewLogic: options?.migrateLocalDraft,
@@ -165,6 +182,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             mode: 'local',
             user: me.user,
             org: null,
+            orgRole: null,
             choices: null,
             error: null,
           });
@@ -181,6 +199,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             org,
             choices: {
               orgs,
+              roleByOrgId,
               workspacesByOrgId,
               logicsByWorkspaceId,
               preferNewLogic: options?.migrateLocalDraft,
@@ -198,6 +217,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             org,
             choices: {
               orgs,
+              roleByOrgId,
               workspacesByOrgId,
               logicsByWorkspaceId: { [workspace.id]: logics.logics },
             },
@@ -209,8 +229,11 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         const logicSummary = options?.migrateLocalDraft
           ? undefined
           : logics.logics[0];
-        const cloudLogic = logicSummary
-          ? (await getLogic(logicSummary.id)).logic
+        const cloudResult = logicSummary
+          ? await getLogic(logicSummary.id)
+          : null;
+        const cloudLogic = cloudResult
+          ? cloudResult.logic
           : (await createLogic(workspace.id, localLogic)).logic;
 
         importLogic(cloudLogic.draftData);
@@ -219,10 +242,13 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           saveState: 'saved',
           user: me.user,
           org,
+          orgRole: roleByOrgId[org.id] ?? null,
           workspace,
           choices: null,
           logicId: cloudLogic.id,
           draftRevision: cloudLogic.draftRevision,
+          latestVersion: cloudResult?.latestVersion ?? null,
+          productionVersion: cloudResult?.productionVersion ?? null,
           lastSavedAt: new Date(),
           error: null,
         });
@@ -241,10 +267,13 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             mode: 'local',
             user: null,
             org: null,
+            orgRole: null,
             workspace: null,
             choices: null,
             logicId: null,
             draftRevision: null,
+            latestVersion: null,
+            productionVersion: null,
             error: null,
           });
           return;
@@ -253,7 +282,10 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         set({
           mode: 'local',
           org: null,
+          orgRole: null,
           choices: null,
+          latestVersion: null,
+          productionVersion: null,
           error: apiErrorMessage(error),
         });
       } finally {
@@ -286,20 +318,26 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         workspace = created.workspace;
       }
 
-      const cloudLogic =
+      const cloudResult =
         input.logicId && input.logicId !== 'new'
-          ? (await getLogic(input.logicId)).logic
-          : (await createLogic(workspace.id, localLogic)).logic;
+          ? await getLogic(input.logicId)
+          : null;
+      const cloudLogic =
+        cloudResult?.logic ??
+        (await createLogic(workspace.id, localLogic)).logic;
 
-      importLogic(cloudLogic.draftData);
+      importLogic((cloudResult?.logic ?? cloudLogic).draftData);
       set({
         mode: 'cloud',
         saveState: 'saved',
         org,
+        orgRole: choices.roleByOrgId[org.id] ?? null,
         workspace,
         choices: null,
-        logicId: cloudLogic.id,
-        draftRevision: cloudLogic.draftRevision,
+        logicId: (cloudResult?.logic ?? cloudLogic).id,
+        draftRevision: (cloudResult?.logic ?? cloudLogic).draftRevision,
+        latestVersion: cloudResult?.latestVersion ?? null,
+        productionVersion: cloudResult?.productionVersion ?? null,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -321,6 +359,8 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       set({
         saveState: 'saved',
         draftRevision: result.logic.draftRevision,
+        latestVersion: null,
+        productionVersion: null,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -346,6 +386,8 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       set({
         saveState: 'saved',
         draftRevision: result.logic.draftRevision,
+        latestVersion: result.version,
+        productionVersion: result.version,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -378,10 +420,13 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       saveState: 'idle',
       user: null,
       org: null,
+      orgRole: null,
       workspace: null,
       choices: null,
       logicId: null,
       draftRevision: null,
+      latestVersion: null,
+      productionVersion: null,
       lastSavedAt: null,
       error: null,
     });

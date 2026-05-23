@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
 import { AuthPage } from '@/components/auth/AuthPage';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { RunnerPage } from '@/components/runner/RunnerPage';
 import { loadFromStorage } from '@/hooks/useLocalStorage';
 import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
 import { useT } from '@/i18n/useT';
@@ -56,6 +57,23 @@ function EditorApp() {
       requireAuth: true,
       migrateLocalDraft: Boolean(localDraft),
     }).finally(() => {
+      const cloud = useCloudStore.getState();
+      if (
+        cloud.mode === 'cloud' &&
+        (cloud.orgRole === 'viewer' || cloud.orgRole === 'runner') &&
+        cloud.workspace &&
+        cloud.logicId
+      ) {
+        const version = cloud.productionVersion ?? cloud.latestVersion;
+        if (version) {
+          window.location.assign(
+            `/run/${cloud.workspace.id}/${cloud.logicId}@v${version.versionNumber}`,
+          );
+          return;
+        }
+        window.location.assign('/');
+        return;
+      }
       if (shouldMigrateLocalDraft) {
         sessionStorage.removeItem('leverie-migrate-local-draft');
       }
@@ -105,6 +123,7 @@ function TopPage() {
 }
 
 export default function App() {
+  if (window.location.pathname.startsWith('/run/')) return <RunnerPage />;
   if (window.location.pathname === '/edit') return <EditorApp />;
   if (window.location.pathname === '/auth') return <AuthPage />;
   return <TopPage />;
