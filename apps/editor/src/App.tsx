@@ -109,7 +109,7 @@ function TopPage() {
 
   return (
     <div className="min-h-screen bg-violet-50 text-gray-950">
-      <header className="fixed inset-x-0 top-0 z-30 border-b border-violet-200 bg-violet-50/88 px-4 backdrop-blur md:px-8">
+      <header className="fixed inset-x-0 top-0 z-30 border-b border-violet-200 bg-white/90 px-4 backdrop-blur md:px-8">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4">
           <a href="/" aria-label="LEVERIE top">
             <img src={logoUrl} alt="LEVERIE" className="h-9" />
@@ -215,129 +215,105 @@ function TopPage() {
 
         <section
           id="value"
-          className="border-y border-violet-200 bg-white px-4 py-16 md:px-8"
+          className="border-y border-violet-200 bg-white px-4 py-28 md:px-8 md:py-36"
         >
-          <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl">
+          <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-3xl text-center">
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-600">
                 Why LEVERIE
               </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-normal md:text-5xl">
-                Rules your operators can edit are rules that survive change.
+              <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
+                One place to write, inspect, and trust every rule.
               </h2>
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+                LEVERIE keeps business rules in the shape teams already
+                understand: a table. The editor makes the important parts
+                visible without exposing JSON or implementation details.
+              </p>
             </div>
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
-              <ValueBlock
+            <div className="mt-16 overflow-hidden rounded-[28px] border border-violet-200 bg-violet-50 shadow-2xl shadow-violet-950/10">
+              <DecisionWorkspacePreview />
+            </div>
+            <div className="mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
+              <FeaturePoint
                 icon={<Table2 />}
-                title="Write it as a table"
-                body="Lay out conditions and outcomes row by row. Easier to navigate than a Word doc or sprawling flowchart."
+                title="Spreadsheet-shaped"
+                body="Rows, conditions, and outcomes stay readable to operators and managers."
               />
-              <ValueBlock
+              <FeaturePoint
                 icon={<ShieldCheck />}
-                title="Find what's missing"
-                body="Auto-checks catch duplicates, unreachable rows, and missing cases — so quality doesn't depend on tribal knowledge."
+                title="Quality visible"
+                body="Coverage warnings and duplicate checks appear beside the table."
               />
-              <ValueBlock
+              <FeaturePoint
                 icon={<Bot />}
-                title="Hand it to AI"
-                body="The same human-readable table runs as executable logic — perfect for keeping AI agents on script."
+                title="Executable by AI"
+                body="The same table can become deterministic logic for agents and systems."
               />
             </div>
           </div>
         </section>
 
-        <section id="flow" className="bg-violet-100 px-4 py-16 md:px-8">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-            <div>
+        <section id="flow" className="bg-violet-50 px-4 py-28 md:px-8 md:py-36">
+          <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-3xl text-center">
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-700">
                 From Rulebook To Running Logic
               </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-normal md:text-5xl">
-                Turn handbook judgment into live business logic.
+              <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
+                Test the rule while the reasoning is still in front of you.
               </h2>
-              <p className="mt-5 text-base leading-8 text-gray-700">
-                Define your inputs, lay out conditions, try a sample. Keep using
-                your team's own vocabulary — no translation required.
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+                Instead of asking someone to re-create a decision in code, try
+                real inputs in the editor and see the matched row, output, and
+                explanation immediately.
               </p>
             </div>
-            <div className="grid gap-3">
-              {[
-                [
-                  '1',
-                  'Define the inputs',
-                  'Map fields like amount, customer tier, and request reason into options or numbers.',
-                ],
-                [
-                  '2',
-                  'Lay out the conditions',
-                  'Build a top-down readable table. Split across tables when judgments get bigger.',
-                ],
-                [
-                  '3',
-                  'Test it on the spot',
-                  'Plug in a sample and see exactly which row fired.',
-                ],
-              ].map(([number, title, body]) => (
-                <div
-                  key={number}
-                  className="grid grid-cols-[3rem_1fr] gap-4 rounded-md border border-violet-200 bg-white/85 p-4 shadow-sm"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-md bg-violet-600 text-lg font-bold text-white">
-                    {number}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">{title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-gray-600">
-                      {body}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-16 grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-stretch">
+              <div className="grid gap-4">
+                <FlowStep
+                  number="01"
+                  title="Define the inputs"
+                  body="Customer type, amount, request reason, date, status — each field gets a type once and can be reused across tables."
+                />
+                <FlowStep
+                  number="02"
+                  title="Run a real case"
+                  body="Enter a sample case in the evaluation panel and let the engine pick the first matching row."
+                />
+                <FlowStep
+                  number="03"
+                  title="Show the trace"
+                  body="The answer is paired with the exact rule path, so reviewers can confirm why it happened."
+                />
+              </div>
+              <EvaluationWorkbenchPreview />
             </div>
           </div>
         </section>
 
         <section
           id="fit"
-          className="bg-violet-950 px-4 py-16 text-white md:px-8"
+          className="bg-violet-950 px-4 py-28 text-white md:px-8 md:py-36"
         >
-          <div className="mx-auto max-w-7xl">
-            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-200">
-                  Use Cases
-                </p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-normal md:text-5xl">
-                  For work full of decisions — and full of changes.
-                </h2>
-              </div>
-              <p className="text-base leading-8 text-white/70">
-                LEVERIE shines wherever the same input should always reach the
-                same answer. Use it when you need to explain the rationale, push
-                revisions fast, or lock in determinism before you hand things to
-                AI.
+          <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-200">
+                Use Cases
+              </p>
+              <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
+                Built for decisions that must stay explainable.
+              </h2>
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70">
+                Refunds, approvals, eligibility, routing: if the same input
+                should always reach the same answer, LEVERIE gives the team a
+                shared surface to review it before it reaches production.
               </p>
             </div>
-            <div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              {[
-                'Inquiry routing',
-                'Refunds & claims',
-                'Loan & insurance review',
-                'Internal approvals',
-              ].map((label) => (
-                <div
-                  key={label}
-                  className="rounded-md border border-white/12 bg-white/[0.06] p-4"
-                >
-                  <GitBranch
-                    className="mb-5 h-5 w-5 text-violet-200"
-                    aria-hidden="true"
-                  />
-                  <p className="text-lg font-semibold">{label}</p>
-                </div>
-              ))}
+            <div className="mt-16 overflow-hidden rounded-[28px] border border-white/12 bg-white/[0.04] shadow-2xl shadow-black/30">
+              <RunnerReviewPreview />
             </div>
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-10 flex justify-center">
               <a
                 href="/edit"
                 onClick={startGuestEditor}
@@ -354,7 +330,7 @@ function TopPage() {
   );
 }
 
-function ValueBlock({
+function FeaturePoint({
   icon,
   title,
   body,
@@ -364,12 +340,203 @@ function ValueBlock({
   body: string;
 }) {
   return (
-    <div className="rounded-md border border-violet-200 bg-violet-50/60 p-5 shadow-sm">
-      <div className="mb-7 flex h-11 w-11 items-center justify-center rounded-md bg-violet-600 text-white [&>svg]:h-5 [&>svg]:w-5">
+    <div className="rounded-md border border-violet-200 bg-white p-5 shadow-sm">
+      <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-md bg-violet-600 text-white [&>svg]:h-5 [&>svg]:w-5">
         {icon}
       </div>
-      <h3 className="text-xl font-semibold">{title}</h3>
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-gray-600">{body}</p>
+    </div>
+  );
+}
+
+function FlowStep({
+  number,
+  title,
+  body,
+}: {
+  number: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-md border border-violet-200 bg-white p-5 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">
+        {number}
+      </p>
+      <h3 className="mt-4 text-xl font-semibold text-gray-950">{title}</h3>
       <p className="mt-3 text-sm leading-7 text-gray-600">{body}</p>
+    </div>
+  );
+}
+
+function EvaluationWorkbenchPreview() {
+  return (
+    <div className="rounded-[28px] border border-violet-200 bg-white p-4 shadow-2xl shadow-violet-950/10">
+      <div className="flex items-center justify-between border-b border-violet-100 px-2 pb-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-950">
+            Evaluation panel
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Try a case without leaving the rule table
+          </p>
+        </div>
+        <span className="rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white">
+          Run test
+        </span>
+      </div>
+      <div className="grid gap-4 pt-4 md:grid-cols-[0.85fr_1.15fr]">
+        <div className="space-y-3">
+          {[
+            ['Customer', 'Individual'],
+            ['Amount', '¥320,000'],
+            ['KYC', 'Verified'],
+            ['Request', 'New application'],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="rounded-md border border-violet-100 bg-violet-50/70 p-3"
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-violet-500">
+                {label}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">
+                {value}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-md border border-violet-200 bg-white">
+          <div className="border-b border-violet-100 bg-violet-50 px-4 py-3">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-700">
+              Trace
+            </p>
+          </div>
+          <div className="space-y-3 p-4">
+            <TraceItem
+              status="checked"
+              title="Intake decision"
+              body="Row 2 matched: Individual + verified + under ¥500K."
+            />
+            <TraceItem status="checked" title="Output" body="Auto-approve" />
+            <TraceItem
+              status="warning"
+              title="Coverage"
+              body="Two edge cases still need explicit rules."
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TraceItem({
+  status,
+  title,
+  body,
+}: {
+  status: 'checked' | 'warning';
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="grid grid-cols-[1.75rem_1fr] gap-3">
+      <div
+        className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full ${
+          status === 'checked'
+            ? 'bg-violet-600 text-white'
+            : 'bg-violet-100 text-violet-700'
+        }`}
+      >
+        {status === 'checked' ? (
+          <CheckCircle2 className="h-4 w-4" />
+        ) : (
+          <ShieldCheck className="h-4 w-4" />
+        )}
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gray-950">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-gray-600">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+function RunnerReviewPreview() {
+  const useCases = [
+    ['Inquiry routing', 'Send complex requests to the right team.'],
+    ['Refunds & claims', 'Keep policy exceptions explainable.'],
+    ['Loan review', 'Separate auto-approval from human review.'],
+    ['Internal approvals', 'Make delegation rules visible.'],
+  ];
+
+  return (
+    <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="border-b border-white/10 bg-white/[0.03] p-6 lg:border-b-0 lg:border-r">
+        <div className="rounded-2xl border border-white/12 bg-white text-gray-950 shadow-2xl shadow-black/25">
+          <div className="border-b border-violet-100 px-5 py-4">
+            <p className="text-sm font-semibold">Shared runner</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Review a published rule as a business user
+            </p>
+          </div>
+          <div className="grid gap-4 p-5 md:grid-cols-[0.9fr_1.1fr]">
+            <div className="space-y-3">
+              <PreviewField label="Customer" value="Business" />
+              <PreviewField label="Amount" value="¥7,200,000" />
+              <PreviewField label="KYC" value="Verified" />
+              <button
+                type="button"
+                className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-violet-600 text-sm font-semibold text-white"
+              >
+                <Play className="h-4 w-4" />
+                Run decision
+              </button>
+            </div>
+            <div className="rounded-md border border-violet-200 bg-violet-50 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-600">
+                Result
+              </p>
+              <p className="mt-3 text-2xl font-semibold text-violet-950">
+                Manager review
+              </p>
+              <div className="mt-5 rounded-md bg-white p-3 text-sm leading-6 text-gray-600">
+                Matched Intake decision row 1 because customer is Business and
+                amount is at least ¥5M.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid content-center gap-3 p-6">
+        {useCases.map(([title, body]) => (
+          <div
+            key={title}
+            className="grid grid-cols-[2.5rem_1fr] gap-4 rounded-md border border-white/10 bg-white/[0.06] p-4"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/10 text-violet-200">
+              <GitBranch className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-white">{title}</p>
+              <p className="mt-1 text-sm leading-6 text-white/60">{body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PreviewField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="text-xs font-semibold text-gray-500">{label}</span>
+      <span className="mt-1 block rounded-md border border-violet-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900">
+        {value}
+      </span>
     </div>
   );
 }
@@ -450,9 +617,7 @@ function DecisionWorkspacePreview() {
           <div className="flex items-center justify-between border-b border-violet-200 bg-violet-50 px-4 py-3">
             <div>
               <p className="text-sm font-bold text-gray-950">Intake decision</p>
-              <p className="text-xs text-gray-500">
-                First matching row wins
-              </p>
+              <p className="text-xs text-gray-500">First matching row wins</p>
             </div>
             <span className="rounded-md bg-violet-600 px-2.5 py-1 text-xs font-semibold text-white">
               Tests passing
