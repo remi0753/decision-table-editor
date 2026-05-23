@@ -372,4 +372,14 @@ The full design specification lives in [doc/](doc/) (Japanese). Start at [doc/RE
 
 ## License
 
-See [LICENSE](LICENSE).
+LEVERIE uses a **mixed-license** setup so that the libraries you embed in your own systems stay permissive, while the editor and cloud backend are protected against being re-hosted as a competing managed service.
+
+| Path | License | What it means |
+|---|---|---|
+| `packages/engine/` `packages/checks/` `packages/schema/` `packages/ui-runtime/` | **Apache License 2.0** | True OSS. Embed, modify, ship inside commercial products freely. |
+| `apps/mcp-server/` (npm: `leverie-mcp`) | **Apache License 2.0** | Same as above. Run `npx leverie-mcp` in any context, including commercial deployments. |
+| `apps/editor/` `apps/api/` and the repository as a whole | **[Functional Source License 1.1, ALv2 Future License (FSL-1.1-ALv2)](https://fsl.software/)** | Source-available. Free to read, modify, and self-host for your own internal use (including inside a company). Prohibited: making the software available to third parties as a commercial product or service that competes with LEVERIE. **Automatically converts to Apache License 2.0 two years after each release.** |
+
+If you want a managed/hosted LEVERIE without standing it up yourself, use **[leverie.dev](https://leverie.dev)** (paid plans). Otherwise, self-hosting under FSL is free for any non-competing use.
+
+Each directory contains its own `LICENSE` file with the authoritative text. The root [LICENSE](LICENSE) is FSL-1.1-ALv2 with an explicit scope clause carving out the Apache-2.0 directories listed above.
