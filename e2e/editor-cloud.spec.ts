@@ -119,4 +119,106 @@ test.describe('Editor cloud E2E with API and local Postgres', () => {
       { name: localLogic.name, draftRevision: 1 },
     ]);
   });
+
+  test('loads a published runner URL and keeps runner role out of the editor', async ({
+    page,
+    request,
+  }) => {
+    const owner = makeUser('runner-owner');
+    const runner = makeUser('runner-member');
+    const initialLogic = makeLogic(uniqueName('Runner review logic'));
+
+    const signUp = await request.post(`${apiBaseUrl}/api/auth/sign-up/email`, {
+      data: owner,
+    });
+    expect(signUp.ok()).toBeTruthy();
+
+    const orgResponse = await request.post(`${apiBaseUrl}/api/orgs`, {
+      data: { name: uniqueName('Runner Org') },
+    });
+    expect(orgResponse.status()).toBe(201);
+    const { org, defaultWorkspace } = await orgResponse.json();
+
+    const createLogicResponse = await request.post(
+      `${apiBaseUrl}/api/workspaces/${defaultWorkspace.id}/logics`,
+      {
+        data: {
+          name: initialLogic.name,
+          description: initialLogic.description,
+          data: initialLogic,
+        },
+      },
+    );
+    expect(createLogicResponse.status()).toBe(201);
+    const { logic } = await createLogicResponse.json();
+
+    const publishResponse = await request.post(
+      `${apiBaseUrl}/api/logics/${logic.id}/publish`,
+      { data: { pinProduction: true } },
+    );
+    expect(publishResponse.status()).toBe(201);
+    const { version } = await publishResponse.json();
+
+    const inviteResponse = await request.post(
+      `${apiBaseUrl}/api/orgs/${org.id}/invitations`,
+      { data: { email: runner.email, role: 'runner' } },
+    );
+    expect(inviteResponse.status()).toBe(201);
+    const { acceptUrl } = await inviteResponse.json();
+    const token = new URL(acceptUrl).searchParams.get('token');
+    expect(token).toBeTruthy();
+
+    await page.goto('/');
+    await page.evaluate(
+      async ({ baseUrl, user, invitationToken }) => {
+        const signUpResponse = await fetch(
+          `${baseUrl}/api/auth/sign-up/email`,
+          {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(user),
+          },
+        );
+        if (!signUpResponse.ok) {
+          throw new Error(`runner sign-up failed: ${signUpResponse.status}`);
+        }
+
+        const acceptResponse = await fetch(
+          `${baseUrl}/api/invitations/accept`,
+          {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: invitationToken }),
+          },
+        );
+        if (!acceptResponse.ok) {
+          throw new Error(`invite accept failed: ${acceptResponse.status}`);
+        }
+      },
+      { baseUrl: apiBaseUrl, user: runner, invitationToken: token },
+    );
+
+    await page.goto(
+      `/run/${defaultWorkspace.id}/${logic.id}@v${version.versionNumber}`,
+    );
+    await expect(
+      page.getByRole('heading', { name: initialLogic.name }),
+    ).toBeVisible();
+    await page.getByLabel('Amount').fill('900');
+    await page.getByLabel('Tier').selectOption('standard');
+    await page.getByRole('button', { name: 'Run review' }).click();
+    await expect(page.getByText('Decision:')).toBeVisible();
+    await expect(page.getByText('approve')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
+
+    await page.goto('/edit');
+    await expect(page).toHaveURL(
+      new RegExp(
+        `/run/${defaultWorkspace.id}/${logic.id}@v${version.versionNumber}$`,
+      ),
+      { timeout: 30_000 },
+    );
+  });
 });

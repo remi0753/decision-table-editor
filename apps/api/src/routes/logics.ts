@@ -46,6 +46,7 @@ type LogicRow = typeof logic.$inferSelect;
 type WorkspaceRow = typeof workspace.$inferSelect;
 type WorkspaceAccess = MembershipAccess & { workspace: WorkspaceRow };
 type LogicAccess = WorkspaceAccess & { logic: LogicRow };
+type RunnerVersionRow = typeof logicVersion.$inferSelect;
 type SerializedLogicInput = Pick<
   LogicRow,
   | 'id'
@@ -203,6 +204,21 @@ function logicVersionSelect() {
   };
 }
 
+function serializeRunnerVersion(row: RunnerVersionRow) {
+  return {
+    id: row.id,
+    workspaceId: row.workspaceId,
+    logicId: row.logicId,
+    versionNumber: row.versionNumber,
+    schemaVersion: row.schemaVersion,
+    releaseNotes: row.releaseNotes,
+    publishedAt: row.publishedAt,
+    publishedActorType: row.publishedActorType,
+    publishedActorId: row.publishedActorId,
+    data: row.data,
+  };
+}
+
 function rowsFromExecute<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
   if (result && typeof result === 'object' && 'rows' in result) {
@@ -348,6 +364,59 @@ logicRoutes.get('/api/workspaces/:workspaceId/logics', async (c) => {
     .orderBy(desc(logic.draftUpdatedAt));
 
   return c.json({ logics: rows.map(serializeLogic) });
+});
+
+logicRoutes.get('/api/run/:workspaceId/:logicRef', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const workspaceId = c.req.param('workspaceId');
+  const logicRef = c.req.param('logicRef');
+  const match = logicRef.match(
+    /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})@v([1-9][0-9]*)$/i,
+  );
+  if (!match) {
+    return jsonError(
+      c,
+      400,
+      'invalid_runner_ref',
+      'Use /run/<workspaceId>/<logicId>@vN.',
+    );
+  }
+
+  const logicId = match[1] as string;
+  const versionNumber = Number(match[2]);
+  const access = await loadWorkspaceAccess(c, db, workspaceId);
+  if ('error' in access) return access.error;
+
+  const [row] = await db
+    .select({
+      logic,
+      version: logicVersion,
+    })
+    .from(logicVersion)
+    .innerJoin(logic, eq(logicVersion.logicId, logic.id))
+    .where(
+      and(
+        eq(logic.workspaceId, workspaceId),
+        eq(logic.id, logicId),
+        eq(logicVersion.versionNumber, versionNumber),
+        isNull(logic.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!row) {
+    return jsonError(c, 404, 'not_found', 'Runner version not found.');
+  }
+
+  return c.json({
+    workspace: access.workspace,
+    logic: serializeLogic(row.logic),
+    version: serializeRunnerVersion(row.version),
+    runner: {
+      role: access.member.role,
+      canEdit: canEditLogics(access.member.role),
+    },
+  });
 });
 
 logicRoutes.post('/api/workspaces/:workspaceId/logics', async (c) => {
