@@ -23,6 +23,8 @@ function EditorApp() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
   useEffect(() => {
     const isGuest = sessionStorage.getItem('leverie-editor-mode') === 'guest';
+    const shouldMigrateLocalDraft =
+      sessionStorage.getItem('leverie-migrate-local-draft') === '1';
     if (isGuest) {
       const saved = loadFromStorage();
       if (saved) {
@@ -44,12 +46,21 @@ function EditorApp() {
       return;
     }
 
+    const localDraft = shouldMigrateLocalDraft ? loadFromStorage() : null;
+    if (localDraft) {
+      importLogic(localDraft);
+    }
+
     toast.info(t.cloudChecking, { id: 'cloud-session-checking' });
-    void initializeCloud(logic, importLogic, { requireAuth: true }).finally(
-      () => {
-        clearHistory();
-      },
-    );
+    void initializeCloud(localDraft ?? logic, importLogic, {
+      requireAuth: true,
+      migrateLocalDraft: Boolean(localDraft),
+    }).finally(() => {
+      if (shouldMigrateLocalDraft) {
+        sessionStorage.removeItem('leverie-migrate-local-draft');
+      }
+      clearHistory();
+    });
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiBaseUrl, makeUser } from './fixtures';
+import { apiBaseUrl, makeLogic, makeUser, uniqueName } from './fixtures';
 
 async function apiFromPage<T>(
   page: import('@playwright/test').Page,
@@ -33,11 +33,9 @@ test.describe('Editor cloud E2E with API and local Postgres', () => {
     await page.getByRole('button', { name: 'Create account' }).click();
 
     await expect(page).toHaveURL(/\/edit$/);
-    await expect(page.getByRole('button', { name: 'Cloud saved' })).toBeVisible(
-      {
-        timeout: 30_000,
-      },
-    );
+    await expect(page.getByText('Cloud saved')).toBeVisible({
+      timeout: 30_000,
+    });
 
     const me = await apiFromPage<{
       user: { email: string };
@@ -61,7 +59,7 @@ test.describe('Editor cloud E2E with API and local Postgres', () => {
     expect(logics.logics).toHaveLength(1);
     expect(logics.logics[0]?.draftRevision).toBe(1);
 
-    await page.getByRole('button', { name: 'Cloud saved' }).click();
+    await page.getByRole('button', { name: 'Account and workspace' }).click();
     await page.getByRole('button', { name: 'Publish' }).click();
     await expect(page.getByText('Published v1.')).toBeVisible();
 
@@ -71,5 +69,54 @@ test.describe('Editor cloud E2E with API and local Postgres', () => {
       versions: { versionNumber: number; logicId: string }[];
     }>(page, `/api/logics/${logicId}/versions`);
     expect(versions.versions).toMatchObject([{ versionNumber: 1, logicId }]);
+  });
+
+  test('moves a browser draft to cloud during sign-up', async ({ page }) => {
+    const user = makeUser('editor-migrate');
+    const localLogic = makeLogic(uniqueName('Migrated browser draft'));
+
+    await page.goto('/');
+    await page.evaluate((logic) => {
+      localStorage.setItem('decision-table-editor-v2', JSON.stringify(logic));
+    }, localLogic);
+
+    await page.goto('/auth');
+    await expect(
+      page.getByRole('button', { name: /Move browser draft to cloud/ }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Create a new account' }).click();
+    await page.getByLabel('Name').fill(user.name);
+    await page.getByLabel('Email').fill(user.email);
+    await page.getByLabel('Password').fill(user.password);
+    await page
+      .getByRole('button', { name: 'Create account and move draft' })
+      .click();
+
+    await expect(page).toHaveURL(/\/edit$/);
+    await expect(page.getByText('Cloud saved')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(
+      page.getByRole('button', { name: localLogic.name }),
+    ).toBeVisible();
+
+    const me = await apiFromPage<{
+      orgs: { org: { id: string } }[];
+    }>(page, '/api/me');
+    const orgId = me.orgs[0]?.org.id;
+    expect(orgId).toBeTruthy();
+
+    const workspaces = await apiFromPage<{
+      workspaces: { id: string }[];
+    }>(page, `/api/orgs/${orgId}/workspaces`);
+    const workspaceId = workspaces.workspaces[0]?.id;
+    expect(workspaceId).toBeTruthy();
+
+    const logics = await apiFromPage<{
+      logics: { name: string; draftRevision: number }[];
+    }>(page, `/api/workspaces/${workspaceId}/logics`);
+    expect(logics.logics).toMatchObject([
+      { name: localLogic.name, draftRevision: 1 },
+    ]);
   });
 });

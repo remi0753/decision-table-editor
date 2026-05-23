@@ -1,7 +1,16 @@
-import { ArrowRight, Cloud, LockKeyhole, Monitor, Table2 } from 'lucide-react';
+import {
+  ArrowRight,
+  Check,
+  Cloud,
+  CloudUpload,
+  LockKeyhole,
+  Monitor,
+  Table2,
+} from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { loadFromStorage } from '@/hooks/useLocalStorage';
 import {
   CloudApiError,
   createOrg,
@@ -20,6 +29,10 @@ export function AuthPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [localDraft] = useState(() => loadFromStorage());
+  const [migrateLocalDraft, setMigrateLocalDraft] = useState(
+    () => localDraft !== null,
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
@@ -36,6 +49,11 @@ export function AuthPage() {
         await signInEmail(email, password);
       }
       sessionStorage.removeItem('leverie-editor-mode');
+      if (migrateLocalDraft && localDraft) {
+        sessionStorage.setItem('leverie-migrate-local-draft', '1');
+      } else {
+        sessionStorage.removeItem('leverie-migrate-local-draft');
+      }
       window.location.assign('/edit');
     } catch (error) {
       toast.error(authErrorMessage(error));
@@ -98,6 +116,39 @@ export function AuthPage() {
             </p>
           </div>
 
+          {localDraft ? (
+            <button
+              type="button"
+              onClick={() => setMigrateLocalDraft((value) => !value)}
+              className={`mb-4 flex w-full items-start gap-3 rounded border p-3 text-left transition-colors ${
+                migrateLocalDraft
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
+                  : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-white'
+              }`}
+            >
+              <span
+                className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+                  migrateLocalDraft
+                    ? 'border-emerald-500 bg-emerald-600 text-white'
+                    : 'border-gray-300 bg-white text-transparent'
+                }`}
+              >
+                <Check className="h-3.5 w-3.5" />
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <CloudUpload className="h-4 w-4 shrink-0" />
+                  Move browser draft to cloud
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-gray-600">
+                  {migrateLocalDraft
+                    ? `"${localDraft.name}" will be created as a new cloud logic after sign-in.`
+                    : 'Keep the browser draft local and load your cloud workspace normally.'}
+                </span>
+              </span>
+            </button>
+          ) : null}
+
           <form onSubmit={handleSubmit} className="space-y-3">
             {isSignUp ? (
               <label className="block">
@@ -141,7 +192,13 @@ export function AuthPage() {
               disabled={submitting}
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
             >
-              {isSignUp ? 'Create account' : 'Sign in'}
+              {migrateLocalDraft && localDraft
+                ? isSignUp
+                  ? 'Create account and move draft'
+                  : 'Sign in and move draft'
+                : isSignUp
+                  ? 'Create account'
+                  : 'Sign in'}
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>

@@ -27,6 +27,7 @@ export type CloudChoices = {
   orgs: CloudOrg[];
   workspacesByOrgId: Record<string, CloudWorkspace[]>;
   logicsByWorkspaceId: Record<string, CloudLogic[]>;
+  preferNewLogic?: boolean;
 };
 
 type CloudStore = {
@@ -43,7 +44,7 @@ type CloudStore = {
   initializeCloud: (
     localLogic: Logic,
     importLogic: (logic: Logic) => void,
-    options?: { requireAuth?: boolean },
+    options?: { requireAuth?: boolean; migrateLocalDraft?: boolean },
   ) => Promise<void>;
   selectCloudTarget: (
     input: {
@@ -146,6 +147,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
               orgs,
               workspacesByOrgId,
               logicsByWorkspaceId,
+              preferNewLogic: options?.migrateLocalDraft,
             },
             error: null,
           });
@@ -181,6 +183,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
               orgs,
               workspacesByOrgId,
               logicsByWorkspaceId,
+              preferNewLogic: options?.migrateLocalDraft,
             },
             error: null,
           });
@@ -203,7 +206,9 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           return;
         }
 
-        const logicSummary = logics.logics[0];
+        const logicSummary = options?.migrateLocalDraft
+          ? undefined
+          : logics.logics[0];
         const cloudLogic = logicSummary
           ? (await getLogic(logicSummary.id)).logic
           : (await createLogic(workspace.id, localLogic)).logic;
@@ -221,6 +226,9 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           lastSavedAt: new Date(),
           error: null,
         });
+        if (options?.migrateLocalDraft) {
+          toast.success('Local draft moved to cloud.');
+        }
       } catch (error) {
         if (options?.requireAuth) {
           set({ mode: 'checking', error: apiErrorMessage(error) });
@@ -262,8 +270,11 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
 
     set({ saveState: 'saving', error: null });
     try {
-      const org = choices.orgs.find((candidate) => candidate.id === input.orgId);
-      if (!org) throw new Error('Selected organization is no longer available.');
+      const org = choices.orgs.find(
+        (candidate) => candidate.id === input.orgId,
+      );
+      if (!org)
+        throw new Error('Selected organization is no longer available.');
 
       let workspace = input.workspaceId
         ? choices.workspacesByOrgId[org.id]?.find(
