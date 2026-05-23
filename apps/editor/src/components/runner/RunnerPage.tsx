@@ -89,7 +89,7 @@ export function RunnerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4">
+      <header className="flex h-14 items-center justify-between border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white px-4">
         <img src={logoUrl} alt="LEVERIE" className="h-9" />
         {state.status === 'ready' && state.data.runner.canEdit ? (
           <a

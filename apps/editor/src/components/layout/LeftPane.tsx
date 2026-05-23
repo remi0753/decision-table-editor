@@ -1,3 +1,4 @@
+import { CloudLogicControls } from '@/components/cloud/CloudLogicControls';
 import {
   FieldsSection,
   FieldsSectionActions,
@@ -19,17 +20,20 @@ export function LeftPane() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b bg-white px-3 pt-3 pb-2.5 shrink-0">
-        <div className="text-xs text-gray-400 mb-1 font-medium tracking-wide">
-          {t.logicNameLabel}
+      <div className="shrink-0 border-b bg-white px-3 pt-3 pb-3">
+        <div className="mb-3">
+          <div className="mb-1 text-xs font-medium tracking-wide text-gray-400">
+            {t.logicNameLabel}
+          </div>
+          <InlineEdit
+            value={logic.name}
+            onSave={setLogicName}
+            className="block w-full text-sm font-semibold text-gray-800"
+            inputClassName="text-sm w-full"
+            placeholder={t.logicNamePlaceholder}
+          />
         </div>
-        <InlineEdit
-          value={logic.name}
-          onSave={setLogicName}
-          className="font-semibold text-gray-800 text-sm block w-full"
-          inputClassName="text-sm w-full"
-          placeholder={t.logicNamePlaceholder}
-        />
+        <CloudLogicControls />
       </div>
 
       <div className="flex-1 overflow-y-auto">

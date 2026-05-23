@@ -61,6 +61,14 @@ type CloudStore = {
     localLogic: Logic,
     importLogic: (logic: Logic) => void,
   ) => Promise<void>;
+  createCloudLogicFrom: (
+    logic: Logic,
+    importLogic: (logic: Logic) => void,
+  ) => Promise<void>;
+  switchCloudLogic: (
+    logicId: string,
+    importLogic: (logic: Logic) => void,
+  ) => Promise<void>;
   saveCloudDraft: (logic: Logic) => Promise<void>;
   publishCloudLogic: () => Promise<void>;
   signIn: (
@@ -94,6 +102,18 @@ function consumePreferredOrgId() {
 
 function canEditCloud(role: CloudRole | null | undefined) {
   return role === 'owner' || role === 'admin' || role === 'editor';
+}
+
+function uniqueLogicName(baseName: string, existing: CloudLogic[]) {
+  const names = new Set(existing.map((logic) => logic.name));
+  if (!names.has(baseName)) return baseName;
+
+  for (let suffix = 2; suffix < 1000; suffix += 1) {
+    const candidate = `${baseName} ${suffix}`;
+    if (!names.has(candidate)) return candidate;
+  }
+
+  return `${baseName} ${Date.now()}`;
 }
 
 async function listLogicsByWorkspace(workspaces: CloudWorkspace[]) {
@@ -441,6 +461,72 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
     }
   },
 
+  createCloudLogicFrom: async (logic, importLogic) => {
+    const { mode, workspace } = get();
+    if (mode !== 'cloud' || !workspace) {
+      importLogic(logic);
+      set({
+        mode: 'local',
+        saveState: 'idle',
+        logicId: null,
+        draftRevision: null,
+        latestVersion: null,
+        productionVersion: null,
+        lastSavedAt: null,
+        error: null,
+      });
+      return;
+    }
+
+    set({ saveState: 'saving', error: null });
+    try {
+      const existing = await listLogics(workspace.id);
+      const nextLogic = {
+        ...logic,
+        name: uniqueLogicName(logic.name, existing.logics),
+      };
+      const result = await createLogic(workspace.id, nextLogic);
+      importLogic(result.logic.draftData);
+      set({
+        mode: 'cloud',
+        saveState: 'saved',
+        logicId: result.logic.id,
+        draftRevision: result.logic.draftRevision,
+        latestVersion: null,
+        productionVersion: null,
+        lastSavedAt: new Date(),
+        error: null,
+      });
+      toast.success('Created a new cloud logic.');
+    } catch (error) {
+      const message = apiErrorMessage(error);
+      set({ saveState: 'error', error: message });
+      toast.error(message);
+    }
+  },
+
+  switchCloudLogic: async (logicId, importLogic) => {
+    set({ saveState: 'saving', error: null });
+    try {
+      const cloudResult = await getLogic(logicId);
+      importLogic(cloudResult.logic.draftData);
+      set({
+        mode: 'cloud',
+        saveState: 'saved',
+        logicId: cloudResult.logic.id,
+        draftRevision: cloudResult.logic.draftRevision,
+        latestVersion: cloudResult.latestVersion,
+        productionVersion: cloudResult.productionVersion,
+        lastSavedAt: new Date(),
+        error: null,
+      });
+      toast.success('Logic switched.');
+    } catch (error) {
+      set({ saveState: 'error', error: apiErrorMessage(error) });
+      toast.error(apiErrorMessage(error));
+    }
+  },
+
   saveCloudDraft: async (logic) => {
     const { logicId, draftRevision, mode } = get();
     if (mode !== 'cloud' || !logicId || draftRevision === null) return;
@@ -493,11 +579,13 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
 
   signIn: async (email, password, localLogic, importLogic) => {
     await signInEmail(email, password);
+    sessionStorage.removeItem('leverie-editor-mode');
     await get().initializeCloud(localLogic, importLogic, { requireAuth: true });
   },
 
   signUp: async (name, email, password, localLogic, importLogic) => {
     await signUpEmail(name, email, password);
+    sessionStorage.removeItem('leverie-editor-mode');
     const me = await getMe().catch(() => null);
     if (me && me.orgs.length === 0) {
       await createOrg(name || 'My organization');

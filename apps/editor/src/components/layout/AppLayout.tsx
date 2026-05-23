@@ -24,8 +24,13 @@ import { useAutoSave } from '@/hooks/useLocalStorage';
 import type { Lang } from '@/i18n/translations';
 import { useT } from '@/i18n/useT';
 import { useCloudStore } from '@/store/cloudStore';
-import { redo, undo, useHistoryStore } from '@/store/historyStore';
-import { useLogicStore } from '@/store/logicStore';
+import {
+  clearHistory,
+  redo,
+  undo,
+  useHistoryStore,
+} from '@/store/historyStore';
+import { createInitialLogic, useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { LeftPane } from './LeftPane';
 import { RightPane } from './RightPane';
@@ -33,6 +38,7 @@ import { RightPane } from './RightPane';
 export function AppLayout() {
   const logic = useLogicStore((s) => s.logic);
   const resetLogic = useLogicStore((s) => s.resetLogic);
+  const importLogic = useLogicStore((s) => s.importLogic);
   const clearEvalResult = useUiStore((s) => s.clearEvalResult);
   const clearBatch = useUiStore((s) => s.clearBatch);
   const lang = useUiStore((s) => s.lang);
@@ -40,6 +46,7 @@ export function AppLayout() {
   const canUndo = useHistoryStore((s) => s.past.length > 0);
   const canRedo = useHistoryStore((s) => s.future.length > 0);
   const cloudMode = useCloudStore((s) => s.mode);
+  const createCloudLogicFrom = useCloudStore((s) => s.createCloudLogicFrom);
   const importFn = useImportLogic();
   const t = useT();
   const [sampleGalleryOpen, setSampleGalleryOpen] = useState(false);
@@ -50,9 +57,15 @@ export function AppLayout() {
 
   const handleNew = () => {
     if (window.confirm(t.newLogicConfirm)) {
-      resetLogic();
+      const nextLogic = createInitialLogic();
+      if (cloudMode === 'cloud') {
+        void createCloudLogicFrom(nextLogic, importLogic);
+      } else {
+        resetLogic();
+      }
       clearEvalResult();
       clearBatch();
+      clearHistory();
     }
   };
 
@@ -61,7 +74,7 @@ export function AppLayout() {
       <Toaster position="top-right" richColors />
 
       <header className="h-12 border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white flex items-center justify-between px-3 shrink-0 gap-4">
-        <div className="flex items-center">
+        <div className="flex min-w-0 items-center">
           <img src={logoUrl} alt="LEVERIE" height={34} className="h-[34px]" />
         </div>
         <div className="flex items-center gap-2">

@@ -59,7 +59,6 @@ test.describe('Editor cloud E2E with API and local Postgres', () => {
     expect(logics.logics).toHaveLength(1);
     expect(logics.logics[0]?.draftRevision).toBe(1);
 
-    await page.getByRole('button', { name: 'Account and workspace' }).click();
     await page.getByRole('button', { name: 'Publish' }).click();
     await expect(page.getByText('Published v1.')).toBeVisible();
 
@@ -69,6 +68,59 @@ test.describe('Editor cloud E2E with API and local Postgres', () => {
       versions: { versionNumber: number; logicId: string }[];
     }>(page, `/api/logics/${logicId}/versions`);
     expect(versions.versions).toMatchObject([{ versionNumber: 1, logicId }]);
+  });
+
+  test('creates a separate cloud logic when using New in cloud mode', async ({
+    page,
+  }) => {
+    const user = makeUser('editor-new-logic');
+
+    await page.goto('/auth');
+    await page.getByRole('button', { name: 'Create a new account' }).click();
+    await page.getByLabel('Name').fill(user.name);
+    await page.getByLabel('Email').fill(user.email);
+    await page.getByLabel('Password').fill(user.password);
+    await page.getByRole('button', { name: 'Create account' }).click();
+
+    await expect(page).toHaveURL(/\/edit$/);
+    await expect(page.getByText('Cloud saved')).toBeVisible({
+      timeout: 30_000,
+    });
+
+    const me = await apiFromPage<{
+      orgs: { org: { id: string } }[];
+    }>(page, '/api/me');
+    const orgId = me.orgs[0]?.org.id;
+    expect(orgId).toBeTruthy();
+    const workspaces = await apiFromPage<{
+      workspaces: { id: string }[];
+    }>(page, `/api/orgs/${orgId}/workspaces`);
+    const workspaceId = workspaces.workspaces[0]?.id;
+    expect(workspaceId).toBeTruthy();
+
+    const before = await apiFromPage<{
+      logics: { id: string; name: string }[];
+    }>(page, `/api/workspaces/${workspaceId}/logics`);
+    expect(before.logics).toHaveLength(1);
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await page
+      .getByRole('banner')
+      .getByRole('button', { name: 'More actions' })
+      .click();
+    await page.getByRole('menuitem', { name: 'New' }).click();
+    await expect(page.getByText('Created a new cloud logic.')).toBeVisible({
+      timeout: 30_000,
+    });
+
+    const after = await apiFromPage<{
+      logics: { id: string; name: string }[];
+    }>(page, `/api/workspaces/${workspaceId}/logics`);
+    expect(after.logics).toHaveLength(2);
+    expect(new Set(after.logics.map((logic) => logic.id)).size).toBe(2);
+
+    await page.getByRole('button', { name: 'Switch logic' }).click();
+    await expect(page.getByRole('menuitem')).toHaveCount(2);
   });
 
   test('moves a browser draft to cloud during sign-up', async ({ page }) => {
