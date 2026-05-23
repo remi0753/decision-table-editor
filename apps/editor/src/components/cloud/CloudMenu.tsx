@@ -1,7 +1,16 @@
-import { Cloud, CloudOff, LogIn, LogOut, Rocket } from 'lucide-react';
+import {
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  Cloud,
+  CloudOff,
+  LogIn,
+  LogOut,
+  Rocket,
+  UserCircle,
+} from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
-import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useT } from '@/i18n/useT';
 import { useCloudStore } from '@/store/cloudStore';
@@ -14,6 +23,7 @@ export function CloudMenu() {
   const mode = useCloudStore((s) => s.mode);
   const saveState = useCloudStore((s) => s.saveState);
   const user = useCloudStore((s) => s.user);
+  const org = useCloudStore((s) => s.org);
   const workspace = useCloudStore((s) => s.workspace);
   const error = useCloudStore((s) => s.error);
   const signIn = useCloudStore((s) => s.signIn);
@@ -60,28 +70,52 @@ export function CloudMenu() {
     }
   };
 
+  const displayName = user?.name || user?.email || t.localMode;
+  const workspaceName = workspace?.name ?? t.localMode;
+
   return (
     <div className="relative">
       <Tooltip content={status}>
-        <IconButton
-          size="md"
-          tone="primary"
+        <button
+          type="button"
           onClick={() => setOpen((value) => !value)}
-          aria-label={status}
-          className={mode === 'cloud' ? 'text-emerald-700' : undefined}
+          aria-label={t.accountMenu}
+          className="inline-flex h-8 max-w-[240px] items-center gap-2 rounded border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800"
         >
-          {mode === 'cloud' ? <Cloud /> : <CloudOff />}
-        </IconButton>
+          {mode === 'cloud' ? (
+            <Cloud className="h-4 w-4 shrink-0 text-emerald-700" />
+          ) : (
+            <CloudOff className="h-4 w-4 shrink-0 text-gray-500" />
+          )}
+          <span className="hidden min-w-0 flex-col items-start leading-tight sm:flex">
+            <span className="max-w-[150px] truncate">{workspaceName}</span>
+            <span className="max-w-[150px] truncate text-[10px] font-normal text-gray-500">
+              {status}
+            </span>
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+        </button>
       </Tooltip>
 
       {open ? (
-        <div className="absolute right-0 top-10 z-50 w-80 rounded border border-gray-200 bg-white p-3 shadow-lg">
-          <div className="mb-3">
-            <div className="text-sm font-semibold text-gray-800">{status}</div>
-            <div className="mt-1 text-xs text-gray-500">
-              {mode === 'cloud'
-                ? `${user?.email ?? ''}${workspace ? ` · ${workspace.name}` : ''}`
-                : t.localModeDescription}
+        <div className="fixed right-2 top-12 z-50 w-[calc(100vw-1rem)] max-w-80 rounded-md border border-gray-200 bg-white p-3 shadow-lg">
+          <div className="mb-3 flex items-start gap-2">
+            <div className="mt-0.5 rounded bg-emerald-50 p-1 text-emerald-700">
+              {mode === 'cloud' ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <CloudOff className="h-4 w-4 text-gray-500" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-gray-800">
+                {status}
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                {mode === 'cloud'
+                  ? `${t.signedInAs} ${user?.email ?? ''}`
+                  : t.localModeDescription}
+              </div>
             </div>
             {error ? (
               <div className="mt-1 text-xs text-red-600">{error}</div>
@@ -89,24 +123,66 @@ export function CloudMenu() {
           </div>
 
           {mode === 'cloud' ? (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={publishCloudLogic}
-                disabled={saveState === 'saving'}
-                className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-              >
-                <Rocket className="h-3.5 w-3.5" />
-                {t.publish}
-              </button>
-              <button
-                type="button"
-                onClick={signOutToAuth}
-                className="inline-flex h-8 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                {t.signOut}
-              </button>
+            <div className="space-y-3">
+              <div className="space-y-2 border-y border-gray-100 py-3">
+                <div className="flex items-start gap-2">
+                  <UserCircle className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                      {t.accountSection}
+                    </div>
+                    <div className="truncate text-sm font-medium text-gray-800">
+                      {displayName}
+                    </div>
+                    {user?.name && user.email ? (
+                      <div className="truncate text-xs text-gray-500">
+                        {user.email}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                      {t.organizationSection}
+                    </div>
+                    <div className="truncate text-sm font-medium text-gray-800">
+                      {org?.name ?? '-'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Cloud className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                      {t.workspaceSection}
+                    </div>
+                    <div className="truncate text-sm font-medium text-gray-800">
+                      {workspaceName}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={publishCloudLogic}
+                  disabled={saveState === 'saving'}
+                  className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                >
+                  <Rocket className="h-3.5 w-3.5" />
+                  {t.publish}
+                </button>
+                <button
+                  type="button"
+                  onClick={signOutToAuth}
+                  className="inline-flex h-8 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  {t.signOut}
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-2">

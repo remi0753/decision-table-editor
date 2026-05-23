@@ -16,6 +16,15 @@ export type TranslationSet = {
   exportBtn: string;
   undo: string;
   redo: string;
+  moreActions: string;
+  fileActions: string;
+  toolActions: string;
+  accountMenu: string;
+  accountSection: string;
+  workspaceSection: string;
+  organizationSection: string;
+  signedInAs: string;
+  localMode: string;
   langLabel: string;
   cloudChecking: string;
   cloudSaved: string;
@@ -279,6 +288,15 @@ export const translations: Record<Lang, TranslationSet> = {
     exportBtn: 'Export',
     undo: 'Undo (⌘Z)',
     redo: 'Redo (⇧⌘Z)',
+    moreActions: 'More actions',
+    fileActions: 'File',
+    toolActions: 'Tools',
+    accountMenu: 'Account and workspace',
+    accountSection: 'Account',
+    workspaceSection: 'Workspace',
+    organizationSection: 'Organization',
+    signedInAs: 'Signed in as',
+    localMode: 'Local mode',
     langLabel: 'EN',
     cloudChecking: 'Checking cloud session...',
     cloudSaved: 'Cloud saved',
@@ -557,6 +575,15 @@ export const translations: Record<Lang, TranslationSet> = {
     exportBtn: 'エクスポート',
     undo: '元に戻す（⌘Z）',
     redo: 'やり直し（⇧⌘Z）',
+    moreActions: 'その他の操作',
+    fileActions: 'ファイル',
+    toolActions: 'ツール',
+    accountMenu: 'アカウントとワークスペース',
+    accountSection: 'アカウント',
+    workspaceSection: 'ワークスペース',
+    organizationSection: '組織',
+    signedInAs: 'サインイン中',
+    localMode: 'ローカルモード',
     langLabel: '日本語',
     cloudChecking: 'クラウドセッションを確認中...',
     cloudSaved: 'クラウドに保存済み',
