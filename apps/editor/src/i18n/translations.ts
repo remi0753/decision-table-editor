@@ -40,6 +40,8 @@ export type TranslationSet = {
   createAccount: string;
   useExistingAccount: string;
   publish: string;
+  settings: string;
+  share: string;
   namePlaceholder: string;
   emailPlaceholder: string;
   passwordPlaceholder: string;
@@ -313,6 +315,8 @@ export const translations: Record<Lang, TranslationSet> = {
     createAccount: 'Create account',
     useExistingAccount: 'Use existing',
     publish: 'Publish',
+    settings: 'Settings',
+    share: 'Share',
     namePlaceholder: 'Name',
     emailPlaceholder: 'Email',
     passwordPlaceholder: 'Password',
@@ -600,6 +604,8 @@ export const translations: Record<Lang, TranslationSet> = {
     createAccount: '新規登録',
     useExistingAccount: '既存アカウント',
     publish: '公開',
+    settings: '設定',
+    share: '共有',
     namePlaceholder: '名前',
     emailPlaceholder: 'メール',
     passwordPlaceholder: 'パスワード',

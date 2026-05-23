@@ -33,7 +33,7 @@ import {
 } from './shared.js';
 
 function invitationUrl(c: AppContext, token: string) {
-  const url = new URL('/api/invitations/accept', c.env.BETTER_AUTH_URL);
+  const url = new URL('/invite', c.env.BETTER_AUTH_URL);
   url.searchParams.set('token', token);
   return url.toString();
 }
@@ -643,12 +643,71 @@ orgRoutes.post(
   },
 );
 
+orgRoutes.get('/api/invitations/preview', async (c) => {
+  const token = c.req.query('token') ?? null;
+  if (!token) return jsonError(c, 400, 'missing_token', 'Token is required.');
+
+  const db = createDb(c.env.DATABASE_URL);
+  const tokenDigest = await sha256Base64Url(token);
+  const [row] = await db
+    .select({
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      expiresAt: invitation.expiresAt,
+      acceptedAt: invitation.acceptedAt,
+      revokedAt: invitation.revokedAt,
+      orgName: org.name,
+    })
+    .from(invitation)
+    .innerJoin(org, eq(invitation.orgId, org.id))
+    .where(eq(invitation.tokenDigest, tokenDigest))
+    .limit(1);
+
+  if (!row) return jsonError(c, 404, 'not_found', 'Invitation not found.');
+
+  const [account] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(and(eq(user.email, row.email), isNull(user.deletedAt)))
+    .limit(1);
+
+  const sessionUser = await requireUser(c, db);
+  const currentUserEmail = sessionUser?.email ?? null;
+  const currentUserMatchesInvitation =
+    currentUserEmail?.toLowerCase() === row.email.toLowerCase();
+  const status = row.acceptedAt
+    ? 'accepted'
+    : row.revokedAt
+      ? 'revoked'
+      : row.expiresAt.getTime() < Date.now()
+        ? 'expired'
+        : 'pending';
+
+  return c.json({
+    invitation: {
+      email: row.email,
+      role: row.role,
+      expiresAt: row.expiresAt,
+      status,
+    },
+    org: {
+      name: row.orgName,
+    },
+    authHint: {
+      invitedEmailHasAccount: Boolean(account),
+      currentUserEmail,
+      currentUserMatchesInvitation,
+    },
+  });
+});
+
 async function acceptInvitation(c: AppContext, token: string | null) {
   if (!token) return jsonError(c, 400, 'missing_token', 'Token is required.');
 
   const db = createDb(c.env.DATABASE_URL);
-  const user = await requireUser(c, db);
-  if (!user) return jsonError(c, 401, 'unauthorized', 'Sign in first.');
+  const sessionUser = await requireUser(c, db);
+  if (!sessionUser) return jsonError(c, 401, 'unauthorized', 'Sign in first.');
 
   const tokenDigest = await sha256Base64Url(token);
   const [pending] = await db
@@ -669,7 +728,7 @@ async function acceptInvitation(c: AppContext, token: string | null) {
   if (pending.expiresAt.getTime() < Date.now()) {
     return jsonError(c, 410, 'expired', 'Invitation has expired.');
   }
-  if (pending.email.toLowerCase() !== user.email.toLowerCase()) {
+  if (pending.email.toLowerCase() !== sessionUser.email.toLowerCase()) {
     return jsonError(
       c,
       403,
@@ -678,14 +737,14 @@ async function acceptInvitation(c: AppContext, token: string | null) {
     );
   }
 
-  const existing = await getActiveMembership(db, pending.orgId, user.id);
+  const existing = await getActiveMembership(db, pending.orgId, sessionUser.id);
   let acceptedMembership = existing;
   if (!acceptedMembership) {
     const [createdMembership] = await db
       .insert(membership)
       .values({
         orgId: pending.orgId,
-        userId: user.id,
+        userId: sessionUser.id,
         role: pending.role as Role,
         invitedActorType: pending.invitedActorType,
         invitedActorId: pending.invitedActorId,
@@ -708,9 +767,15 @@ async function acceptInvitation(c: AppContext, token: string | null) {
     .set({
       acceptedAt: new Date(),
       acceptedActorType: 'user',
-      acceptedActorId: user.id,
+      acceptedActorId: sessionUser.id,
     })
-    .where(eq(invitation.id, pending.id))
+    .where(
+      and(
+        eq(invitation.id, pending.id),
+        isNull(invitation.acceptedAt),
+        isNull(invitation.revokedAt),
+      ),
+    )
     .returning({
       id: invitation.id,
       orgId: invitation.orgId,
@@ -719,16 +784,42 @@ async function acceptInvitation(c: AppContext, token: string | null) {
       acceptedAt: invitation.acceptedAt,
     });
 
+  if (!accepted) {
+    return jsonError(
+      c,
+      409,
+      'invitation_already_used',
+      'Invitation was already accepted or revoked.',
+    );
+  }
+
   await writeAudit(db, {
     orgId: pending.orgId,
-    actorUserId: user.id,
+    actorUserId: sessionUser.id,
     actorPersona: rolePersona[pending.role as Role],
     action: 'invitation.accepted',
     targetType: 'invitation',
     targetId: pending.id,
   });
 
-  return c.json({ invitation: accepted, membership: acceptedMembership });
+  const [acceptedOrg] = await db
+    .select()
+    .from(org)
+    .where(and(eq(org.id, pending.orgId), isNull(org.deletedAt)))
+    .limit(1);
+  const [defaultWorkspace] = await db
+    .select()
+    .from(workspace)
+    .where(and(eq(workspace.orgId, pending.orgId), isNull(workspace.deletedAt)))
+    .orderBy(desc(workspace.createdAt))
+    .limit(1);
+
+  return c.json({
+    invitation: accepted,
+    membership: acceptedMembership,
+    org: acceptedOrg ?? null,
+    defaultWorkspace: defaultWorkspace ?? null,
+  });
 }
 
 orgRoutes.get('/api/invitations/accept', async (c) => {

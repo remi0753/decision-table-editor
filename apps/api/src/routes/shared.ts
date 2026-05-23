@@ -194,7 +194,7 @@ export async function requireUser(c: AppContext, db: Database) {
 }
 
 export async function getActiveMembership(
-  db: Database,
+  db: Pick<Database, 'select'>,
   orgId: string,
   userId: string,
 ) {
@@ -255,7 +255,7 @@ export function canGrantRole(actorRole: Role, targetRole: Role) {
 }
 
 export async function writeAudit(
-  db: Database,
+  db: Pick<Database, 'insert'>,
   input: {
     orgId: string;
     workspaceId?: string | null;

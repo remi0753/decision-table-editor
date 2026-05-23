@@ -48,11 +48,13 @@ Worker listens on `http://localhost:8787`. Endpoints:
 - `GET /api/logics/:logicId/versions/:versionNumber` — published version get
 - `POST /api/logics/:logicId/publish` — publish draft snapshot, optionally pinning production
 - `POST /api/logics/:logicId/production` — pin production to an existing published version
+- `POST /api/logics/:logicId/runner-share` — create/copy a fixed Runner URL and optionally invite a viewer/runner to it
 - `GET /api/logics/:logicId/diff?from=production&to=draft` — diff `draft`, `production`, `latest`, or `vN`
 - `GET /api/orgs/:orgId/members` — member list
 - `PATCH / DELETE /api/orgs/:orgId/members/:membershipId` — member management
 - `GET / POST /api/orgs/:orgId/invitations` — invitation list / create
 - `POST /api/orgs/:orgId/invitations/:invitationId/revoke` — revoke pending invitation
+- `GET /api/invitations/preview` — validate an invitation token and return org/email hints for onboarding
 - `GET / POST /api/invitations/accept` — accept invitation with a token
 
 ---
@@ -213,14 +215,17 @@ curl -fsS -b "$OWNER_COOKIE" "$BASE/api/orgs/$ORG_ID/workspaces" \
   -d '{"name":"Claims Review","slug":"claims-review"}'
 
 # 5) Invite an Author. With RESEND_API_KEY configured, Resend sends the email.
-#    The response also includes acceptUrl to keep local smoke testing simple.
+#    The response also includes acceptUrl (/invite?token=...) to keep local
+#    smoke testing simple.
 curl -fsS -b "$OWNER_COOKIE" "$BASE/api/orgs/$ORG_ID/invitations" \
   -H 'content-type: application/json' \
   -d '{"email":"author@example.test","role":"editor"}'
 ```
 
-Sign up or sign in as the invited user, then accept the invitation token from
-the returned `acceptUrl` or the delivered email:
+The product UI sends invited users to `/invite?token=...`, where new users can
+create an account before accepting the invitation. For API smoke testing, sign
+up or sign in as the invited user, then accept the token from the returned
+`acceptUrl` or the delivered email:
 
 ```bash
 curl -fsS -c "$AUTHOR_COOKIE" "$BASE/api/auth/sign-up/email" \

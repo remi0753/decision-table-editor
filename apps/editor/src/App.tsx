@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { AccessPage } from '@/components/access/AccessPage';
 import { AuthPage } from '@/components/auth/AuthPage';
+import { InvitePage } from '@/components/invite/InvitePage';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { RunnerPage } from '@/components/runner/RunnerPage';
+import { OrgSettingsPage } from '@/components/settings/OrgSettingsPage';
 import { loadFromStorage } from '@/hooks/useLocalStorage';
 import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
 import { useT } from '@/i18n/useT';
@@ -71,7 +74,7 @@ function EditorApp() {
           );
           return;
         }
-        window.location.assign('/');
+        window.location.assign('/access');
         return;
       }
       if (shouldMigrateLocalDraft) {
@@ -124,7 +127,10 @@ function TopPage() {
 
 export default function App() {
   if (window.location.pathname.startsWith('/run/')) return <RunnerPage />;
+  if (window.location.pathname === '/invite') return <InvitePage />;
+  if (window.location.pathname === '/settings/org') return <OrgSettingsPage />;
   if (window.location.pathname === '/edit') return <EditorApp />;
   if (window.location.pathname === '/auth') return <AuthPage />;
+  if (window.location.pathname === '/access') return <AccessPage />;
   return <TopPage />;
 }

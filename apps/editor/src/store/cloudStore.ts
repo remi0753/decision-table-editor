@@ -86,6 +86,16 @@ function apiErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Cloud request failed.';
 }
 
+function consumePreferredOrgId() {
+  const orgId = sessionStorage.getItem('leverie-preferred-org-id');
+  if (orgId) sessionStorage.removeItem('leverie-preferred-org-id');
+  return orgId;
+}
+
+function canEditCloud(role: CloudRole | null | undefined) {
+  return role === 'owner' || role === 'admin' || role === 'editor';
+}
+
 async function listLogicsByWorkspace(workspaces: CloudWorkspace[]) {
   const entries = await Promise.all(
     workspaces.map(async (workspace) => {
@@ -119,12 +129,14 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       try {
         const me = await getMe();
         let orgs = me.orgs.map((membership) => membership.org);
+        const preferredOrgId = consumePreferredOrgId();
         const roleByOrgId: Record<string, CloudRole> = Object.fromEntries(
           me.orgs.map(
             (membership) => [membership.org.id, membership.role] as const,
           ),
         );
-        let org = orgs[0];
+        let org =
+          orgs.find((candidate) => candidate.id === preferredOrgId) ?? orgs[0];
         if (!org && options?.requireAuth) {
           const created = await createOrg('My organization');
           org = created.org;
@@ -155,6 +167,61 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           const logicsByWorkspaceId = await listLogicsByWorkspace(
             Object.values(workspacesByOrgId).flat(),
           );
+          if (
+            preferredOrgId &&
+            workspacesByOrgId[preferredOrgId]?.length === 1
+          ) {
+            const preferredOrg = orgs.find(
+              (candidate) => candidate.id === preferredOrgId,
+            );
+            const preferredWorkspace = workspacesByOrgId[preferredOrgId]?.[0];
+            if (preferredOrg && preferredWorkspace) {
+              const logics = logicsByWorkspaceId[preferredWorkspace.id] ?? [];
+              const logicSummary = options?.migrateLocalDraft
+                ? undefined
+                : logics[0];
+              const cloudResult = logicSummary
+                ? await getLogic(logicSummary.id)
+                : null;
+              const preferredRole = roleByOrgId[preferredOrg.id] ?? null;
+              if (!cloudResult && !canEditCloud(preferredRole)) {
+                set({
+                  mode: 'selecting',
+                  user: me.user,
+                  org: preferredOrg,
+                  choices: {
+                    orgs,
+                    roleByOrgId,
+                    workspacesByOrgId,
+                    logicsByWorkspaceId,
+                    preferNewLogic: false,
+                  },
+                  error: null,
+                });
+                return;
+              }
+              const cloudLogic = cloudResult
+                ? cloudResult.logic
+                : (await createLogic(preferredWorkspace.id, localLogic)).logic;
+              importLogic(cloudLogic.draftData);
+              set({
+                mode: 'cloud',
+                saveState: 'saved',
+                user: me.user,
+                org: preferredOrg,
+                orgRole: roleByOrgId[preferredOrg.id] ?? null,
+                workspace: preferredWorkspace,
+                choices: null,
+                logicId: cloudLogic.id,
+                draftRevision: cloudLogic.draftRevision,
+                latestVersion: cloudResult?.latestVersion ?? null,
+                productionVersion: cloudResult?.productionVersion ?? null,
+                lastSavedAt: new Date(),
+                error: null,
+              });
+              return;
+            }
+          }
           set({
             mode: 'selecting',
             user: me.user,
@@ -232,6 +299,24 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         const cloudResult = logicSummary
           ? await getLogic(logicSummary.id)
           : null;
+        const orgRole = roleByOrgId[org.id] ?? null;
+        if (!cloudResult && !canEditCloud(orgRole)) {
+          set({
+            mode: 'selecting',
+            user: me.user,
+            org,
+            orgRole,
+            choices: {
+              orgs,
+              roleByOrgId,
+              workspacesByOrgId,
+              logicsByWorkspaceId: { [workspace.id]: logics.logics },
+              preferNewLogic: false,
+            },
+            error: null,
+          });
+          return;
+        }
         const cloudLogic = cloudResult
           ? cloudResult.logic
           : (await createLogic(workspace.id, localLogic)).logic;
@@ -242,7 +327,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           saveState: 'saved',
           user: me.user,
           org,
-          orgRole: roleByOrgId[org.id] ?? null,
+          orgRole,
           workspace,
           choices: null,
           logicId: cloudLogic.id,
@@ -307,6 +392,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       );
       if (!org)
         throw new Error('Selected organization is no longer available.');
+      const orgRole = choices.roleByOrgId[org.id] ?? null;
 
       let workspace = input.workspaceId
         ? choices.workspacesByOrgId[org.id]?.find(
@@ -314,6 +400,9 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           )
         : undefined;
       if (!workspace) {
+        if (!canEditCloud(orgRole)) {
+          throw new Error('Ask an editor for a Runner link to open.');
+        }
         const created = await createWorkspace(org.id, 'Default workspace');
         workspace = created.workspace;
       }
@@ -322,6 +411,9 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         input.logicId && input.logicId !== 'new'
           ? await getLogic(input.logicId)
           : null;
+      if (!cloudResult && !canEditCloud(orgRole)) {
+        throw new Error('Ask an editor for a Runner link to open.');
+      }
       const cloudLogic =
         cloudResult?.logic ??
         (await createLogic(workspace.id, localLogic)).logic;
@@ -331,7 +423,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         mode: 'cloud',
         saveState: 'saved',
         org,
-        orgRole: choices.roleByOrgId[org.id] ?? null,
+        orgRole,
         workspace,
         choices: null,
         logicId: (cloudResult?.logic ?? cloudLogic).id,
