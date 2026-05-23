@@ -116,13 +116,13 @@ function TopPage() {
           </a>
           <nav className="hidden items-center gap-7 text-sm font-medium text-gray-600 md:flex">
             <a href="#value" className="hover:text-violet-800">
-              できること
+              Features
             </a>
             <a href="#flow" className="hover:text-violet-800">
-              使い方
+              How it works
             </a>
             <a href="#fit" className="hover:text-violet-800">
-              向いている業務
+              Use cases
             </a>
           </nav>
           <div className="flex items-center gap-2">
@@ -130,15 +130,15 @@ function TopPage() {
               href="/auth"
               className="whitespace-nowrap rounded-md border border-violet-200 bg-white/80 px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-white hover:text-violet-800"
             >
-              ログイン
+              Sign in
             </a>
             <a
               href="/edit"
               onClick={startGuestEditor}
               className="inline-flex items-center gap-2 whitespace-nowrap rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-600/20 hover:bg-violet-700"
             >
-              <span className="sm:hidden">試す</span>
-              <span className="hidden sm:inline">試してみる</span>
+              <span className="sm:hidden">Try it</span>
+              <span className="hidden sm:inline">Try it free</span>
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
@@ -162,17 +162,17 @@ function TopPage() {
             <div className="flex min-h-[64vh] flex-col justify-center pb-4">
               <p className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-violet-200 bg-white/85 px-3 py-1 text-sm font-semibold text-violet-700">
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
-                業務ルールを、AIにも人にも読める形へ
+                Business rules, readable to humans &amp; AI
               </p>
               <h1 className="max-w-3xl text-5xl font-semibold leading-[1.06] tracking-normal text-gray-950 md:text-7xl">
-                判断ルールを、
+                Grow decision rules
                 <br />
-                コードではなく表で育てる。
+                in tables, not code.
               </h1>
               <p className="mt-7 max-w-2xl text-lg leading-8 text-gray-700 md:text-xl">
-                LEVERIE は、問い合わせ対応・審査・承認・振り分けのような
-                「もしこうなら、こうする」を、Excel
-                感覚の決定テーブルとして作成・確認・共有できるツールです。
+                LEVERIE turns "if this, then that" logic — for triage, reviews,
+                approvals, and routing — into spreadsheet-style decision tables
+                your team can build, verify, and share.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <a
@@ -180,28 +180,28 @@ function TopPage() {
                   onClick={startGuestEditor}
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-violet-600 px-5 py-3 text-base font-semibold text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700"
                 >
-                  無料でエディタを開く
+                  Open the free editor
                   <ArrowRight className="h-5 w-5" aria-hidden="true" />
                 </a>
                 <a
                   href="/auth"
                   className="inline-flex items-center justify-center gap-2 rounded-md border border-violet-200 bg-white/80 px-5 py-3 text-base font-semibold text-gray-800 shadow-sm hover:bg-white hover:text-violet-800"
                 >
-                  チームで使う
+                  Use with your team
                 </a>
               </div>
               <div className="mt-8 grid max-w-2xl gap-3 text-sm font-medium text-gray-600 sm:grid-cols-3">
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-violet-600" />
-                  JSON不要
+                  No JSON required
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-violet-600" />
-                  矛盾を検知
+                  Conflict detection
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-violet-600" />
-                  AI連携に展開
+                  AI-ready output
                 </span>
               </div>
             </div>
@@ -223,24 +223,24 @@ function TopPage() {
                 Why LEVERIE
               </p>
               <h2 className="mt-3 text-3xl font-semibold tracking-normal md:text-5xl">
-                業務の人が直せるルールは、現場の変化に強い。
+                Rules your operators can edit are rules that survive change.
               </h2>
             </div>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               <ValueBlock
                 icon={<Table2 />}
-                title="表で書ける"
-                body="条件と結果を行に並べるだけ。Word の文章や複雑なフローチャートより、変更箇所が見つけやすくなります。"
+                title="Write it as a table"
+                body="Lay out conditions and outcomes row by row. Easier to navigate than a Word doc or sprawling flowchart."
               />
               <ValueBlock
                 icon={<ShieldCheck />}
-                title="抜け漏れを見つける"
-                body="重複、到達しない行、対応漏れを自動でチェック。担当者の経験だけに頼らず、ルール品質を保てます。"
+                title="Find what's missing"
+                body="Auto-checks catch duplicates, unreachable rows, and missing cases — so quality doesn't depend on tribal knowledge."
               />
               <ValueBlock
                 icon={<Bot />}
-                title="AIにも渡せる"
-                body="人が読める表を、実行可能な判断ロジックとして扱えます。AI エージェントの判断を安定させたい場面に向いています。"
+                title="Hand it to AI"
+                body="The same human-readable table runs as executable logic — perfect for keeping AI agents on script."
               />
             </div>
           </div>
@@ -253,29 +253,29 @@ function TopPage() {
                 From Rulebook To Running Logic
               </p>
               <h2 className="mt-3 text-3xl font-semibold tracking-normal md:text-5xl">
-                マニュアルの判断を、そのまま動く業務ロジックへ。
+                Turn handbook judgment into live business logic.
               </h2>
               <p className="mt-5 text-base leading-8 text-gray-700">
-                入力項目を決め、条件を表に並べ、サンプルで試す。
-                いつもの業務言葉のまま、チームで確認できる形にできます。
+                Define your inputs, lay out conditions, try a sample. Keep using
+                your team's own vocabulary — no translation required.
               </p>
             </div>
             <div className="grid gap-3">
               {[
                 [
                   '1',
-                  '項目を決める',
-                  '金額、顧客区分、申請理由などを選択肢や数値として整理します。',
+                  'Define the inputs',
+                  'Map fields like amount, customer tier, and request reason into options or numbers.',
                 ],
                 [
                   '2',
-                  '条件を並べる',
-                  '上から順に読める表へ。複数の表に分けて、大きな判断も無理なく扱えます。',
+                  'Lay out the conditions',
+                  'Build a top-down readable table. Split across tables when judgments get bigger.',
                 ],
                 [
                   '3',
-                  'その場で試す',
-                  '入力例を入れると、どの行が選ばれたかまで確認できます。',
+                  'Test it on the spot',
+                  'Plug in a sample and see exactly which row fired.',
                 ],
               ].map(([number, title, body]) => (
                 <div
@@ -308,21 +308,22 @@ function TopPage() {
                   Use Cases
                 </p>
                 <h2 className="mt-3 text-3xl font-semibold tracking-normal md:text-5xl">
-                  判断が多く、変更も多い仕事に。
+                  For work full of decisions — and full of changes.
                 </h2>
               </div>
               <p className="text-base leading-8 text-white/70">
-                LEVERIE は「正解が毎回同じであるべき判断」に向いています。
-                ルールの根拠を説明したい、改訂を素早く反映したい、 AI
-                に任せる前に決定性を担保したい場面で力を発揮します。
+                LEVERIE shines wherever the same input should always reach the
+                same answer. Use it when you need to explain the rationale, push
+                revisions fast, or lock in determinism before you hand things to
+                AI.
               </p>
             </div>
             <div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               {[
-                '問い合わせ振り分け',
-                '返金・補償判定',
-                'ローン・保険審査',
-                '社内承認フロー',
+                'Inquiry routing',
+                'Refunds & claims',
+                'Loan & insurance review',
+                'Internal approvals',
               ].map((label) => (
                 <div
                   key={label}
@@ -342,7 +343,7 @@ function TopPage() {
                 onClick={startGuestEditor}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-base font-semibold text-violet-950 hover:bg-violet-50"
               >
-                サンプルを触ってみる
+                Play with a sample
                 <Play className="h-5 w-5" aria-hidden="true" />
               </a>
             </div>
@@ -376,39 +377,39 @@ function ValueBlock({
 function DecisionWorkspacePreview() {
   const previewColumns = [
     { key: 'id', label: '#' },
-    { key: 'customer', label: '顧客区分' },
-    { key: 'amount', label: '申請金額' },
-    { key: 'verification', label: '本人確認' },
-    { key: 'result', label: '結果' },
+    { key: 'customer', label: 'Customer' },
+    { key: 'amount', label: 'Amount' },
+    { key: 'verification', label: 'KYC' },
+    { key: 'result', label: 'Outcome' },
   ] as const;
   const previewRows = [
     {
       id: '1',
-      customer: '法人',
-      amount: '>= 500万',
-      verification: '完了',
-      result: '上長レビュー',
+      customer: 'Business',
+      amount: '>= ¥5M',
+      verification: 'Verified',
+      result: 'Manager review',
     },
     {
       id: '2',
-      customer: '個人',
-      amount: '< 50万',
-      verification: '完了',
-      result: '自動承認',
+      customer: 'Individual',
+      amount: '< ¥500K',
+      verification: 'Verified',
+      result: 'Auto-approve',
     },
     {
       id: '3',
-      customer: 'すべて',
-      amount: '>= 50万',
-      verification: '未完了',
-      result: '追加確認へ',
+      customer: 'Any',
+      amount: '>= ¥500K',
+      verification: 'Pending',
+      result: 'Send to follow-up',
     },
     {
       id: '4',
-      customer: 'すべて',
-      amount: 'すべて',
-      verification: 'すべて',
-      result: '担当者確認',
+      customer: 'Any',
+      amount: 'Any',
+      verification: 'Any',
+      result: 'Manual review',
     },
   ];
 
@@ -421,7 +422,7 @@ function DecisionWorkspacePreview() {
           <span className="h-3 w-3 rounded-full bg-violet-700" />
         </div>
         <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
-          審査ルール v3
+          Review Rules v3
         </span>
       </div>
       <div className="grid gap-4 lg:grid-cols-[11rem_1fr]">
@@ -429,7 +430,7 @@ function DecisionWorkspacePreview() {
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-gray-400">
             Tables
           </p>
-          {['受付判定', '本人確認', '追加確認'].map((item, index) => (
+          {['Intake', 'Identity', 'Follow-up'].map((item, index) => (
             <div
               key={item}
               className={`mb-2 rounded-md px-3 py-2 text-sm font-semibold ${
@@ -442,19 +443,19 @@ function DecisionWorkspacePreview() {
             </div>
           ))}
           <div className="mt-5 rounded-md bg-violet-100 p-3 text-xs leading-5 text-violet-800">
-            2件の未対応パターンを検出
+            2 uncovered patterns detected
           </div>
         </div>
         <div className="overflow-hidden rounded-md border border-violet-200 bg-white">
           <div className="flex items-center justify-between border-b border-violet-200 bg-violet-50 px-4 py-3">
             <div>
-              <p className="text-sm font-bold text-gray-950">受付判定</p>
+              <p className="text-sm font-bold text-gray-950">Intake decision</p>
               <p className="text-xs text-gray-500">
-                条件に合う最初の行が選ばれます
+                First matching row wins
               </p>
             </div>
             <span className="rounded-md bg-violet-600 px-2.5 py-1 text-xs font-semibold text-white">
-              テストOK
+              Tests passing
             </span>
           </div>
           <div className="min-w-[560px]">
@@ -487,9 +488,9 @@ function DecisionWorkspacePreview() {
             ))}
           </div>
           <div className="grid gap-3 border-t border-violet-200 bg-violet-50 p-4 md:grid-cols-3">
-            <PreviewMetric label="一致した行" value="2行目" />
-            <PreviewMetric label="出力" value="自動承認" />
-            <PreviewMetric label="根拠" value="条件を表示" />
+            <PreviewMetric label="Matched row" value="Row 2" />
+            <PreviewMetric label="Output" value="Auto-approve" />
+            <PreviewMetric label="Reasoning" value="View conditions" />
           </div>
         </div>
       </div>
