@@ -27,6 +27,11 @@ export function CloudWorkspacePicker() {
         : [],
     [choices, workspaceId],
   );
+  const selectedRole = orgId && choices ? choices.roleByOrgId[orgId] : null;
+  const canCreateLogic =
+    selectedRole === 'owner' ||
+    selectedRole === 'admin' ||
+    selectedRole === 'editor';
 
   useEffect(() => {
     if (!choices || orgId) return;
@@ -39,9 +44,11 @@ export function CloudWorkspacePicker() {
 
   useEffect(() => {
     setLogicId(
-      choices?.preferNewLogic ? NEW_LOGIC : (logics[0]?.id ?? NEW_LOGIC),
+      choices?.preferNewLogic && canCreateLogic
+        ? NEW_LOGIC
+        : (logics[0]?.id ?? (canCreateLogic ? NEW_LOGIC : '')),
     );
-  }, [choices?.preferNewLogic, logics]);
+  }, [canCreateLogic, choices?.preferNewLogic, logics]);
 
   if (mode !== 'selecting' || !choices) return null;
 
@@ -57,6 +64,22 @@ export function CloudWorkspacePicker() {
       logic,
       importLogic,
     );
+    const cloud = useCloudStore.getState();
+    if (
+      cloud.mode === 'cloud' &&
+      (cloud.orgRole === 'viewer' || cloud.orgRole === 'runner') &&
+      cloud.workspace &&
+      cloud.logicId
+    ) {
+      const version = cloud.productionVersion ?? cloud.latestVersion;
+      if (version) {
+        window.location.assign(
+          `/run/${cloud.workspace.id}/${cloud.logicId}@v${version.versionNumber}`,
+        );
+      } else {
+        window.location.assign('/access');
+      }
+    }
   };
 
   return (
@@ -133,14 +156,21 @@ export function CloudWorkspacePicker() {
                     {cloudLogic.name}
                   </option>
                 ))}
-                <option value={NEW_LOGIC}>Create new from current draft</option>
+                {canCreateLogic ? (
+                  <option value={NEW_LOGIC}>
+                    Create new from current draft
+                  </option>
+                ) : null}
+                {!canCreateLogic && logics.length === 0 ? (
+                  <option value="">No shared runners available</option>
+                ) : null}
               </select>
             </label>
           </div>
 
           <button
             type="submit"
-            disabled={saveState === 'saving' || !orgId}
+            disabled={saveState === 'saving' || !orgId || !logicId}
             className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />

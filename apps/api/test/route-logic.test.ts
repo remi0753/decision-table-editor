@@ -28,6 +28,12 @@ const editorUser: SessionUser = {
   name: 'Editor',
 };
 
+const invitedUser: SessionUser = {
+  id: '33333333-3333-3333-3333-333333333333',
+  email: 'invited@example.test',
+  name: 'Invited',
+};
+
 const baseEnv = {
   DATABASE_URL: 'postgres://unit-test',
   BETTER_AUTH_URL: 'http://localhost:8787',
@@ -57,7 +63,9 @@ vi.mock('../src/email.js', () => ({
   sendInvitationEmail: vi.fn(async () => undefined),
 }));
 
-function createFakeDb(options: { select?: unknown[][]; execute?: unknown[][] } = {}) {
+function createFakeDb(
+  options: { select?: unknown[][]; execute?: unknown[][] } = {},
+) {
   const writes: WriteOperation[] = [];
   const selectQueue = [...(options.select ?? [])];
   const executeQueue = [...(options.execute ?? [])];
@@ -219,6 +227,46 @@ function makeLogic(overrides: Partial<Logic> = {}): Logic {
   };
 }
 
+function makeLogicRow(data = makeLogic()) {
+  return {
+    id: 'logic-1',
+    workspaceId: 'workspace-1',
+    slug: 'approval',
+    name: 'Approval',
+    description: null,
+    draftData: data,
+    draftSchemaVersion: '2',
+    draftRevision: 3,
+    productionVersionId: 'version-2',
+    draftUpdatedAt: new Date('2026-05-22T00:00:00.000Z'),
+    createdAt: new Date('2026-05-22T00:00:00.000Z'),
+    updatedAt: new Date('2026-05-22T00:00:00.000Z'),
+    deletedAt: null,
+  };
+}
+
+function makeWorkspaceRow() {
+  return {
+    id: 'workspace-1',
+    orgId: 'org-1',
+    deletedAt: null,
+  };
+}
+
+function makeVersionRow(versionNumber = 2) {
+  return {
+    id: `version-${versionNumber}`,
+    workspaceId: 'workspace-1',
+    logicId: 'logic-1',
+    versionNumber,
+    schemaVersion: '2',
+    releaseNotes: null,
+    publishedAt: new Date('2026-05-22T00:00:00.000Z'),
+    publishedActorType: 'user',
+    publishedActorId: ownerUser.id,
+  };
+}
+
 beforeEach(() => {
   currentUser = ownerUser;
   currentDb = createFakeDb();
@@ -296,6 +344,219 @@ describe('org route behavior', () => {
     );
 
     expect(response.status).toBe(403);
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('previews an invitation for onboarding without requiring sign-in', async () => {
+    currentUser = null;
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            id: 'invitation-1',
+            email: 'invited@example.test',
+            role: 'editor',
+            expiresAt: new Date('2099-06-01T00:00:00.000Z'),
+            acceptedAt: null,
+            revokedAt: null,
+            orgName: 'Acme Ops',
+          },
+        ],
+        [{ id: invitedUser.id }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/invitations/preview?token=invite-token'),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      invitation: {
+        email: 'invited@example.test',
+        role: 'editor',
+        status: 'pending',
+      },
+      org: { name: 'Acme Ops' },
+      authHint: {
+        invitedEmailHasAccount: true,
+        currentUserEmail: null,
+        currentUserMatchesInvitation: false,
+      },
+    });
+  });
+
+  it('previews expired and revoked invitation terminal states', async () => {
+    currentUser = null;
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            id: 'expired-invitation',
+            email: 'expired@example.test',
+            role: 'runner',
+            expiresAt: new Date('2020-01-01T00:00:00.000Z'),
+            acceptedAt: null,
+            revokedAt: null,
+            orgName: 'Acme Ops',
+          },
+        ],
+        [],
+      ],
+    });
+    const app = await loadApp();
+
+    const expiredResponse = await app.fetch(
+      jsonRequest('/api/invitations/preview?token=expired-token'),
+      baseEnv,
+    );
+
+    expect(expiredResponse.status).toBe(200);
+    await expect(expiredResponse.json()).resolves.toMatchObject({
+      invitation: { status: 'expired' },
+    });
+
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            id: 'revoked-invitation',
+            email: 'revoked@example.test',
+            role: 'viewer',
+            expiresAt: new Date('2099-06-01T00:00:00.000Z'),
+            acceptedAt: null,
+            revokedAt: new Date('2026-05-22T00:00:00.000Z'),
+            orgName: 'Acme Ops',
+          },
+        ],
+        [],
+      ],
+    });
+
+    const revokedResponse = await app.fetch(
+      jsonRequest('/api/invitations/preview?token=revoked-token'),
+      baseEnv,
+    );
+
+    expect(revokedResponse.status).toBe(200);
+    await expect(revokedResponse.json()).resolves.toMatchObject({
+      invitation: { status: 'revoked' },
+    });
+  });
+
+  it('accepts an invitation by adding an existing user to the invited org', async () => {
+    currentUser = invitedUser;
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            id: 'invitation-1',
+            orgId: 'org-2',
+            email: invitedUser.email,
+            role: 'editor',
+            tokenDigest: 'digest',
+            expiresAt: new Date('2099-06-01T00:00:00.000Z'),
+            acceptedAt: null,
+            revokedAt: null,
+            invitedActorType: 'user',
+            invitedActorId: ownerUser.id,
+          },
+        ],
+        [],
+        [
+          {
+            id: 'org-2',
+            slug: 'acme-ops',
+            name: 'Acme Ops',
+            plan: 'free',
+          },
+        ],
+        [
+          {
+            id: 'workspace-2',
+            orgId: 'org-2',
+            slug: 'default',
+            name: 'Default workspace',
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/invitations/accept',
+        { token: 'invite-token' },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.membership).toMatchObject({
+      orgId: 'org-2',
+      userId: invitedUser.id,
+      role: 'editor',
+    });
+    expect(body.org).toMatchObject({
+      id: 'org-2',
+      name: 'Acme Ops',
+    });
+    expect(body.defaultWorkspace).toMatchObject({
+      id: 'workspace-2',
+      orgId: 'org-2',
+    });
+    expect(currentDb.transaction).not.toHaveBeenCalled();
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      orgId: 'org-2',
+      userId: invitedUser.id,
+      role: 'editor',
+    });
+    expect(currentDb.writes[1]?.set).toMatchObject({
+      acceptedActorType: 'user',
+      acceptedActorId: invitedUser.id,
+    });
+  });
+
+  it('rejects invitation accept when the signed-in email differs', async () => {
+    currentUser = editorUser;
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            id: 'invitation-1',
+            orgId: 'org-2',
+            email: invitedUser.email,
+            role: 'editor',
+            tokenDigest: 'digest',
+            expiresAt: new Date('2099-06-01T00:00:00.000Z'),
+            acceptedAt: null,
+            revokedAt: null,
+            invitedActorType: 'user',
+            invitedActorId: ownerUser.id,
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/invitations/accept',
+        { token: 'invite-token' },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'email_mismatch' },
+    });
+    expect(currentDb.transaction).not.toHaveBeenCalled();
     expect(currentDb.writes).toHaveLength(0);
   });
 });
@@ -475,6 +736,117 @@ describe('logic route behavior', () => {
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toMatchObject({
       error: { code: 'draft_revision_conflict' },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('returns a stable runner URL for the production version', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [{ logic: makeLogicRow(), workspace: makeWorkspaceRow() }],
+        [membership('editor')],
+        [makeVersionRow(2)],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/logics/logic-1/runner-share', {}, { method: 'POST' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      runnerUrl: 'http://localhost:8787/run/workspace-1/logic-1@v2',
+      runnerPath: '/run/workspace-1/logic-1@v2',
+      version: { id: 'version-2', versionNumber: 2 },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('creates a runner invitation that returns to the shared runner URL', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [{ logic: makeLogicRow(), workspace: makeWorkspaceRow() }],
+        [membership('editor')],
+        [makeVersionRow(3)],
+        [{ id: 'org-1', name: 'Acme Ops' }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/logics/logic-1/runner-share',
+        {
+          email: 'Runner@Example.Test',
+          role: 'runner',
+          versionNumber: 3,
+        },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      runnerUrl: 'http://localhost:8787/run/workspace-1/logic-1@v3',
+      runnerPath: '/run/workspace-1/logic-1@v3',
+      invitation: {
+        email: 'runner@example.test',
+        role: 'runner',
+      },
+      version: { id: 'version-3', versionNumber: 3 },
+    });
+    expect(body.acceptUrl).toContain('/invite?token=');
+    expect(body.acceptUrl).toContain(
+      'redirect=%2Frun%2Fworkspace-1%2Flogic-1%40v3',
+    );
+    expect(currentDb.writes[1]?.values).toMatchObject({
+      orgId: 'org-1',
+      email: 'runner@example.test',
+      role: 'runner',
+      invitedActorId: ownerUser.id,
+    });
+    expect(currentDb.writes[2]?.values).toMatchObject({
+      orgId: 'org-1',
+      workspaceId: 'workspace-1',
+      action: 'runner_share.invitation_created',
+      targetType: 'invitation',
+      metadata: {
+        email: 'runner@example.test',
+        role: 'runner',
+        logicId: 'logic-1',
+        versionNumber: 3,
+      },
+    });
+  });
+
+  it('requires a published version before sharing a runner', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            logic: { ...makeLogicRow(), productionVersionId: null },
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [membership('editor')],
+        [],
+        [],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/logics/logic-1/runner-share', {}, { method: 'POST' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'no_published_version' },
     });
     expect(currentDb.writes).toHaveLength(0);
   });

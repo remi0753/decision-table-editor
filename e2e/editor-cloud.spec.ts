@@ -120,6 +120,57 @@ test.describe('Editor cloud E2E with API and local Postgres', () => {
     ]);
   });
 
+  test('lets an unregistered invitee create an account without a personal default org', async ({
+    page,
+    request,
+  }) => {
+    const owner = makeUser('invite-owner');
+    const invitee = makeUser('invitee');
+    const orgName = uniqueName('Invited Org');
+
+    const signUp = await request.post(`${apiBaseUrl}/api/auth/sign-up/email`, {
+      data: owner,
+    });
+    expect(signUp.ok()).toBeTruthy();
+
+    const orgResponse = await request.post(`${apiBaseUrl}/api/orgs`, {
+      data: { name: orgName },
+    });
+    expect(orgResponse.status()).toBe(201);
+    const { org } = await orgResponse.json();
+
+    const inviteResponse = await request.post(
+      `${apiBaseUrl}/api/orgs/${org.id}/invitations`,
+      { data: { email: invitee.email, role: 'editor' } },
+    );
+    expect(inviteResponse.status()).toBe(201);
+    const { acceptUrl } = await inviteResponse.json();
+    const token = new URL(acceptUrl).searchParams.get('token');
+    expect(token).toBeTruthy();
+
+    await page.goto(`/invite?token=${token}`);
+    await expect(page.getByText(orgName)).toBeVisible();
+    await page.getByLabel('Name').fill(invitee.name);
+    await page.getByLabel('Password').fill(invitee.password);
+    await page.getByRole('button', { name: 'Create account and join' }).click();
+
+    await expect(page).toHaveURL(/\/edit$/, { timeout: 30_000 });
+    await expect(page.getByText('Cloud saved')).toBeVisible({
+      timeout: 30_000,
+    });
+
+    const me = await apiFromPage<{
+      user: { email: string };
+      orgs: { role: string; org: { id: string; name: string } }[];
+    }>(page, '/api/me');
+    expect(me.user.email).toBe(invitee.email);
+    expect(me.orgs).toHaveLength(1);
+    expect(me.orgs[0]).toMatchObject({
+      role: 'editor',
+      org: { id: org.id, name: orgName },
+    });
+  });
+
   test('loads a published runner URL and keeps runner role out of the editor', async ({
     page,
     request,

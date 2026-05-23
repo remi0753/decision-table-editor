@@ -13,7 +13,9 @@ export type CloudUser = {
 };
 
 export type CloudOrgMembership = {
+  membershipId: string;
   role: 'owner' | 'admin' | 'editor' | 'viewer' | 'runner';
+  joinedAt: string;
   org: CloudOrg;
 };
 
@@ -52,6 +54,59 @@ export type CloudVersion = {
   publishedAt: string;
 };
 
+export type CloudMember = {
+  membershipId: string;
+  role: CloudRole;
+  joinedAt: string;
+  userId: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+};
+
+export type CloudInvitation = {
+  id: string;
+  orgId?: string;
+  email: string;
+  role: CloudRole;
+  expiresAt: string;
+  acceptedAt?: string | null;
+  revokedAt?: string | null;
+  createdAt: string;
+};
+
+export type InvitationPreview = {
+  invitation: {
+    email: string;
+    role: CloudRole;
+    expiresAt: string;
+    status: 'pending' | 'accepted' | 'revoked' | 'expired';
+  };
+  org: {
+    name: string;
+  };
+  authHint: {
+    invitedEmailHasAccount: boolean;
+    currentUserEmail: string | null;
+    currentUserMatchesInvitation: boolean;
+  };
+};
+
+export type AcceptInvitationResponse = {
+  invitation: CloudInvitation & {
+    orgId: string;
+    acceptedAt: string;
+  };
+  membership: {
+    id: string;
+    orgId: string;
+    userId: string;
+    role: CloudRole;
+  };
+  org: CloudOrg | null;
+  defaultWorkspace: CloudWorkspace | null;
+};
+
 export type RunnerVersion = CloudVersion & {
   workspaceId: string;
   schemaVersion: string;
@@ -67,6 +122,16 @@ export type RunnerLogicResponse = {
     role: CloudRole;
     canEdit: boolean;
   };
+};
+
+export type RunnerShareRole = Extract<CloudRole, 'viewer' | 'runner'>;
+
+export type RunnerShareResponse = {
+  runnerUrl: string;
+  runnerPath: string;
+  version: CloudVersion;
+  invitation?: CloudInvitation;
+  acceptUrl?: string;
 };
 
 export class CloudApiError extends Error {
@@ -117,6 +182,71 @@ export async function getMe() {
 
 export async function listWorkspaces(orgId: string) {
   return api<{ workspaces: CloudWorkspace[] }>(`/api/orgs/${orgId}/workspaces`);
+}
+
+export async function listMembers(orgId: string) {
+  return api<{ members: CloudMember[] }>(`/api/orgs/${orgId}/members`);
+}
+
+export async function updateMemberRole(
+  orgId: string,
+  membershipId: string,
+  role: CloudRole,
+) {
+  return api<{ membership: { id: string; role: CloudRole } }>(
+    `/api/orgs/${orgId}/members/${membershipId}`,
+    {
+      method: 'PATCH',
+      body: { role },
+    },
+  );
+}
+
+export async function removeMember(orgId: string, membershipId: string) {
+  return api<{ membership: { id: string; removedAt: string } }>(
+    `/api/orgs/${orgId}/members/${membershipId}`,
+    { method: 'DELETE' },
+  );
+}
+
+export async function listInvitations(orgId: string) {
+  return api<{ invitations: CloudInvitation[] }>(
+    `/api/orgs/${orgId}/invitations`,
+  );
+}
+
+export async function createInvitation(
+  orgId: string,
+  email: string,
+  role: Exclude<CloudRole, 'owner'>,
+) {
+  return api<{ invitation: CloudInvitation; acceptUrl?: string }>(
+    `/api/orgs/${orgId}/invitations`,
+    {
+      method: 'POST',
+      body: { email, role },
+    },
+  );
+}
+
+export async function revokeInvitation(orgId: string, invitationId: string) {
+  return api<{ invitation: CloudInvitation }>(
+    `/api/orgs/${orgId}/invitations/${invitationId}/revoke`,
+    { method: 'POST' },
+  );
+}
+
+export async function previewInvitation(token: string) {
+  return api<InvitationPreview>(
+    `/api/invitations/preview?token=${encodeURIComponent(token)}`,
+  );
+}
+
+export async function acceptInvitation(token: string) {
+  return api<AcceptInvitationResponse>('/api/invitations/accept', {
+    method: 'POST',
+    body: { token },
+  });
 }
 
 export async function createOrg(name: string) {
@@ -193,6 +323,22 @@ export async function publishLogic(logicId: string) {
       body: { pinProduction: true },
     },
   );
+}
+
+export async function shareRunner(input: {
+  logicId: string;
+  email?: string;
+  role?: RunnerShareRole;
+  versionNumber?: number;
+}) {
+  return api<RunnerShareResponse>(`/api/logics/${input.logicId}/runner-share`, {
+    method: 'POST',
+    body: {
+      email: input.email,
+      role: input.role,
+      versionNumber: input.versionNumber,
+    },
+  });
 }
 
 export async function signInEmail(email: string, password: string) {

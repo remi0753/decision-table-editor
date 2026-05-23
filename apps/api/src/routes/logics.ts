@@ -3,7 +3,14 @@ import { validateLogicForSave } from '@leverie/engine';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb, type Database } from '../db/client.js';
-import { logic, logicVersion, workspace } from '../db/schema.js';
+import {
+  invitation,
+  logic,
+  logicVersion,
+  org,
+  workspace,
+} from '../db/schema.js';
+import { sendInvitationEmail } from '../email.js';
 import type { Env } from '../env.js';
 import {
   type AppContext,
@@ -17,9 +24,12 @@ import {
   parseBodyNumber,
   parseBodyObject,
   parseBodyString,
+  type Role,
   type RouteError,
+  randomToken,
   requireMembership,
   rolePersona,
+  sha256Base64Url,
   writeAudit,
 } from './shared.js';
 
@@ -238,6 +248,25 @@ async function latestVersion(db: Database, logicId: string) {
   return row;
 }
 
+async function versionByNumber(
+  db: Database,
+  logicId: string,
+  versionNumber: number,
+) {
+  const [row] = await db
+    .select(logicVersionSelect())
+    .from(logicVersion)
+    .where(
+      and(
+        eq(logicVersion.logicId, logicId),
+        eq(logicVersion.versionNumber, versionNumber),
+      ),
+    )
+    .limit(1);
+
+  return row;
+}
+
 async function productionVersion(db: Database, existing: LogicRow) {
   if (!existing.productionVersionId) return undefined;
 
@@ -248,6 +277,27 @@ async function productionVersion(db: Database, existing: LogicRow) {
     .limit(1);
 
   return row;
+}
+
+function parseRunnerShareRole(value: string | undefined): Role | null {
+  if (value === undefined) return 'runner';
+  if (value === 'viewer' || value === 'runner') return value;
+  return null;
+}
+
+function runnerPath(input: {
+  workspaceId: string;
+  logicId: string;
+  versionNumber: number;
+}) {
+  return `/run/${input.workspaceId}/${input.logicId}@v${input.versionNumber}`;
+}
+
+function invitationUrl(c: AppContext, token: string, redirectPath?: string) {
+  const url = new URL('/invite', c.env.BETTER_AUTH_URL);
+  url.searchParams.set('token', token);
+  if (redirectPath) url.searchParams.set('redirect', redirectPath);
+  return url.toString();
 }
 
 function parseLogicSource(
@@ -499,6 +549,169 @@ logicRoutes.get('/api/logics/:logicId', async (c) => {
     latestVersion: latest ?? null,
     productionVersion: production ?? null,
   });
+});
+
+logicRoutes.post('/api/logics/:logicId/runner-share', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const logicId = c.req.param('logicId');
+  const access = await loadLogicAccess(c, db, logicId);
+  if ('error' in access) return access.error;
+  if (!canEditLogics(access.member.role)) {
+    return jsonError(c, 403, 'forbidden', 'Editor role or higher required.');
+  }
+
+  const body = await c.req.json().catch(() => null);
+  const versionNumber = parseBodyNumber(body, 'versionNumber');
+  if (versionNumber === null || versionNumber === 0) {
+    return jsonError(c, 400, 'invalid_version', 'Version number is invalid.');
+  }
+
+  const selectedVersion =
+    versionNumber === undefined
+      ? ((await productionVersion(db, access.logic)) ??
+        (await latestVersion(db, logicId)))
+      : await versionByNumber(db, logicId, versionNumber);
+
+  if (!selectedVersion) {
+    return jsonError(
+      c,
+      409,
+      'no_published_version',
+      'Publish this logic before sharing the runner.',
+    );
+  }
+
+  const path = runnerPath({
+    workspaceId: access.workspace.id,
+    logicId: access.logic.id,
+    versionNumber: selectedVersion.versionNumber,
+  });
+  const runnerUrl = new URL(path, c.env.BETTER_AUTH_URL).toString();
+
+  const email = parseBodyString(body, 'email', { max: 320 });
+  if (email === undefined) {
+    return c.json({
+      runnerUrl,
+      runnerPath: path,
+      version: selectedVersion,
+    });
+  }
+  if (!email?.includes('@')) {
+    return jsonError(c, 400, 'invalid_email', 'Valid email is required.');
+  }
+
+  const roleValue = parseBodyString(body, 'role');
+  if (roleValue === null) {
+    return jsonError(
+      c,
+      400,
+      'invalid_role',
+      'Runner shares can invite viewer or runner roles.',
+    );
+  }
+  const role = parseRunnerShareRole(roleValue);
+  if (!role) {
+    return jsonError(
+      c,
+      400,
+      'invalid_role',
+      'Runner shares can invite viewer or runner roles.',
+    );
+  }
+
+  const [targetOrg] = await db
+    .select()
+    .from(org)
+    .where(eq(org.id, access.workspace.orgId))
+    .limit(1);
+  if (!targetOrg) return jsonError(c, 404, 'not_found', 'Org not found.');
+
+  const normalizedEmail = email.toLowerCase();
+  await db
+    .update(invitation)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(
+        eq(invitation.orgId, access.workspace.orgId),
+        eq(invitation.email, normalizedEmail),
+        isNull(invitation.acceptedAt),
+        isNull(invitation.revokedAt),
+      ),
+    );
+
+  const token = randomToken();
+  const tokenDigest = await sha256Base64Url(token);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const [created] = await db
+    .insert(invitation)
+    .values({
+      orgId: access.workspace.orgId,
+      email: normalizedEmail,
+      role,
+      tokenDigest,
+      expiresAt,
+      invitedActorType: 'user',
+      invitedActorId: access.user.id,
+    })
+    .returning({
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      expiresAt: invitation.expiresAt,
+      createdAt: invitation.createdAt,
+    });
+
+  if (!created) {
+    return jsonError(
+      c,
+      500,
+      'invitation_failed',
+      'Could not create invitation.',
+    );
+  }
+
+  const acceptUrl = invitationUrl(c, token, path);
+  await sendInvitationEmail(
+    {
+      resendApiKey: c.env.RESEND_API_KEY,
+      from: c.env.EMAIL_FROM,
+    },
+    {
+      email: created.email,
+      orgName: targetOrg.name,
+      inviterName: access.user.name,
+      role: created.role,
+      url: acceptUrl,
+      expiresAt,
+    },
+  );
+
+  await writeAudit(db, {
+    orgId: access.workspace.orgId,
+    workspaceId: access.workspace.id,
+    actorUserId: access.user.id,
+    actorPersona: rolePersona[access.member.role],
+    action: 'runner_share.invitation_created',
+    targetType: 'invitation',
+    targetId: created.id,
+    metadata: {
+      email: created.email,
+      role: created.role,
+      logicId: access.logic.id,
+      versionNumber: selectedVersion.versionNumber,
+    },
+  });
+
+  return c.json(
+    {
+      invitation: created,
+      acceptUrl,
+      runnerUrl,
+      runnerPath: path,
+      version: selectedVersion,
+    },
+    201,
+  );
 });
 
 logicRoutes.patch('/api/logics/:logicId', async (c) => {
