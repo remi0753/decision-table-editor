@@ -1,7 +1,9 @@
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   Download,
   FilePlus,
   FlaskConical,
+  Menu,
   Redo2,
   Sparkles,
   Undo2,
@@ -96,57 +98,68 @@ export function AppLayout() {
               <Redo2 />
             </IconButton>
           </Tooltip>
-          <div className="w-px h-5 bg-gray-200" />
-          <Tooltip content={t.newCreate}>
-            <IconButton
-              size="md"
-              tone="primary"
-              onClick={handleNew}
-              aria-label={t.newCreate}
-            >
-              <FilePlus />
-            </IconButton>
-          </Tooltip>
-          <Tooltip content={t.samples}>
-            <IconButton
-              size="md"
-              tone="primary"
-              onClick={() => setSampleGalleryOpen(true)}
-              aria-label={t.samples}
-            >
-              <Sparkles />
-            </IconButton>
-          </Tooltip>
-          <Tooltip content={t.batchTest}>
-            <IconButton
-              size="md"
-              tone="primary"
-              onClick={() => setBatchDialogOpen(true)}
-              aria-label={t.batchTest}
-            >
-              <FlaskConical />
-            </IconButton>
-          </Tooltip>
-          <Tooltip content={t.importBtn}>
-            <IconButton
-              size="md"
-              tone="primary"
-              onClick={importFn}
-              aria-label={t.importBtn}
-            >
-              <Upload />
-            </IconButton>
-          </Tooltip>
-          <Tooltip content={t.exportBtn}>
-            <IconButton
-              size="md"
-              tone="primary"
-              onClick={() => exportLogic(logic)}
-              aria-label={t.exportBtn}
-            >
-              <Download />
-            </IconButton>
-          </Tooltip>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <IconButton
+                size="md"
+                tone="primary"
+                aria-label={t.moreActions}
+                title={t.moreActions}
+              >
+                <Menu />
+              </IconButton>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                sideOffset={6}
+                className="z-50 min-w-[220px] rounded-md border border-gray-200 bg-white p-1 shadow-lg"
+              >
+                <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                  {t.fileActions}
+                </DropdownMenu.Label>
+                <DropdownMenu.Item
+                  onSelect={handleNew}
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                >
+                  <FilePlus className="h-4 w-4 text-gray-400" />
+                  <span>{t.newCreate}</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  onSelect={importFn}
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                >
+                  <Upload className="h-4 w-4 text-gray-400" />
+                  <span>{t.importBtn}</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  onSelect={() => exportLogic(logic)}
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                >
+                  <Download className="h-4 w-4 text-gray-400" />
+                  <span>{t.exportBtn}</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator className="my-1 h-px bg-gray-100" />
+                <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                  {t.toolActions}
+                </DropdownMenu.Label>
+                <DropdownMenu.Item
+                  onSelect={() => setSampleGalleryOpen(true)}
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                >
+                  <Sparkles className="h-4 w-4 text-gray-400" />
+                  <span>{t.samples}</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  onSelect={() => setBatchDialogOpen(true)}
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                >
+                  <FlaskConical className="h-4 w-4 text-gray-400" />
+                  <span>{t.batchTest}</span>
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </div>
       </header>
 

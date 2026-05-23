@@ -33,6 +33,7 @@ type CloudStore = {
   mode: CloudMode;
   saveState: SaveState;
   user: CloudUser | null;
+  org: CloudOrg | null;
   workspace: CloudWorkspace | null;
   choices: CloudChoices | null;
   logicId: string | null;
@@ -92,6 +93,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   mode: 'checking',
   saveState: 'idle',
   user: null,
+  org: null,
   workspace: null,
   logicId: null,
   draftRevision: null,
@@ -114,7 +116,13 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           orgs = [org];
         }
         if (!org) {
-          set({ mode: 'local', user: me.user, choices: null, error: null });
+          set({
+            mode: 'local',
+            user: me.user,
+            org: null,
+            choices: null,
+            error: null,
+          });
           return;
         }
 
@@ -133,6 +141,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           set({
             mode: 'selecting',
             user: me.user,
+            org: null,
             choices: {
               orgs,
               workspacesByOrgId,
@@ -150,7 +159,13 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           workspacesByOrgId[org.id] = [workspace];
         }
         if (!workspace) {
-          set({ mode: 'local', user: me.user, choices: null, error: null });
+          set({
+            mode: 'local',
+            user: me.user,
+            org: null,
+            choices: null,
+            error: null,
+          });
           return;
         }
 
@@ -161,6 +176,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           set({
             mode: 'selecting',
             user: me.user,
+            org,
             choices: {
               orgs,
               workspacesByOrgId,
@@ -176,6 +192,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           set({
             mode: 'selecting',
             user: me.user,
+            org,
             choices: {
               orgs,
               workspacesByOrgId,
@@ -196,6 +213,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           mode: 'cloud',
           saveState: 'saved',
           user: me.user,
+          org,
           workspace,
           choices: null,
           logicId: cloudLogic.id,
@@ -214,6 +232,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           set({
             mode: 'local',
             user: null,
+            org: null,
             workspace: null,
             choices: null,
             logicId: null,
@@ -223,7 +242,12 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           return;
         }
 
-        set({ mode: 'local', choices: null, error: apiErrorMessage(error) });
+        set({
+          mode: 'local',
+          org: null,
+          choices: null,
+          error: apiErrorMessage(error),
+        });
       } finally {
         initializeRequest = null;
       }
@@ -260,6 +284,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       set({
         mode: 'cloud',
         saveState: 'saved',
+        org,
         workspace,
         choices: null,
         logicId: cloudLogic.id,
@@ -341,6 +366,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       mode: 'local',
       saveState: 'idle',
       user: null,
+      org: null,
       workspace: null,
       choices: null,
       logicId: null,
