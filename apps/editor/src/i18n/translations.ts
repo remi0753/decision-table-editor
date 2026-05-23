@@ -42,6 +42,12 @@ export type TranslationSet = {
   publish: string;
   settings: string;
   share: string;
+  shareRunner: string;
+  currentLogic: string;
+  switchLogic: string;
+  draftOnly: string;
+  productionVersionLabel: (version: number) => string;
+  latestVersionLabel: (version: number) => string;
   namePlaceholder: string;
   emailPlaceholder: string;
   passwordPlaceholder: string;
@@ -317,6 +323,12 @@ export const translations: Record<Lang, TranslationSet> = {
     publish: 'Publish',
     settings: 'Settings',
     share: 'Share',
+    shareRunner: 'Share Runner',
+    currentLogic: 'Current logic',
+    switchLogic: 'Switch logic',
+    draftOnly: 'Draft only',
+    productionVersionLabel: (version) => `Production v${version}`,
+    latestVersionLabel: (version) => `Latest v${version}`,
     namePlaceholder: 'Name',
     emailPlaceholder: 'Email',
     passwordPlaceholder: 'Password',
@@ -606,6 +618,12 @@ export const translations: Record<Lang, TranslationSet> = {
     publish: '公開',
     settings: '設定',
     share: '共有',
+    shareRunner: 'Runnerを共有',
+    currentLogic: '現在のロジック',
+    switchLogic: 'ロジックを切り替え',
+    draftOnly: '未公開',
+    productionVersionLabel: (version) => `本番 v${version}`,
+    latestVersionLabel: (version) => `最新 v${version}`,
     namePlaceholder: '名前',
     emailPlaceholder: 'メール',
     passwordPlaceholder: 'パスワード',

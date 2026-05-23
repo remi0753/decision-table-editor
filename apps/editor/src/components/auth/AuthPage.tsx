@@ -65,7 +65,7 @@ export function AuthPage() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <Toaster position="top-right" richColors />
-      <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4">
+      <header className="flex h-14 items-center justify-between border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white px-4">
         <img src={logoUrl} alt="LEVERIE" className="h-9" />
         <div className="inline-flex items-center gap-2 text-xs font-medium text-gray-500">
           <LockKeyhole className="h-4 w-4" />

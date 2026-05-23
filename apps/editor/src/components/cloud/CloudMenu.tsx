@@ -6,14 +6,11 @@ import {
   CloudOff,
   LogIn,
   LogOut,
-  Rocket,
   Settings,
-  Share2,
   UserCircle,
 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
-import { RunnerShareDialog } from '@/components/cloud/RunnerShareDialog';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useT } from '@/i18n/useT';
 import { useCloudStore } from '@/store/cloudStore';
@@ -29,16 +26,11 @@ export function CloudMenu() {
   const org = useCloudStore((s) => s.org);
   const orgRole = useCloudStore((s) => s.orgRole);
   const workspace = useCloudStore((s) => s.workspace);
-  const logicId = useCloudStore((s) => s.logicId);
-  const latestVersion = useCloudStore((s) => s.latestVersion);
-  const productionVersion = useCloudStore((s) => s.productionVersion);
   const error = useCloudStore((s) => s.error);
   const signIn = useCloudStore((s) => s.signIn);
   const signUp = useCloudStore((s) => s.signUp);
   const signOutToAuth = useCloudStore((s) => s.signOutToAuth);
-  const publishCloudLogic = useCloudStore((s) => s.publishCloudLogic);
   const [open, setOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -80,10 +72,6 @@ export function CloudMenu() {
 
   const displayName = user?.name || user?.email || t.localMode;
   const workspaceName = workspace?.name ?? t.localMode;
-  const canShareRunner =
-    mode === 'cloud' &&
-    logicId !== null &&
-    (orgRole === 'owner' || orgRole === 'admin' || orgRole === 'editor');
 
   return (
     <div className="relative">
@@ -177,15 +165,6 @@ export function CloudMenu() {
                 </div>
               </div>
               <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={publishCloudLogic}
-                  disabled={saveState === 'saving'}
-                  className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                >
-                  <Rocket className="h-3.5 w-3.5" />
-                  {t.publish}
-                </button>
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(92px,1fr))] gap-2">
                   {orgRole === 'owner' || orgRole === 'admin' ? (
                     <a
@@ -195,19 +174,6 @@ export function CloudMenu() {
                       <Settings className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate">{t.settings}</span>
                     </a>
-                  ) : null}
-                  {canShareRunner ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShareOpen(true);
-                        setOpen(false);
-                      }}
-                      className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                    >
-                      <Share2 className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{t.share}</span>
-                    </button>
                   ) : null}
                   <button
                     type="button"
@@ -266,15 +232,6 @@ export function CloudMenu() {
             </form>
           )}
         </div>
-      ) : null}
-      {shareOpen && logicId ? (
-        <RunnerShareDialog
-          logicId={logicId}
-          latestVersion={latestVersion}
-          productionVersion={productionVersion}
-          onPublish={publishCloudLogic}
-          onClose={() => setShareOpen(false)}
-        />
       ) : null}
     </div>
   );

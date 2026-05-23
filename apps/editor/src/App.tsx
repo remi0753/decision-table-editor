@@ -95,7 +95,7 @@ function EditorApp() {
 function TopPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <header className="flex h-14 items-center justify-between border-b border-gray-200 px-4">
+      <header className="flex h-14 items-center justify-between border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white px-4">
         <img src={logoUrl} alt="LEVERIE" className="h-9" />
         <div className="flex items-center gap-2">
           <a
