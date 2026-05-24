@@ -81,6 +81,19 @@ describe('API endpoint contract', () => {
     expect(authSource).toContain('storeSessionInDatabase: true');
   });
 
+  it('uses the native scrypt password handler for Workers CPU budget', () => {
+    const authSource = readSource('src/auth.ts');
+    const passwordSource = readSource('src/password.ts');
+
+    expect(authSource).toContain(
+      "import { hashPassword, verifyPassword } from './password.js'",
+    );
+    expect(authSource).toContain(
+      'password: {\n        hash: hashPassword,\n        verify: verifyPassword',
+    );
+    expect(passwordSource).toContain("from 'node:crypto'");
+  });
+
   it('rejects cross-site and non-JSON state-changing API requests before routes', async () => {
     const env = {
       DATABASE_URL: 'postgres://unit-test',

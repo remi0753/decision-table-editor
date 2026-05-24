@@ -5,6 +5,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { Database } from './db/client.js';
 import { invitation, user as userTable } from './db/schema.js';
 import { sendMagicLinkEmail, sendVerificationEmail } from './email.js';
+import { hashPassword, verifyPassword } from './password.js';
 import type { SecondaryStorage } from './secondaryStorage.js';
 
 type AuthConfig = {
@@ -154,6 +155,10 @@ export function createAuth(db: Database, config: AuthConfig) {
     },
     emailAndPassword: {
       enabled: true,
+      password: {
+        hash: hashPassword,
+        verify: verifyPassword,
+      },
       // Sign-up no longer creates a session; the user must click the link in
       // the verification email first. This blocks bulk signups against
       // unowned mailboxes.
