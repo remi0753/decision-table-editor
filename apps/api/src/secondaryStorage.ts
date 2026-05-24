@@ -28,7 +28,9 @@ export interface KvLikeNamespace {
 // stored timestamp, so a stale-but-not-yet-expired row is read correctly.
 const KV_MIN_TTL_SECONDS = 60;
 
-export function createKvSecondaryStorage(kv: KvLikeNamespace): SecondaryStorage {
+export function createKvSecondaryStorage(
+  kv: KvLikeNamespace,
+): SecondaryStorage {
   return {
     async get(key) {
       return (await kv.get(key)) ?? null;
@@ -109,12 +111,28 @@ export function createMemorySecondaryStorage(): SecondaryStorage {
   };
 }
 
+function isLocalAuthUrl(value?: string) {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
 // Selects the storage backend per-request. Workers bind `RATE_LIMIT_KV` to a
-// KV namespace in production / preview; local dev (wrangler dev) gets an
-// in-memory fallback so the auth flow keeps working without a KV binding.
+// KV namespace in production / preview. Local dev (wrangler dev) gets an
+// in-memory fallback so the auth flow keeps working without provisioning KV.
+// Production must fail closed; falling back to isolate-local memory silently
+// defeats auth and invitation rate limits on Cloudflare Workers.
 export function resolveSecondaryStorage(env: {
+  BETTER_AUTH_URL?: string;
   RATE_LIMIT_KV?: KvLikeNamespace;
 }): SecondaryStorage {
   if (env.RATE_LIMIT_KV) return createKvSecondaryStorage(env.RATE_LIMIT_KV);
+  if (!isLocalAuthUrl(env.BETTER_AUTH_URL)) {
+    throw new Error('RATE_LIMIT_KV binding is required outside local dev.');
+  }
   return createMemorySecondaryStorage();
 }

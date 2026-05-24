@@ -72,6 +72,15 @@ export function createAuth(db: Database, config: AuthConfig) {
       provider: 'pg',
     }),
     secondaryStorage: config.secondaryStorage,
+    session: {
+      // Better Auth uses secondaryStorage as the primary session store unless
+      // this is set. Cloudflare KV is eventually consistent, so an email
+      // verification redirect can create a session and then immediately land
+      // on /edit before KV reads see it, causing /api/me to return 401. Keep
+      // sessions in Postgres as the source of truth while secondaryStorage
+      // remains available for rate-limit counters and cache acceleration.
+      storeSessionInDatabase: true,
+    },
     // Better Auth's default rate limiter ships disabled outside production and
     // its in-memory storage is unusable on Workers (each isolate keeps its own
     // map). We force-enable it here and pin the storage to `secondary-storage`

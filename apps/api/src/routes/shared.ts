@@ -6,6 +6,7 @@ import type { Database } from '../db/client.js';
 import { auditEvent, membership } from '../db/schema.js';
 import type { Env } from '../env.js';
 import { getAllowedOrigins } from '../origins.js';
+import { checkFixedWindowRateLimit } from '../rateLimit.js';
 import { resolveSecondaryStorage } from '../secondaryStorage.js';
 
 export type AppContext = Context<{ Bindings: Env }>;
@@ -30,6 +31,7 @@ export const rolePersona: Record<Role, ActorPersona> = {
 };
 
 const slugPattern = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+const MAX_DB_INT = 2_147_483_647;
 
 export type SessionUser = {
   id: string;
@@ -118,7 +120,13 @@ export function parseBodyNumber(
   }
 
   const value = (body as Record<string, unknown>)[field];
-  if (!Number.isInteger(value) || (value as number) < 0) return null;
+  if (
+    !Number.isInteger(value) ||
+    (value as number) < 0 ||
+    (value as number) > MAX_DB_INT
+  ) {
+    return null;
+  }
   return value as number;
 }
 
@@ -139,6 +147,45 @@ export function parseRole(body: unknown) {
   const role = parseBodyString(body, 'role', { required: true });
   if (!role || !roles.includes(role as Role)) return null;
   return role as Role;
+}
+
+export async function enforceInvitationEmailRateLimit(
+  c: AppContext,
+  input: { orgId: string; actorUserId: string; email: string },
+) {
+  const storage = resolveSecondaryStorage(c.env);
+  const emailDigest = await sha256Base64Url(input.email.toLowerCase());
+  const result = await checkFixedWindowRateLimit(storage, [
+    {
+      key: `invite-email:user:${input.actorUserId}:hour`,
+      max: 20,
+      windowSeconds: 60 * 60,
+    },
+    {
+      key: `invite-email:org:${input.orgId}:day`,
+      max: 100,
+      windowSeconds: 24 * 60 * 60,
+    },
+    {
+      key: `invite-email:email:${emailDigest}:day`,
+      max: 5,
+      windowSeconds: 24 * 60 * 60,
+    },
+  ]);
+
+  if (result.allowed) return null;
+
+  return c.json(
+    {
+      error: {
+        code: 'rate_limited',
+        message: 'Too many invitation emails. Try again later.',
+        retryAfterSeconds: result.retryAfterSeconds,
+      },
+    },
+    429,
+    { 'Retry-After': String(result.retryAfterSeconds) },
+  );
 }
 
 export function assertSlug(c: AppContext, slug: string) {

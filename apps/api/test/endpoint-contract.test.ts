@@ -56,7 +56,6 @@ describe('API endpoint contract', () => {
         'POST /api/orgs/:orgId/invitations',
         'POST /api/orgs/:orgId/invitations/:invitationId/revoke',
         'GET /api/invitations/preview',
-        'GET /api/invitations/accept',
         'POST /api/invitations/accept',
       ]),
     );
@@ -74,5 +73,52 @@ describe('API endpoint contract', () => {
     expect(indexSource).toContain(
       "allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']",
     );
+  });
+
+  it('keeps Better Auth sessions backed by the database despite secondary storage', () => {
+    const authSource = readSource('src/auth.ts');
+
+    expect(authSource).toContain('storeSessionInDatabase: true');
+  });
+
+  it('rejects cross-site and non-JSON state-changing API requests before routes', async () => {
+    const env = {
+      DATABASE_URL: 'postgres://unit-test',
+      BETTER_AUTH_URL: 'https://leverie.dev',
+      BETTER_AUTH_SECRET: 'test-secret',
+      CORS_ALLOWED_ORIGINS: '',
+    };
+
+    const crossSite = await app.fetch(
+      new Request('https://leverie.dev/api/orgs', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: 'https://evil.example',
+        },
+        body: JSON.stringify({ name: 'Acme' }),
+      }),
+      env,
+    );
+    expect(crossSite.status).toBe(403);
+    await expect(crossSite.json()).resolves.toMatchObject({
+      error: { code: 'csrf_rejected' },
+    });
+
+    const nonJson = await app.fetch(
+      new Request('https://leverie.dev/api/orgs', {
+        method: 'POST',
+        headers: {
+          'content-type': 'text/plain',
+          origin: 'https://leverie.dev',
+        },
+        body: '{"name":"Acme"}',
+      }),
+      env,
+    );
+    expect(nonJson.status).toBe(415);
+    await expect(nonJson.json()).resolves.toMatchObject({
+      error: { code: 'unsupported_media_type' },
+    });
   });
 });

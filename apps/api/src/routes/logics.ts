@@ -16,6 +16,7 @@ import {
   type AppContext,
   assertSlug,
   canEditLogics,
+  enforceInvitationEmailRateLimit,
   fallbackSlug,
   jsonError,
   type MembershipAccess,
@@ -254,12 +255,23 @@ async function findAvailableLogicSlug(
   workspaceId: string,
   base: string,
 ) {
-  const rows = await db
-    .select({ slug: logic.slug })
-    .from(logic)
-    .where(and(eq(logic.workspaceId, workspaceId), isNull(logic.deletedAt)));
-  const used = new Set(rows.map((row) => row.slug));
-  if (!used.has(base)) return base;
+  async function slugExists(slug: string) {
+    const [row] = await db
+      .select({ id: logic.id })
+      .from(logic)
+      .where(
+        and(
+          eq(logic.workspaceId, workspaceId),
+          eq(logic.slug, slug),
+          isNull(logic.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return Boolean(row);
+  }
+
+  if (!(await slugExists(base))) return base;
 
   // Cap the search so a pathological workspace cannot loop forever; fall back
   // to a random-suffixed slug if every numbered candidate is taken.
@@ -270,7 +282,7 @@ async function findAvailableLogicSlug(
       tail.length > room
         ? `${base.slice(0, 63 - tail.length)}${tail}`
         : `${base}${tail}`;
-    if (!used.has(candidate)) return candidate;
+    if (!(await slugExists(candidate))) return candidate;
   }
   return fallbackSlug('logic');
 }
@@ -709,6 +721,13 @@ logicRoutes.post('/api/logics/:logicId/runner-share', async (c) => {
   if (!targetOrg) return jsonError(c, 404, 'not_found', 'Org not found.');
 
   const normalizedEmail = email.toLowerCase();
+  const rateLimitError = await enforceInvitationEmailRateLimit(c, {
+    orgId: access.workspace.orgId,
+    actorUserId: access.user.id,
+    email: normalizedEmail,
+  });
+  if (rateLimitError) return rateLimitError;
+
   await db
     .update(invitation)
     .set({ revokedAt: new Date() })
