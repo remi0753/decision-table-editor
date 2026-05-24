@@ -660,6 +660,7 @@ describe('logic route behavior', () => {
           },
         ],
         [membership('editor')],
+        [{ value: 0 }],
       ],
     });
     const app = await loadApp();
@@ -697,6 +698,72 @@ describe('logic route behavior', () => {
       targetType: 'logic',
       targetId: body.logic.id,
     });
+  });
+
+  it('auto-suffixes the slug when the derived one collides with an existing logic in the workspace', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            id: 'workspace-1',
+            orgId: 'org-1',
+            deletedAt: null,
+          },
+        ],
+        [membership('editor')],
+        [{ value: 1 }],
+        [{ slug: 'new-logic' }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/workspaces/workspace-1/logics',
+        { name: 'New Logic', data: makeLogic() },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.logic).toMatchObject({
+      slug: 'new-logic-2',
+      name: 'New Logic',
+    });
+  });
+
+  it('blocks logic creation once the user has reached the per-account cap', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            id: 'workspace-1',
+            orgId: 'org-1',
+            deletedAt: null,
+          },
+        ],
+        [membership('editor')],
+        [{ value: 3 }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/workspaces/workspace-1/logics',
+        { name: 'Fourth', data: makeLogic() },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'logic_limit_reached' },
+    });
+    expect(currentDb.writes).toHaveLength(0);
   });
 
   it('returns a draft revision conflict before writing stale draft updates', async () => {

@@ -1,6 +1,6 @@
 import type { Logic } from '@leverie/engine';
 import { validateLogicForSave } from '@leverie/engine';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb, type Database } from '../db/client.js';
 import {
@@ -32,6 +32,11 @@ import {
   sha256Base64Url,
   writeAudit,
 } from './shared.js';
+
+// Temporary anti-abuse cap while the editor is publicly open. Counts logics
+// the user has created themselves (createdActorType = 'user'), across all
+// workspaces, excluding soft-deleted rows.
+const MAX_LOGICS_PER_USER = 3;
 
 type LogicSourceLabel = 'draft' | 'latest' | 'production' | `v${number}`;
 
@@ -235,6 +240,32 @@ function rowsFromExecute<T>(result: unknown): T[] {
     return (result as { rows: T[] }).rows;
   }
   return [];
+}
+
+async function findAvailableLogicSlug(
+  db: Database,
+  workspaceId: string,
+  base: string,
+) {
+  const rows = await db
+    .select({ slug: logic.slug })
+    .from(logic)
+    .where(and(eq(logic.workspaceId, workspaceId), isNull(logic.deletedAt)));
+  const used = new Set(rows.map((row) => row.slug));
+  if (!used.has(base)) return base;
+
+  // Cap the search so a pathological workspace cannot loop forever; fall back
+  // to a random-suffixed slug if every numbered candidate is taken.
+  const room = Math.max(1, 63 - base.length - 1);
+  for (let suffix = 2; suffix < 1000; suffix += 1) {
+    const tail = `-${suffix}`;
+    const candidate =
+      tail.length > room
+        ? `${base.slice(0, 63 - tail.length)}${tail}`
+        : `${base}${tail}`;
+    if (!used.has(candidate)) return candidate;
+  }
+  return fallbackSlug('logic');
 }
 
 async function latestVersion(db: Database, logicId: string) {
@@ -478,6 +509,25 @@ logicRoutes.post('/api/workspaces/:workspaceId/logics', async (c) => {
     return jsonError(c, 403, 'forbidden', 'Editor role or higher required.');
   }
 
+  const [createdByUser] = await db
+    .select({ value: count() })
+    .from(logic)
+    .where(
+      and(
+        eq(logic.createdActorType, 'user'),
+        eq(logic.createdActorId, access.user.id),
+        isNull(logic.deletedAt),
+      ),
+    );
+  if ((createdByUser?.value ?? 0) >= MAX_LOGICS_PER_USER) {
+    return jsonError(
+      c,
+      403,
+      'logic_limit_reached',
+      `Each account can create up to ${MAX_LOGICS_PER_USER} logics. Delete an existing logic to free a slot.`,
+    );
+  }
+
   const body = await c.req.json().catch(() => null);
   const name = parseBodyString(body, 'name', { required: true, max: 120 });
   if (!name) return jsonError(c, 400, 'invalid_name', 'Name is required.');
@@ -490,31 +540,56 @@ logicRoutes.post('/api/workspaces/:workspaceId/logics', async (c) => {
   if ('error' in validation) return validation.error;
 
   const requestedSlug = parseBodyString(body, 'slug', { max: 63 });
-  const slug = requestedSlug
+  const baseSlug = requestedSlug
     ? normalizeSlug(requestedSlug)
     : normalizeSlug(name) || fallbackSlug('logic');
-  const slugError = assertSlug(c, slug);
+  const slugError = assertSlug(c, baseSlug);
   if (slugError) return slugError;
+  // Slugs PATCH-update only when a user passes one explicitly (see PATCH
+  // handler), so renaming a logic in the UI does not change its slug. That
+  // means a brand-new logic derived from the same name can collide with the
+  // original slug of a since-renamed logic. When the caller did not pin a
+  // slug, suffix to find an available one; when they did, surface a 409.
+  const slug = requestedSlug
+    ? baseSlug
+    : await findAvailableLogicSlug(db, workspaceId, baseSlug);
 
   const description = parseBodyString(body, 'description', { max: 500 });
-  const [created] = await db
-    .insert(logic)
-    .values({
-      workspaceId,
-      slug,
-      name,
-      description,
-      draftData: validation.logic,
-      draftSchemaVersion: validation.logic.version,
-      draftRevision: 1,
-      draftUpdatedActorType: 'user',
-      draftUpdatedActorId: access.user.id,
-      createdActorType: 'user',
-      createdActorId: access.user.id,
-      updatedActorType: 'user',
-      updatedActorId: access.user.id,
-    })
-    .returning();
+  let created: LogicRow | undefined;
+  try {
+    [created] = await db
+      .insert(logic)
+      .values({
+        workspaceId,
+        slug,
+        name,
+        description,
+        draftData: validation.logic,
+        draftSchemaVersion: validation.logic.version,
+        draftRevision: 1,
+        draftUpdatedActorType: 'user',
+        draftUpdatedActorId: access.user.id,
+        createdActorType: 'user',
+        createdActorId: access.user.id,
+        updatedActorType: 'user',
+        updatedActorId: access.user.id,
+      })
+      .returning();
+  } catch (error) {
+    const maybeError = error as { code?: string; constraint?: string };
+    if (
+      maybeError.code === '23505' &&
+      maybeError.constraint === 'logic_workspace_slug_active_uniq'
+    ) {
+      return jsonError(
+        c,
+        409,
+        'slug_conflict',
+        'A logic with this slug already exists in the workspace.',
+      );
+    }
+    throw error;
+  }
 
   if (!created) {
     return jsonError(c, 500, 'logic_create_failed', 'Could not create logic.');
