@@ -5,11 +5,11 @@ LEVERIE Cloud API — Hono on Cloudflare Workers, backed by Neon Postgres via Dr
 **Surface**:
 
 - `leverie.dev/api/*` — browser surface (cookie session via Better Auth, CSRF gate, credentialed CORS). Used by Editor and Runner UI.
-- `leverie.dev/v1/*` — external Bearer-authenticated API for LLM agents, MCP bridges, and customer integrations. Permissive CORS, no cookies.
+- `leverie.dev/v1/*` — external Bearer-authenticated API for LLM agents and customer integrations. Permissive CORS, no cookies. Two surfaces: the REST [Evaluate API](#evaluate-api-v1) (`POST /v1/logics/:id/evaluate`) and the [Hosted MCP](#hosted-mcp-v1mcp) (`POST /v1/mcp`, JSON-RPC 2.0).
 
 Both share the same Worker but diverge on middleware. See [doc/design_p3_infrastructure.md §3.2](../../doc/design_p3_infrastructure.md) for the origin rationale and [apps/api/src/index.ts](./src/index.ts) for the middleware stack.
 
-**Status**: Cloud foundation in progress. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, GitHub Actions run Drizzle migrations against local / preview / production database targets, Better Auth has email/password, magic-link, Google OAuth, and Resend delivery wiring, and the tenant + logic CRUD/versioning APIs are available.
+**Status**: Cloud foundation in progress. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, GitHub Actions run Drizzle migrations against local / preview / production database targets, Better Auth has email/password, magic-link, Google OAuth, and Resend delivery wiring, the tenant + logic CRUD/versioning APIs are available, and both external `/v1/*` surfaces are live — REST [Evaluate API](#evaluate-api-v1) (P4.2) and JSON-RPC [Hosted MCP](#hosted-mcp-v1mcp) (P4.3 + P4.4).
 
 ---
 
@@ -65,6 +65,7 @@ Worker listens on `http://localhost:8787`. Endpoints:
 - `PATCH /api/api-keys/:apiKeyId` — rename, change role, or update allow-list
 - `POST /api/api-keys/:apiKeyId/revoke` — revoke an API key
 - `POST /v1/logics/:logicId/evaluate` — **external** Bearer-authenticated evaluate ([Evaluate API](#evaluate-api-v1) below)
+- `POST /v1/mcp` — **external** Bearer-authenticated MCP server, JSON-RPC 2.0 over HTTP ([Hosted MCP](#hosted-mcp-v1mcp) below)
 
 ---
 
@@ -347,6 +348,134 @@ curl -fsS "$BASE/v1/logics/$LOGIC_ID/evaluate?version=v3" \
   -H 'x-request-id: nightly-backfill-2026-05-24-batch-001' \
   -d '{"inputs":{"Amount":50}}'
 ```
+
+---
+
+## Hosted MCP (`/v1/mcp`)
+
+The cloud-side counterpart to the Standalone MCP CLI ([`leverie-mcp`](../mcp-server/README.md)). LLM agents connect with an API key and the server exposes every logic the key can reach as a callable MCP tool, with input / output JSON Schemas derived from `@leverie/schema`.
+
+Implementation: [src/routes/mcp.ts](./src/routes/mcp.ts).
+
+### Standalone MCP vs Hosted MCP
+
+The same MCP contract is published from two data planes — pick the one that fits the deployment shape:
+
+| Aspect             | Standalone (`leverie-mcp serve`)              | Hosted (`POST /v1/mcp`)                          |
+| ------------------ | --------------------------------------------- | ------------------------------------------------ |
+| Transport          | stdio                                         | HTTP POST (JSON-RPC 2.0, stateless)              |
+| Data source        | Logic JSON file(s) on the local filesystem    | Postgres — published `logic_version` snapshots   |
+| Auth               | none (local trust boundary)                   | Bearer API key (`Authorization: Bearer lvr_...`) |
+| Tool catalog       | `tools/list` shows every file in the directory| `tools/list` shows every in-scope logic with a pinned production version |
+| Tool freshness     | `--watch` reload from file                    | Always served from the current production pin    |
+| Editor integration | Editor → JSON export → run CLI                | Editor saves → publish → tool catalog updates    |
+
+### Endpoint
+
+```
+POST /v1/mcp
+```
+
+Single endpoint for all JSON-RPC methods. Stateless — the server holds no session between requests, so every request reissues authentication and (when needed) `initialize`. This trades the streamable-HTTP transport's bidirectional channel away in exchange for Workers-friendly statelessness. Clients that need session affinity can either reissue `initialize` per request or fall back to the Standalone MCP CLI.
+
+### Headers
+
+| Header          | Required | Description                                                                                   |
+| --------------- | -------- | --------------------------------------------------------------------------------------------- |
+| `Authorization` | yes      | `Bearer lvr_<base64url>` — same key shape and auth path as the Evaluate API                   |
+| `Content-Type`  | yes      | `application/json`                                                                            |
+| `X-Request-Id`  | no       | Correlation id used on every `execution_log` row written by `tools/call`; auto-generated UUID when absent |
+
+### Supported methods
+
+| Method                     | Result                                                                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialize`               | `{ protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: "leverie-mcp-hosted", version } }`. Client-supplied `protocolVersion` is echoed if supported (`2024-11-05`, `2025-03-26`, `2025-06-18`), otherwise the latest is returned |
+| `ping`                     | Empty object — health probe used by some MCP clients                                                                                     |
+| `tools/list`               | `{ tools: [...] }`. One tool per logic in scope with a pinned production version. Tools without production are intentionally hidden so the LLM's catalog never contains entries that would only error on call |
+| `tools/call`               | `{ content: [{type:"text", text:"<json>"}], structuredContent: {...}, isError: false }`. Evaluates the named tool against its production snapshot |
+| `notifications/*`          | Accepted and acknowledged with HTTP 204 (no JSON-RPC response body, per spec)                                                            |
+
+Unknown methods return JSON-RPC error `-32601` (`method_not_found`).
+
+### Tool definitions
+
+`tools/list` emits one tool definition per accessible logic:
+
+| Field          | Source                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`         | `logic.slug` (workspace-unique, slug-shaped, stable across renames of `logic.name`)                                                   |
+| `description`  | `logicToToolDescription(logic)` from `@leverie/schema` (machine-readable Inputs / Outputs summary), with `Version: v<N> (production).` appended |
+| `inputSchema`  | `logicToInputSchema(logic)` — JSON Schema draft 2020-12, `additionalProperties: false`, keyed by **field name**                       |
+| `outputSchema` | `logicToOutputSchema(logic)` — `oneOf` of `{status:"ok", outputs, trace}` and `{status:"no_match", unmatchedTable, trace}`            |
+
+### tools/call contract
+
+Tool execution failures (invalid inputs, engine errors) come back as a normal JSON-RPC `result` with `isError: true` and an explanatory `content` block, per the MCP spec. Reserve JSON-RPC errors for protocol-level problems:
+
+| JSON-RPC error code | When                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| `-32600`            | Auth failed, rate limited, malformed request, or invalid JSON-RPC envelope                        |
+| `-32601`            | Unsupported method (only `initialize`, `ping`, `tools/list`, `tools/call`, `notifications/*` are recognized) |
+| `-32602`            | Unknown tool name, malformed `tools/call` params, or tool whose production snapshot can no longer be loaded |
+| `-32603`            | Internal server error (handler threw)                                                             |
+| `-32700`            | Body is not valid JSON                                                                            |
+
+Version selection is **always production** for hosted MCP — the same reason `?version=draft` is rejected by the Evaluate API: drafts are mutable and inconsistent during editing, which breaks the `execution_log` audit / replay model.
+
+### Persistence
+
+Every successful `tools/call` writes one `execution_log` row with the same shape as the Evaluate API (`caller_actor_type='api_key'`, `caller_channel='api_key'`, `requested_version_type='production'`). Unknown-tool rejections and other protocol-level errors do **not** write `execution_log` rows — they never reached evaluation. `api_key.last_used_at` is best-effort bumped on every authenticated request.
+
+### Rate limits
+
+Per-key fixed window, **shared with the Evaluate API** (one key, one bucket, regardless of which `/v1/*` surface is used):
+
+| Window | Limit        |
+| ------ | ------------ |
+| 10 s   | 60 requests  |
+| 60 s   | 600 requests |
+
+Trips return JSON-RPC error `-32600` with `data: { code: "rate_limited", retryAfterSeconds }` plus a `Retry-After` HTTP header.
+
+### Curl examples
+
+```bash
+# 1) initialize — most MCP SDKs send this once at session start.
+curl -fsS "$BASE/v1/mcp" \
+  -H "authorization: Bearer $SECRET" \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
+
+# 2) tools/list — see every logic this API key can call.
+curl -fsS "$BASE/v1/mcp" \
+  -H "authorization: Bearer $SECRET" \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+
+# 3) tools/call — evaluate the production snapshot. Tool name is logic.slug.
+curl -fsS "$BASE/v1/mcp" \
+  -H "authorization: Bearer $SECRET" \
+  -H 'content-type: application/json' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":3,
+    "method":"tools/call",
+    "params":{
+      "name":"approval",
+      "arguments":{"Customer Type":"Corp","Amount":5500000,"Has Guarantor":true}
+    }
+  }'
+```
+
+### Connecting from MCP clients
+
+Most stdio-only MCP clients (Claude Desktop, Cursor, Cline) cannot speak this transport directly. Two patterns work today:
+
+1. **Bridge via the Standalone CLI**: have the agent host run `leverie-mcp serve ./logics/` against a directory of exported Logic JSON files. See [apps/mcp-server/README.md](../mcp-server/README.md) for client-specific setup.
+2. **Direct HTTP MCP**: clients that support HTTP MCP transports (or which can wrap a custom transport) can POST directly to `/v1/mcp`. The wire format is plain JSON-RPC 2.0 — the curl examples above are the entire protocol.
+
+A native streamable-HTTP transport for hosted MCP is intentionally deferred — P4.5 ships a TypeScript SDK that wraps `/v1/mcp` for the most common consumption path, and P4.6 publishes an OpenAPI doc covering both `/v1` surfaces.
 
 ---
 

@@ -10,6 +10,7 @@ import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
 import { apiKeyRoutes } from './routes/apiKeys.js';
 import { evaluateRoutes } from './routes/evaluate.js';
 import { logicRoutes } from './routes/logics.js';
+import { mcpRoutes } from './routes/mcp.js';
 import { orgRoutes } from './routes/orgs.js';
 import { workspaceRoutes } from './routes/workspaces.js';
 import { resolveSecondaryStorage } from './secondaryStorage.js';
@@ -208,6 +209,7 @@ app.use(
   }),
 );
 app.route('/', evaluateRoutes);
+app.route('/', mcpRoutes);
 
 // Hourly sweep that physically deletes abandoned sign-up rows so an attacker
 // cannot fill the `user` table (and indefinitely squat on real email

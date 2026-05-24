@@ -75,25 +75,25 @@ const REQUEST_ID_MAX = 200;
 const INPUT_MAX_KEYS = 200;
 const INPUT_VALUE_MAX = 4000;
 
-type ApiAuthError = {
+export type ApiAuthError = {
   code: string;
   message: string;
   status: 400 | 401 | 403;
 };
 
-type AuthenticatedKey = {
+export type AuthenticatedKey = {
   apiKey: typeof apiKey.$inferSelect;
   workspace: typeof workspace.$inferSelect;
 };
 
 type KeyRingEntry = { version: string; secret: string };
 
-type VersionParam =
+export type VersionParam =
   | { kind: 'production' }
   | { kind: 'latest' }
   | { kind: 'version'; number: number };
 
-type ResolvedVersion = {
+export type ResolvedVersion = {
   type: 'production' | 'latest' | 'version';
   versionId: string;
   versionNumber: number;
@@ -101,7 +101,7 @@ type ResolvedVersion = {
   requestedNumber?: number;
 };
 
-function jsonAuthError(error: ApiAuthError) {
+export function jsonAuthError(error: ApiAuthError) {
   return {
     body: { error: { code: error.code, message: error.message } } as const,
     status: error.status,
@@ -161,7 +161,7 @@ async function hmacSha256Base64Url(secret: string, value: string) {
   return btoa(raw).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
-async function authenticateApiKey(
+export async function authenticateApiKey(
   db: Database,
   env: Env,
   header: string | undefined,
@@ -249,7 +249,9 @@ async function authenticateApiKey(
   };
 }
 
-function parseVersionParam(value: string | undefined): VersionParam | null {
+export function parseVersionParam(
+  value: string | undefined,
+): VersionParam | null {
   const label = value && value.length > 0 ? value : 'production';
   if (label === 'production' || label === 'latest') return { kind: label };
   const match = /^v([1-9][0-9]{0,8})$/.exec(label);
@@ -257,7 +259,7 @@ function parseVersionParam(value: string | undefined): VersionParam | null {
   return { kind: 'version', number: Number(match[1]) };
 }
 
-async function resolveVersion(
+export async function resolveVersion(
   db: Database,
   existing: typeof logic.$inferSelect,
   param: VersionParam,
@@ -319,33 +321,23 @@ async function resolveVersion(
 // have to stringify everything themselves. Anything else (array, object, null)
 // is dropped — passing a structured value where a scalar belongs is a caller
 // bug, and silently dropping is friendlier than 400ing on a single bad field.
-function normaliseInputs(
-  body: unknown,
+// Shared between the REST route (which receives `{ inputs: {...} }` in the
+// body) and the MCP route (whose JSON-RPC tools/call passes `arguments` as the
+// inputs object directly). Both surfaces hit the same field-name / type-coercion
+// contract the engine expects.
+export function coerceInputs(
+  raw: unknown,
 ): { inputs: Record<string, string> } | { error: ApiAuthError } {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return {
-      error: {
-        code: 'invalid_request',
-        message: 'Request body must be a JSON object.',
-        status: 400,
-      },
-    };
-  }
-  const inputs = (body as { inputs?: unknown }).inputs;
-  if (
-    !inputs ||
-    typeof inputs !== 'object' ||
-    Array.isArray(inputs)
-  ) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return {
       error: {
         code: 'invalid_inputs',
-        message: 'Request body must include an "inputs" object.',
+        message: 'inputs must be a JSON object.',
         status: 400,
       },
     };
   }
-  const entries = Object.entries(inputs as Record<string, unknown>);
+  const entries = Object.entries(raw as Record<string, unknown>);
   if (entries.length > INPUT_MAX_KEYS) {
     return {
       error: {
@@ -378,7 +370,32 @@ function normaliseInputs(
   return { inputs: result };
 }
 
-function outputsByName(logicData: Logic, outputs: Record<string, string>) {
+export function normaliseInputs(
+  body: unknown,
+): { inputs: Record<string, string> } | { error: ApiAuthError } {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return {
+      error: {
+        code: 'invalid_request',
+        message: 'Request body must be a JSON object.',
+        status: 400,
+      },
+    };
+  }
+  const inputs = (body as { inputs?: unknown }).inputs;
+  if (!inputs || typeof inputs !== 'object' || Array.isArray(inputs)) {
+    return {
+      error: {
+        code: 'invalid_inputs',
+        message: 'Request body must include an "inputs" object.',
+        status: 400,
+      },
+    };
+  }
+  return coerceInputs(inputs);
+}
+
+export function outputsByName(logicData: Logic, outputs: Record<string, string>) {
   // Walk every table once to map output column id → name. Different tables
   // may share a name on purpose — the union shape is the same as what
   // logicToOutputSchema advertises to LLMs.
@@ -393,11 +410,11 @@ function outputsByName(logicData: Logic, outputs: Record<string, string>) {
   return result;
 }
 
-function unmatchedTableName(logicData: Logic, tableId: string): string {
+export function unmatchedTableName(logicData: Logic, tableId: string): string {
   return logicData.tables[tableId]?.name ?? tableId;
 }
 
-async function enforceEvaluateRateLimit(env: Env, apiKeyId: string) {
+export async function enforceEvaluateRateLimit(env: Env, apiKeyId: string) {
   const storage = resolveSecondaryStorage(env);
   return checkFixedWindowRateLimit(
     storage,
@@ -409,7 +426,7 @@ async function enforceEvaluateRateLimit(env: Env, apiKeyId: string) {
   );
 }
 
-async function recordExecutionLog(
+export async function recordExecutionLog(
   db: Database,
   input: {
     workspaceId: string;
@@ -450,7 +467,23 @@ async function recordExecutionLog(
   });
 }
 
-async function recordErrorExecutionLog(
+// Best-effort hot-path bump; failure here must not poison a successful
+// evaluate. Hot-row risk on a high-volume key is tracked as Q11 (design v5)
+// and will move to a bucketed update with P4.4. The Drizzle update is a
+// PromiseLike (no .catch), so we wrap it in try/await. Shared between the REST
+// evaluate route and the hosted MCP route.
+export async function touchApiKeyLastUsedAt(db: Database, apiKeyId: string) {
+  try {
+    await db
+      .update(apiKey)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(apiKey.id, apiKeyId));
+  } catch {
+    // swallow — last_used_at is observability, not correctness.
+  }
+}
+
+export async function recordErrorExecutionLog(
   db: Database,
   input: {
     workspaceId: string;
@@ -688,18 +721,7 @@ evaluateRoutes.post('/v1/logics/:logicId/evaluate', async (c) => {
     requestId,
   });
 
-  // Best-effort hot-path bump; failure here must not poison a successful
-  // evaluate. Hot-row risk on a high-volume key is tracked as Q11 (design v5)
-  // and will move to a bucketed update with P4.4. The Drizzle update is a
-  // PromiseLike (no .catch), so we wrap it in try/await.
-  try {
-    await db
-      .update(apiKey)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(apiKey.id, auth.apiKey.id));
-  } catch {
-    // swallow — last_used_at is observability, not correctness.
-  }
+    await touchApiKeyLastUsedAt(db, auth.apiKey.id);
 
   return c.json({
     logic: {

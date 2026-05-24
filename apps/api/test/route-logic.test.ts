@@ -1550,3 +1550,346 @@ describe('evaluate API (P4.2)', () => {
     });
   });
 });
+
+describe('hosted MCP API (P4.3)', () => {
+  const apiSecret = 'lvr_test_secret_token_abcdef0123456789';
+  let apiKeyHash = '';
+
+  beforeAll(async () => {
+    apiKeyHash = await hashPassword(apiSecret);
+  });
+
+  function makeApiKeyForAuth(overrides: Record<string, unknown> = {}) {
+    return makeApiKeyRow({ keyHash: apiKeyHash, ...overrides });
+  }
+
+  function mcpRequest(body: unknown, init?: { headers?: HeadersInit }) {
+    return new Request('http://localhost/v1/mcp', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiSecret}`,
+        ...init?.headers,
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it('rejects missing Authorization with a JSON-RPC-shaped error', async () => {
+    currentDb = createFakeDb();
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      new Request('http://localhost/v1/mcp', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(401);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      jsonrpc: '2.0',
+      id: null,
+      error: {
+        code: -32600,
+        data: { code: 'missing_authorization' },
+      },
+    });
+  });
+
+  it('returns server info on initialize and echoes a supported protocolVersion', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      mcpRequest({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-03-26' },
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      jsonrpc: '2.0',
+      id: 1,
+      result: {
+        protocolVersion: '2025-03-26',
+        capabilities: { tools: { listChanged: false } },
+        serverInfo: { name: 'leverie-mcp-hosted' },
+      },
+    });
+  });
+
+  it('lists accessible logics in scope=all mode with input/output JSON Schemas', async () => {
+    const data = makeLogic();
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        // loadAccessibleLogics — scope=all path
+        [
+          {
+            id: 'logic-1',
+            workspaceId: 'workspace-1',
+            slug: 'approval',
+            name: 'Approval',
+            description: null,
+            productionVersionId: 'version-2',
+          },
+        ],
+        // loadLogicVersionData
+        [
+          {
+            id: 'version-2',
+            versionNumber: 2,
+            data,
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      mcpRequest({ jsonrpc: '2.0', id: 7, method: 'tools/list' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      jsonrpc: '2.0',
+      id: 7,
+      result: {
+        tools: [
+          expect.objectContaining({
+            name: 'approval',
+            description: expect.stringContaining('Version: v2 (production)'),
+            inputSchema: expect.objectContaining({
+              type: 'object',
+              properties: expect.objectContaining({
+                Amount: expect.objectContaining({ type: 'number' }),
+              }),
+            }),
+            outputSchema: expect.objectContaining({
+              oneOf: expect.any(Array),
+            }),
+          }),
+        ],
+      },
+    });
+  });
+
+  it('hides logics with no pinned production version from tools/list', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        // No row passes the productionVersionId !== null filter.
+        [
+          {
+            id: 'logic-1',
+            workspaceId: 'workspace-1',
+            slug: 'approval',
+            name: 'Approval',
+            description: null,
+            productionVersionId: null,
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      mcpRequest({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.result).toEqual({ tools: [] });
+  });
+
+  it('evaluates tools/call against the production snapshot and records execution_log', async () => {
+    const data = makeLogic();
+    const logicMetaRow = {
+      id: 'logic-1',
+      workspaceId: 'workspace-1',
+      slug: 'approval',
+      name: 'Approval',
+      description: null,
+      productionVersionId: 'version-2',
+    };
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        // tools/call → loadAccessibleLogics
+        [logicMetaRow],
+        // tools/call → loadLogicVersionData
+        [{ id: 'version-2', versionNumber: 2, data }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      mcpRequest({
+        jsonrpc: '2.0',
+        id: 42,
+        method: 'tools/call',
+        params: {
+          name: 'approval',
+          arguments: { Amount: 50 },
+        },
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      jsonrpc: '2.0',
+      id: 42,
+      result: {
+        isError: false,
+        structuredContent: {
+          status: 'ok',
+          outputs: { Decision: 'approve' },
+        },
+      },
+    });
+    expect(body.result.content[0]).toMatchObject({ type: 'text' });
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      workspaceId: 'workspace-1',
+      logicId: 'logic-1',
+      logicVersionId: 'version-2',
+      requestedVersionType: 'production',
+      requestedVersionNumber: null,
+      resolvedVersionNumber: 2,
+      status: 'ok',
+      callerActorType: 'api_key',
+      callerChannel: 'api_key',
+      callerApiKeyId: 'api-key-1',
+    });
+  });
+
+  it('rejects unknown tool names with JSON-RPC invalid_params (no execution_log)', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        // empty accessible logics → no match for the requested tool name
+        [],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      mcpRequest({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'does_not_exist', arguments: {} },
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      jsonrpc: '2.0',
+      id: 1,
+      error: { code: -32602 },
+    });
+    // The only write is the best-effort api_key.last_used_at bump, which
+    // happens after every authenticated request regardless of dispatch outcome.
+    // execution_log must NOT be written for an unknown-tool rejection.
+    const executionLogWrites = currentDb.writes.filter(
+      (w) =>
+        (w.values as { status?: string } | undefined)?.status !== undefined,
+    );
+    expect(executionLogWrites).toHaveLength(0);
+  });
+
+  it('returns method_not_found for unsupported methods', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      mcpRequest({ jsonrpc: '2.0', id: 9, method: 'resources/list' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      jsonrpc: '2.0',
+      id: 9,
+      error: { code: -32601 },
+    });
+  });
+
+  it('returns 204 for notifications (no id)', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      mcpRequest({
+        jsonrpc: '2.0',
+        method: 'notifications/initialized',
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(204);
+  });
+});
