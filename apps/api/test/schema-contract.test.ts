@@ -7,6 +7,7 @@ const repoRoot = resolve(apiRoot, '../..');
 const migrations = [
   'drizzle/0000_normal_pride.sql',
   'drizzle/0001_petite_toro.sql',
+  'drizzle/0002_old_champions.sql',
 ]
   .map((path) => readFileSync(resolve(apiRoot, path), 'utf8'))
   .join('\n');
@@ -130,6 +131,13 @@ describe('P3 schema contract', () => {
       'execution_log_caller_chk',
       'audit_event_actor_consistency_chk',
       'org_deletion_job_status_chk',
+      'user_name_length_chk',
+      'org_name_length_chk',
+      'workspace_description_length_chk',
+      'logic_description_length_chk',
+      'logic_version_release_notes_length_chk',
+      'execution_log_error_message_length_chk',
+      'org_deletion_job_last_error_length_chk',
     ]) {
       expectSql(checkName);
     }

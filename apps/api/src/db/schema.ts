@@ -76,7 +76,15 @@ export const user = pgTable(
       .defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
-  (t) => [uniqueIndex('user_email_uniq').on(t.email)],
+  (t) => [
+    check('user_email_length_chk', sql`length(${t.email}) <= 320`),
+    check('user_name_length_chk', sql`length(${t.name}) <= 120`),
+    check(
+      'user_image_length_chk',
+      sql`${t.image} IS NULL OR length(${t.image}) <= 2048`,
+    ),
+    uniqueIndex('user_email_uniq').on(t.email),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -110,6 +118,8 @@ export const org = pgTable(
       'org_slug_format_chk',
       sql`${t.slug} ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'`,
     ),
+    check('org_name_length_chk', sql`length(${t.name}) <= 120`),
+    check('org_plan_length_chk', sql`length(${t.plan}) <= 32`),
     check(
       'org_lifecycle_status_chk',
       sql`${t.lifecycleStatus} IN ('active', 'deleting', 'purging')`,
@@ -185,6 +195,11 @@ export const workspace = pgTable(
     check(
       'workspace_slug_format_chk',
       sql`${t.slug} ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'`,
+    ),
+    check('workspace_name_length_chk', sql`length(${t.name}) <= 120`),
+    check(
+      'workspace_description_length_chk',
+      sql`${t.description} IS NULL OR length(${t.description}) <= 500`,
     ),
     check(
       'workspace_created_actor_type_chk',
@@ -295,6 +310,11 @@ export const invitation = pgTable(
       .defaultNow(),
   },
   (t) => [
+    check('invitation_email_length_chk', sql`length(${t.email}) <= 320`),
+    check(
+      'invitation_token_digest_length_chk',
+      sql`length(${t.tokenDigest}) <= 128`,
+    ),
     check(
       'invitation_role_chk',
       sql`${t.role} IN ('owner', 'admin', 'editor', 'viewer', 'runner')`,
@@ -383,6 +403,11 @@ export const logic = pgTable(
       'logic_slug_format_chk',
       sql`${t.slug} ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'`,
     ),
+    check('logic_name_length_chk', sql`length(${t.name}) <= 120`),
+    check(
+      'logic_description_length_chk',
+      sql`${t.description} IS NULL OR length(${t.description}) <= 500`,
+    ),
     check(
       'logic_draft_schema_version_matches_chk',
       sql`jsonb_typeof(${t.draftData}->'version') = 'string'
@@ -459,6 +484,10 @@ export const logicVersion = pgTable(
           AND ${t.schemaVersion} = ${t.data}->>'version'`,
     ),
     check(
+      'logic_version_release_notes_length_chk',
+      sql`${t.releaseNotes} IS NULL OR length(${t.releaseNotes}) <= 2000`,
+    ),
+    check(
       'logic_version_published_actor_type_chk',
       sql`${t.publishedActorType} IN ('user', 'system')`,
     ),
@@ -518,6 +547,12 @@ export const apiKey = pgTable(
     createdActorId: uuid('created_actor_id'),
   },
   (t) => [
+    check('api_key_name_length_chk', sql`length(${t.name}) <= 120`),
+    check(
+      'api_key_lookup_secret_version_length_chk',
+      sql`length(${t.lookupSecretVersion}) <= 32`,
+    ),
+    check('api_key_key_prefix_length_chk', sql`length(${t.keyPrefix}) <= 32`),
     check('api_key_role_chk', sql`${t.role} IN ('editor', 'viewer', 'runner')`),
     check(
       'api_key_scope_mode_chk',
@@ -639,6 +674,18 @@ export const executionLog = pgTable(
     check(
       'execution_log_latency_ms_non_negative_chk',
       sql`${t.latencyMs} >= 0`,
+    ),
+    check(
+      'execution_log_error_code_length_chk',
+      sql`${t.errorCode} IS NULL OR length(${t.errorCode}) <= 120`,
+    ),
+    check(
+      'execution_log_request_id_length_chk',
+      sql`${t.requestId} IS NULL OR length(${t.requestId}) <= 200`,
+    ),
+    check(
+      'execution_log_error_message_length_chk',
+      sql`${t.errorMessage} IS NULL OR length(${t.errorMessage}) <= 2000`,
     ),
     check(
       'execution_log_status_payload_chk',
@@ -774,6 +821,11 @@ export const auditEvent = pgTable(
       'audit_event_actor_channel_chk',
       sql`${t.actorChannel} IN ('web', 'api_key', 'mcp', 'system')`,
     ),
+    check('audit_event_action_length_chk', sql`length(${t.action}) <= 120`),
+    check(
+      'audit_event_target_type_length_chk',
+      sql`length(${t.targetType}) <= 120`,
+    ),
     check(
       'audit_event_actor_consistency_chk',
       sql`(${t.actorType} = 'user' AND ${t.actorUserId} IS NOT NULL AND ${t.actorApiKeyId} IS NULL)
@@ -843,6 +895,18 @@ export const orgDeletionJob = pgTable(
     requestedActorId: uuid('requested_actor_id'),
   },
   (t) => [
+    check(
+      'org_deletion_job_slug_snapshot_length_chk',
+      sql`length(${t.orgSlugSnapshot}) <= 63`,
+    ),
+    check(
+      'org_deletion_job_name_snapshot_length_chk',
+      sql`length(${t.orgNameSnapshot}) <= 120`,
+    ),
+    check(
+      'org_deletion_job_last_error_length_chk',
+      sql`${t.lastError} IS NULL OR length(${t.lastError}) <= 2000`,
+    ),
     check(
       'org_deletion_job_status_chk',
       sql`(${t.status} = 'queued'
