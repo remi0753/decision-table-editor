@@ -15,6 +15,13 @@
       "when": 1779455109481,
       "tag": "0001_petite_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779609170311,
+      "tag": "0002_old_champions",
+      "breakpoints": true
     }
   ]
 }
