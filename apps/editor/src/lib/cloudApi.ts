@@ -159,12 +159,14 @@ async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const error = data?.error;
-    throw new CloudApiError(
-      res.status,
-      error?.code ?? 'request_failed',
-      error?.message ?? `Request failed with ${res.status}`,
-    );
+    // Our routes nest the error as { error: { code, message } }; Better Auth's
+    // handler returns { code, message } at the top level. Try both shapes.
+    const code = data?.error?.code ?? data?.code ?? 'request_failed';
+    const message =
+      data?.error?.message ??
+      data?.message ??
+      `Request failed with ${res.status}`;
+    throw new CloudApiError(res.status, code, message);
   }
   if (data === null) {
     throw new CloudApiError(
@@ -352,13 +354,26 @@ export async function signUpEmail(
   name: string,
   email: string,
   password: string,
+  callbackURL: string,
 ) {
   return api('/api/auth/sign-up/email', {
     method: 'POST',
-    body: { name, email, password },
+    body: { name, email, password, callbackURL },
+  });
+}
+
+export async function sendVerificationEmail(
+  email: string,
+  callbackURL: string,
+) {
+  return api('/api/auth/send-verification-email', {
+    method: 'POST',
+    body: { email, callbackURL },
   });
 }
 
 export async function signOut() {
-  return api('/api/auth/sign-out', { method: 'POST' });
+  // Pass an empty object so the api helper sets Content-Type: application/json —
+  // Better Auth's POST /sign-out rejects requests without it (415).
+  return api('/api/auth/sign-out', { method: 'POST', body: {} });
 }

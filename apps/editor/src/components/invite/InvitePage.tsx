@@ -105,11 +105,17 @@ export function InvitePage() {
     setSubmitting(true);
     try {
       if (authMode === 'sign-up') {
+        // Holding the invitation token already proves ownership of the
+        // invited email, so the server marks new invitee accounts as verified
+        // (see auth.ts). With auto sign-in disabled globally we still need to
+        // explicitly sign in before accepting.
         await signUpEmail(
           name || preview.invitation.email,
           preview.invitation.email,
           password,
+          `${window.location.origin}/edit`,
         );
+        await signInEmail(preview.invitation.email, password);
       } else {
         await signInEmail(preview.invitation.email, password);
       }

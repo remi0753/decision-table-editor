@@ -15,6 +15,11 @@ type MagicLinkEmailInput = {
   url: string;
 };
 
+type VerificationEmailInput = {
+  email: string;
+  url: string;
+};
+
 type InvitationEmailInput = {
   email: string;
   orgName: string;
@@ -62,6 +67,18 @@ export async function sendMagicLinkEmail(
     subject: 'Sign in to LEVERIE',
     text: `Open this link to sign in to LEVERIE:\n\n${input.url}\n\nIf you did not request this, you can ignore this email.`,
     html: `<p>Open this link to sign in to LEVERIE:</p><p><a href="${input.url}">Sign in to LEVERIE</a></p><p>If you did not request this, you can ignore this email.</p>`,
+  });
+}
+
+export async function sendVerificationEmail(
+  config: EmailConfig,
+  input: VerificationEmailInput,
+) {
+  await sendEmail(config, {
+    to: input.email,
+    subject: 'Verify your LEVERIE email',
+    text: `Confirm this email address to finish creating your LEVERIE account:\n\n${input.url}\n\nIf you did not request this, you can ignore this email — no account will be created.`,
+    html: `<p>Confirm this email address to finish creating your LEVERIE account:</p><p><a href="${input.url}">Verify my email</a></p><p>If you did not request this, you can ignore this email — no account will be created.</p>`,
   });
 }
 

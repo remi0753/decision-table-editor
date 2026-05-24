@@ -13,8 +13,12 @@ port = 8787
 local_protocol = "http"
 
 # Non-secret env vars (shared across all environments unless overridden).
+# In local dev, BETTER_AUTH_URL points at the editor's Vite origin so the
+# Set-Cookie response from the email-verification redirect is scoped to the
+# same host that the SPA later calls /api/* on. The actual Worker still
+# listens on :8787 — Vite proxies /api/* through to it.
 [vars]
-BETTER_AUTH_URL = "http://localhost:8787"
+BETTER_AUTH_URL = "http://localhost:5173"
 CORS_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
 
 # ──────────────────────────────────────────────────────────────────────────
