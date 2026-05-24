@@ -2,11 +2,26 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "leverie",
   "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
   },
+  // Static-only Worker (no `main`). The Vite build emits the SPA into ./dist,
+  // and `not_found_handling: "single-page-application"` makes Workers Assets
+  // return index.html for any path that does not match a built asset, so
+  // client-side routing works. The API is a separate Worker (apps/api) mounted
+  // on `leverie.dev/api/*`; that more-specific route wins over `leverie.dev/*`.
   "assets": {
     "not_found_handling": "single-page-application"
   },
-  "compatibility_flags": ["nodejs_compat"]
+  // Production route. `@cloudflare/vite-plugin` does not propagate
+  // `env.preview` / `env.prod` overrides into the generated dist/wrangler.json
+  // it hands to `wrangler deploy`, so a separate `wrangler.preview.jsonc` (or
+  // similar) is the recommended path when a preview environment is added.
+  "routes": [
+    {
+      "pattern": "leverie.dev/*",
+      "zone_name": "leverie.dev"
+    }
+  ]
 }
