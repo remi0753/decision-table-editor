@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../db/client.js';
 import {
@@ -31,6 +31,11 @@ import {
   sha256Base64Url,
   writeAudit,
 } from './shared.js';
+
+// Temporary anti-abuse cap while the editor is publicly open. The UI does not
+// expose an org-creation flow today, so the practical limit is 1 — additional
+// org creation is gated behind an explicit product decision.
+const MAX_ORGS_PER_USER = 1;
 
 function invitationUrl(c: AppContext, token: string) {
   const url = new URL('/invite', c.env.BETTER_AUTH_URL);
@@ -125,6 +130,25 @@ orgRoutes.post('/api/orgs', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const user = await requireUser(c, db);
   if (!user) return jsonError(c, 401, 'unauthorized', 'Sign in first.');
+
+  const [createdByUser] = await db
+    .select({ value: count() })
+    .from(org)
+    .where(
+      and(
+        eq(org.createdActorType, 'user'),
+        eq(org.createdActorId, user.id),
+        isNull(org.deletedAt),
+      ),
+    );
+  if ((createdByUser?.value ?? 0) >= MAX_ORGS_PER_USER) {
+    return jsonError(
+      c,
+      403,
+      'org_limit_reached',
+      `Each account can create up to ${MAX_ORGS_PER_USER} organization(s).`,
+    );
+  }
 
   const body = await c.req.json().catch(() => null);
   const name = parseBodyString(body, 'name', { required: true, max: 120 });

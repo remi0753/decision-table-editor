@@ -6,6 +6,7 @@ import type { Database } from '../db/client.js';
 import { auditEvent, membership } from '../db/schema.js';
 import type { Env } from '../env.js';
 import { getAllowedOrigins } from '../origins.js';
+import { resolveSecondaryStorage } from '../secondaryStorage.js';
 
 export type AppContext = Context<{ Bindings: Env }>;
 export type Role = 'owner' | 'admin' | 'editor' | 'viewer' | 'runner';
@@ -177,6 +178,7 @@ function authForRequest(c: AppContext, db: Database) {
     googleClientSecret: c.env.GOOGLE_CLIENT_SECRET,
     resendApiKey: c.env.RESEND_API_KEY,
     emailFrom: c.env.EMAIL_FROM,
+    secondaryStorage: resolveSecondaryStorage(c.env),
   });
 }
 

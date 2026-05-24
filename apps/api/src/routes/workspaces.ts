@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../db/client.js';
 import { workspace } from '../db/schema.js';
@@ -14,6 +14,12 @@ import {
   rolePersona,
   writeAudit,
 } from './shared.js';
+
+// Temporary cap. The UI currently relies on the default workspace created at
+// org provisioning and does not expose a workspace-creation flow, so the
+// effective limit is 1 active workspace per org until product-level multi-
+// workspace support lands.
+const MAX_WORKSPACES_PER_ORG = 1;
 
 export const workspaceRoutes = new Hono<{ Bindings: Env }>();
 
@@ -39,6 +45,19 @@ workspaceRoutes.post('/api/orgs/:orgId/workspaces', async (c) => {
   if ('error' in access) return access.error;
   if (!canManageWorkspaces(access.member.role)) {
     return jsonError(c, 403, 'forbidden', 'Editor role or higher required.');
+  }
+
+  const [existingCount] = await db
+    .select({ value: count() })
+    .from(workspace)
+    .where(and(eq(workspace.orgId, orgId), isNull(workspace.deletedAt)));
+  if ((existingCount?.value ?? 0) >= MAX_WORKSPACES_PER_ORG) {
+    return jsonError(
+      c,
+      403,
+      'workspace_limit_reached',
+      `Each organization can have up to ${MAX_WORKSPACES_PER_ORG} workspace(s).`,
+    );
   }
 
   const body = await c.req.json().catch(() => null);

@@ -5,6 +5,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { Database } from './db/client.js';
 import { invitation, user as userTable } from './db/schema.js';
 import { sendMagicLinkEmail, sendVerificationEmail } from './email.js';
+import type { SecondaryStorage } from './secondaryStorage.js';
 
 type AuthConfig = {
   baseURL: string;
@@ -14,6 +15,10 @@ type AuthConfig = {
   googleClientSecret?: string;
   resendApiKey?: string;
   emailFrom?: string;
+  // Required in production: backs Better Auth's rate-limit counters across
+  // Workers isolates. Without it, the auth router falls back to in-isolate
+  // memory and rate limiting is effectively defeated by horizontal fan-out.
+  secondaryStorage?: SecondaryStorage;
 };
 
 const generateDatabaseId = ({ model }: { model: string }) => {
@@ -66,6 +71,25 @@ export function createAuth(db: Database, config: AuthConfig) {
     database: drizzleAdapter(db, {
       provider: 'pg',
     }),
+    secondaryStorage: config.secondaryStorage,
+    // Better Auth's default rate limiter ships disabled outside production and
+    // its in-memory storage is unusable on Workers (each isolate keeps its own
+    // map). We force-enable it here and pin the storage to `secondary-storage`
+    // so it always uses the KV/Redis backend wired above. Auth-sensitive
+    // endpoints get tighter custom rules — the high-cost path is sending email.
+    rateLimit: {
+      enabled: true,
+      storage: 'secondary-storage',
+      window: 60,
+      max: 100,
+      customRules: {
+        '/sign-up/email': { window: 600, max: 5 },
+        '/sign-in/email': { window: 60, max: 10 },
+        '/sign-in/magic-link': { window: 600, max: 5 },
+        '/forget-password': { window: 600, max: 3 },
+        '/send-verification-email': { window: 600, max: 3 },
+      },
+    },
     socialProviders: googleProvider,
     plugins: [
       magicLink({
