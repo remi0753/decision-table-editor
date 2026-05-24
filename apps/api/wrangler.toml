@@ -64,12 +64,11 @@ id = "REPLACE_WITH_PROD_KV_NAMESPACE_ID"
 
 # ──────────────────────────────────────────────────────────────────────────
 # Cron Triggers — see [design_p3_infrastructure.md §2.5] for the job list.
-# Wired up in P3.5 onward; left empty for the P3.2.a scaffold.
+# The hourly trigger drives runScheduledMaintenance() which physically purges
+# abandoned sign-up rows so an attacker cannot squat on email addresses by
+# flooding /sign-up/email with random mailboxes.
 # ──────────────────────────────────────────────────────────────────────────
-# [triggers]
-# crons = [
-#   "0 * * * *",  # org_deletion_job dispatcher (hourly)
-#   "30 3 * * *", # invitation expiry sweep (daily)
-#   "0 4 * * *",  # execution_log retention sweep (daily)
-#   "0 5 * * *",  # audit_event retention sweep (daily)
-# ]
+[triggers]
+crons = [
+  "0 * * * *",  # unverified user + expired verification sweep (hourly)
+]

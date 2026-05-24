@@ -1003,12 +1003,12 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
   let updatedLogic: SerializedLogicInput = access.logic;
   try {
     const result = await db.execute(sql`
-      WITH lock AS (
+      WITH lock AS MATERIALIZED (
         SELECT pg_advisory_xact_lock(hashtextextended(${logicId}, 0))
       ),
       next_version AS (
         SELECT coalesce(max(version_number), 0) + 1 AS version_number
-        FROM logic_version
+        FROM logic_version, lock
         WHERE logic_id = ${logicId}
       ),
       inserted AS (

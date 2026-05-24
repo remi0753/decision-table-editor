@@ -86,7 +86,6 @@ export type InvitationPreview = {
     name: string;
   };
   authHint: {
-    invitedEmailHasAccount: boolean;
     currentUserEmail: string | null;
     currentUserMatchesInvitation: boolean;
   };
