@@ -3,6 +3,7 @@ import {
   Bot,
   CheckCircle2,
   GitBranch,
+  Github,
   Play,
   ShieldCheck,
   Sparkles,
@@ -10,6 +11,8 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import logoUrl from '@/assets/logo.svg';
+
+const GITHUB_URL = 'https://github.com/remi0753/leverie';
 
 export function TopPage() {
   const startGuestEditor = () => {
@@ -35,6 +38,15 @@ export function TopPage() {
             </a>
           </nav>
           <div className="flex items-center gap-2">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open LEVERIE on GitHub"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-violet-200 bg-white/80 text-gray-700 shadow-sm hover:bg-white hover:text-violet-800"
+            >
+              <Github className="h-5 w-5" aria-hidden="true" />
+            </a>
             <a
               href="/auth"
               className="whitespace-nowrap rounded-md border border-violet-200 bg-white/80 px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-white hover:text-violet-800"
@@ -297,8 +309,17 @@ export function TopPage() {
               </ul>
             </div>
           </div>
-          <div className="mt-12 border-t border-white/10 pt-6 text-xs text-white/50">
-            © {new Date().getFullYear()} LEVERIE
+          <div className="mt-12 flex items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/50">
+            <span>© {new Date().getFullYear()} LEVERIE</span>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open LEVERIE on GitHub"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-white/70 hover:border-white/25 hover:bg-white/10 hover:text-white"
+            >
+              <Github className="h-5 w-5" aria-hidden="true" />
+            </a>
           </div>
         </div>
       </footer>
