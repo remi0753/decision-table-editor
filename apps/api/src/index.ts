@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { createAuth } from './auth.js';
 import { createDb } from './db/client.js';
@@ -7,8 +8,32 @@ import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
 import { logicRoutes } from './routes/logics.js';
 import { orgRoutes } from './routes/orgs.js';
 import { workspaceRoutes } from './routes/workspaces.js';
+import { resolveSecondaryStorage } from './secondaryStorage.js';
 
 const app = new Hono<{ Bindings: Env }>();
+
+// 1 MB ceiling on request bodies under /api/*. The largest legitimate payload
+// is a logic draft (jsonb), and the editor caps real-world drafts well under
+// this. Without the limit, an attacker can OOM a Worker isolate by streaming
+// hundreds of megabytes into c.req.json().
+const API_MAX_BODY_BYTES = 1024 * 1024;
+
+app.use(
+  '/api/*',
+  bodyLimit({
+    maxSize: API_MAX_BODY_BYTES,
+    onError: (c) =>
+      c.json(
+        {
+          error: {
+            code: 'payload_too_large',
+            message: 'Request body exceeds 1 MB limit.',
+          },
+        },
+        413,
+      ),
+  }),
+);
 
 // Path-based production API ([design_p3_infrastructure.md §3.2]) is same-origin
 // and normally skips CORS. The allowlist exists for local SPA dev and for the
@@ -25,15 +50,24 @@ app.use(
 
 app.get('/', (c) => c.text('LEVERIE API'));
 
-app.get('/healthz', async (c) => {
-  // Liveness + DB connectivity. Returns 500 if the Neon path is unreachable
-  // (useful as a synthetic check from UptimeRobot / BetterStack).
+// Liveness only — cheap, no DB, no auth. Safe to expose for load-balancer
+// pings. The DB connectivity probe lives at /healthz/db so an attacker cannot
+// turn the public health endpoint into a Neon-amplification DoS by flooding it.
+app.get('/healthz', (c) => c.json({ ok: true }));
+
+// Deep health probe. Hits the database. Mounted off the SPA path so it is
+// not exercised by the editor itself; only synthetic monitors (UptimeRobot /
+// BetterStack) should call it, and even then we cap them via the bodyLimit
+// above. Errors return a generic code so a misconfigured DSN cannot leak to
+// the public response.
+app.get('/healthz/db', async (c) => {
   try {
     const db = createDb(c.env.DATABASE_URL);
     await db.execute('select 1');
     return c.json({ ok: true });
   } catch (err) {
-    return c.json({ ok: false, error: String(err) }, 500);
+    console.error('healthz/db failed', err);
+    return c.json({ ok: false, error: 'database_unreachable' }, 500);
   }
 });
 
@@ -49,6 +83,7 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => {
     googleClientSecret: c.env.GOOGLE_CLIENT_SECRET,
     resendApiKey: c.env.RESEND_API_KEY,
     emailFrom: c.env.EMAIL_FROM,
+    secondaryStorage: resolveSecondaryStorage(c.env),
   });
   return auth.handler(c.req.raw);
 });

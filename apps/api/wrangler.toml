@@ -37,6 +37,13 @@ BETTER_AUTH_URL = "https://preview.leverie.dev"
 # send credentialed requests.
 CORS_ALLOWED_ORIGINS = ""
 
+# Backs Better Auth's rate-limit counters. Provision with:
+#   wrangler kv namespace create RATE_LIMIT_KV --env preview
+# then replace the id below with the value returned.
+[[env.preview.kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID"
+
 # ──────────────────────────────────────────────────────────────────────────
 # Production environment
 # ──────────────────────────────────────────────────────────────────────────
@@ -50,6 +57,10 @@ routes = [
 BETTER_AUTH_URL = "https://leverie.dev"
 CORS_ALLOWED_ORIGINS = ""
 EMAIL_FROM = "LEVERIE <auth@leverie.dev>"
+
+[[env.prod.kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "REPLACE_WITH_PROD_KV_NAMESPACE_ID"
 
 # ──────────────────────────────────────────────────────────────────────────
 # Cron Triggers — see [design_p3_infrastructure.md §2.5] for the job list.

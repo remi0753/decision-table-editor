@@ -38,6 +38,13 @@ import {
 // workspaces, excluding soft-deleted rows.
 const MAX_LOGICS_PER_USER = 3;
 
+// Temporary cap on immutable logic_version rows per logic. Each publish copies
+// the full draft_data jsonb into a new row (up to ~1 MB after the body limit),
+// so unbounded publishing is a cheap Postgres-storage DoS. 10 is generous for
+// a single logic's iteration history and can be raised once history pruning /
+// quota enforcement lands.
+const MAX_VERSIONS_PER_LOGIC = 10;
+
 type LogicSourceLabel = 'draft' | 'latest' | 'production' | `v${number}`;
 
 type LogicDataSource =
@@ -971,6 +978,19 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
   if ('error' in access) return access.error;
   if (!canEditLogics(access.member.role)) {
     return jsonError(c, 403, 'forbidden', 'Editor role or higher required.');
+  }
+
+  const [versionCount] = await db
+    .select({ value: count() })
+    .from(logicVersion)
+    .where(eq(logicVersion.logicId, logicId));
+  if ((versionCount?.value ?? 0) >= MAX_VERSIONS_PER_LOGIC) {
+    return jsonError(
+      c,
+      403,
+      'version_limit_reached',
+      `Each logic can hold up to ${MAX_VERSIONS_PER_LOGIC} published versions.`,
+    );
   }
 
   const body = await c.req.json().catch(() => null);

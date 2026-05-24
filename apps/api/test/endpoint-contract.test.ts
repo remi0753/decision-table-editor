@@ -26,6 +26,7 @@ describe('API endpoint contract', () => {
       expect.arrayContaining([
         'GET /',
         'GET /healthz',
+        'GET /healthz/db',
         'GET /api/auth/*',
         'POST /api/auth/*',
         'GET /api/me',
