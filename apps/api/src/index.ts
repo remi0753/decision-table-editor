@@ -18,6 +18,20 @@ export const app = new Hono<{ Bindings: Env }>();
 // this. Without the limit, an attacker can OOM a Worker isolate by streaming
 // hundreds of megabytes into c.req.json().
 const API_MAX_BODY_BYTES = 1024 * 1024;
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+function isJsonContentType(value: string | null) {
+  if (!value) return false;
+  return value.toLowerCase().split(';', 1)[0]?.trim() === 'application/json';
+}
+
+function hasRequestBody(request: Request) {
+  return (
+    request.body !== null ||
+    request.headers.has('content-length') ||
+    request.headers.has('transfer-encoding')
+  );
+}
 
 app.use(
   '/api/*',
@@ -35,6 +49,47 @@ app.use(
       ),
   }),
 );
+
+app.use('/api/*', async (c, next) => {
+  if (!UNSAFE_METHODS.has(c.req.method)) {
+    await next();
+    return;
+  }
+
+  const origin = c.req.header('origin');
+  const fetchSite = c.req.header('sec-fetch-site');
+  if (
+    fetchSite === 'cross-site' ||
+    (origin && !resolveCorsOrigin(origin, c.env))
+  ) {
+    return c.json(
+      {
+        error: {
+          code: 'csrf_rejected',
+          message: 'Cross-site state-changing requests are not allowed.',
+        },
+      },
+      403,
+    );
+  }
+
+  if (
+    hasRequestBody(c.req.raw) &&
+    !isJsonContentType(c.req.header('content-type') ?? null)
+  ) {
+    return c.json(
+      {
+        error: {
+          code: 'unsupported_media_type',
+          message: 'State-changing API requests must use application/json.',
+        },
+      },
+      415,
+    );
+  }
+
+  await next();
+});
 
 // Path-based production API ([design_p3_infrastructure.md §3.2]) is same-origin
 // and normally skips CORS. The allowlist exists for local SPA dev and for the
@@ -124,6 +179,14 @@ export async function runScheduledMaintenance(env: Env) {
   await db.execute(sql`
     DELETE FROM verification
     WHERE expires_at < now() - interval '7 days'
+  `);
+  await db.execute(sql`
+    DELETE FROM invitation
+    WHERE (
+        expires_at < now() - interval '30 days'
+        OR revoked_at < now() - interval '30 days'
+      )
+      AND accepted_at IS NULL
   `);
 }
 

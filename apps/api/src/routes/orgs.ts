@@ -16,6 +16,7 @@ import {
   assertSlug,
   canGrantRole,
   canManageMembers,
+  enforceInvitationEmailRateLimit,
   fallbackSlug,
   getActiveMembership,
   jsonError,
@@ -334,6 +335,17 @@ orgRoutes.get('/api/orgs/:orgId/members', async (c) => {
     .where(and(eq(membership.orgId, orgId), isNull(membership.removedAt)))
     .orderBy(desc(membership.joinedAt));
 
+  if (access.member.role === 'runner') {
+    return c.json({
+      members: rows.map((row) => ({
+        ...row,
+        email: null,
+        name: null,
+        image: null,
+      })),
+    });
+  }
+
   return c.json({ members: rows });
 });
 
@@ -545,6 +557,14 @@ orgRoutes.post('/api/orgs/:orgId/invitations', async (c) => {
     return jsonError(c, 403, 'forbidden', 'You cannot invite that role.');
   }
 
+  const normalizedEmail = email.toLowerCase();
+  const rateLimitError = await enforceInvitationEmailRateLimit(c, {
+    orgId,
+    actorUserId: access.user.id,
+    email: normalizedEmail,
+  });
+  if (rateLimitError) return rateLimitError;
+
   const [targetOrg] = await db.select().from(org).where(eq(org.id, orgId));
   if (!targetOrg) return jsonError(c, 404, 'not_found', 'Org not found.');
 
@@ -554,7 +574,7 @@ orgRoutes.post('/api/orgs/:orgId/invitations', async (c) => {
     .where(
       and(
         eq(invitation.orgId, orgId),
-        eq(invitation.email, email.toLowerCase()),
+        eq(invitation.email, normalizedEmail),
         isNull(invitation.acceptedAt),
         isNull(invitation.revokedAt),
       ),
@@ -567,7 +587,7 @@ orgRoutes.post('/api/orgs/:orgId/invitations', async (c) => {
     .insert(invitation)
     .values({
       orgId,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       role,
       tokenDigest,
       expiresAt,
@@ -844,10 +864,6 @@ async function acceptInvitation(c: AppContext, token: string | null) {
     defaultWorkspace: defaultWorkspace ?? null,
   });
 }
-
-orgRoutes.get('/api/invitations/accept', async (c) => {
-  return acceptInvitation(c, c.req.query('token') ?? null);
-});
 
 orgRoutes.post('/api/invitations/accept', async (c) => {
   const body = await c.req.json().catch(() => null);

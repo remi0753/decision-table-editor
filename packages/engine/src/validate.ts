@@ -438,23 +438,43 @@ export function validateLogicForSave(data: unknown): LogicValidationResult {
   const color = new Map<string, number>();
   for (const tk of Object.keys(logic.tables)) color.set(tk, WHITE);
   const cycleFrom: string[] = [];
-  function dfs(node: string): void {
-    if (cycleFrom.length > 0) return;
-    color.set(node, GRAY);
-    for (const next of continueAdj.get(node) ?? []) {
+
+  for (const start of Object.keys(logic.tables)) {
+    if (color.get(start) !== WHITE) continue;
+
+    const stack: { node: string; next: string[]; index: number }[] = [
+      { node: start, next: Array.from(continueAdj.get(start) ?? []), index: 0 },
+    ];
+    color.set(start, GRAY);
+
+    while (stack.length > 0 && cycleFrom.length === 0) {
+      const frame = stack[stack.length - 1];
+      if (!frame) break;
+
+      if (frame.index >= frame.next.length) {
+        color.set(frame.node, BLACK);
+        stack.pop();
+        continue;
+      }
+
+      const next = frame.next[frame.index];
+      frame.index += 1;
+      if (!next) continue;
+
       if (color.get(next) === GRAY) {
-        cycleFrom.push(`${node} → ${next}`);
-        return;
+        cycleFrom.push(`${frame.node} → ${next}`);
+        break;
       }
       if (color.get(next) === WHITE) {
-        dfs(next);
-        if (cycleFrom.length > 0) return;
+        color.set(next, GRAY);
+        stack.push({
+          node: next,
+          next: Array.from(continueAdj.get(next) ?? []),
+          index: 0,
+        });
       }
     }
-    color.set(node, BLACK);
-  }
-  for (const tk of Object.keys(logic.tables)) {
-    if (color.get(tk) === WHITE) dfs(tk);
+
     if (cycleFrom.length > 0) break;
   }
   if (cycleFrom.length > 0) {
