@@ -1271,7 +1271,9 @@ describe('evaluate API (P4.2)', () => {
     const app = await loadApp();
 
     const response = await app.fetch(
-      evaluateRequest('/v1/logics/logic-1/evaluate', { inputs: { Amount: 50 } }),
+      evaluateRequest('/v1/logics/logic-1/evaluate', {
+        inputs: { Amount: 50 },
+      }),
       baseEnv,
     );
 
@@ -1287,7 +1289,9 @@ describe('evaluate API (P4.2)', () => {
       select: [
         [
           {
-            apiKey: makeApiKeyForAuth({ revokedAt: new Date('2026-05-01T00:00:00.000Z') }),
+            apiKey: makeApiKeyForAuth({
+              revokedAt: new Date('2026-05-01T00:00:00.000Z'),
+            }),
             workspace: makeWorkspaceRow(),
           },
         ],
@@ -1296,7 +1300,9 @@ describe('evaluate API (P4.2)', () => {
     const app = await loadApp();
 
     const response = await app.fetch(
-      evaluateRequest('/v1/logics/logic-1/evaluate', { inputs: { Amount: 50 } }),
+      evaluateRequest('/v1/logics/logic-1/evaluate', {
+        inputs: { Amount: 50 },
+      }),
       baseEnv,
     );
 
@@ -1323,7 +1329,9 @@ describe('evaluate API (P4.2)', () => {
     const app = await loadApp();
 
     const response = await app.fetch(
-      evaluateRequest('/v1/logics/logic-1/evaluate', { inputs: { Amount: 50 } }),
+      evaluateRequest('/v1/logics/logic-1/evaluate', {
+        inputs: { Amount: 50 },
+      }),
       baseEnv,
     );
 
@@ -1361,13 +1369,20 @@ describe('evaluate API (P4.2)', () => {
     const body = await response.json();
     expect(body).toMatchObject({
       logic: { id: 'logic-1', slug: 'approval', name: 'Approval' },
-      version: { id: 'version-2', versionNumber: 2, requestedType: 'production' },
+      version: {
+        id: 'version-2',
+        versionNumber: 2,
+        requestedType: 'production',
+      },
       result: { status: 'ok', outputs: { Decision: 'approve' } },
     });
     expect(body.trace).toEqual([
       expect.objectContaining({
         table: 'Main',
-        matchedRow: expect.objectContaining({ index: 1, conclusion: 'terminal' }),
+        matchedRow: expect.objectContaining({
+          index: 1,
+          conclusion: 'terminal',
+        }),
       }),
     ]);
     expect(typeof body.requestId).toBe('string');

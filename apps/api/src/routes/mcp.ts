@@ -170,10 +170,7 @@ async function loadAccessibleLogics(
       })
       .from(logic)
       .where(
-        and(
-          eq(logic.workspaceId, auth.workspace.id),
-          isNull(logic.deletedAt),
-        ),
+        and(eq(logic.workspaceId, auth.workspace.id), isNull(logic.deletedAt)),
       )
       .limit(MAX_TOOLS_LIST);
     return rows
@@ -201,10 +198,7 @@ async function loadAccessibleLogics(
       ),
     )
     .where(
-      and(
-        eq(logic.workspaceId, auth.workspace.id),
-        isNull(logic.deletedAt),
-      ),
+      and(eq(logic.workspaceId, auth.workspace.id), isNull(logic.deletedAt)),
     )
     .limit(MAX_TOOLS_LIST);
   return rows
@@ -263,7 +257,9 @@ async function handleToolsList(
   for (const row of accessible) {
     const versionEntry = versionMap.get(row.productionVersionId);
     if (!versionEntry) continue;
-    tools.push(toolDefinition(row, versionEntry.data, versionEntry.versionNumber));
+    tools.push(
+      toolDefinition(row, versionEntry.data, versionEntry.versionNumber),
+    );
   }
   return { tools };
 }
@@ -273,7 +269,9 @@ type ToolCallParams = {
   arguments?: unknown;
 };
 
-function badParams(message: string): { error: { code: number; message: string } } {
+function badParams(message: string): {
+  error: { code: number; message: string };
+} {
   return { error: { code: JSON_RPC_INVALID_PARAMS, message } };
 }
 
@@ -315,7 +313,9 @@ async function handleToolsCall(
     return badParams(`Tool "${name}" is not available to this API key.`);
   }
 
-  const versionMap = await loadLogicVersionData(db, [logicRow.productionVersionId]);
+  const versionMap = await loadLogicVersionData(db, [
+    logicRow.productionVersionId,
+  ]);
   const versionEntry = versionMap.get(logicRow.productionVersionId);
   if (!versionEntry) {
     return badParams(
@@ -324,9 +324,7 @@ async function handleToolsCall(
   }
 
   const startedAt = Date.now();
-  const coerced = coerceInputs(
-    argsRaw === undefined ? {} : argsRaw,
-  );
+  const coerced = coerceInputs(argsRaw === undefined ? {} : argsRaw);
   if ('error' in coerced) {
     const latencyMs = Date.now() - startedAt;
     await recordErrorExecutionLog(db, {
@@ -358,7 +356,10 @@ async function handleToolsCall(
       outputsResponse = outputsByName(versionEntry.data, evalResult.outputs);
     } else {
       engineStatus = 'no_match';
-      unmatchedTable = unmatchedTableName(versionEntry.data, evalResult.tableId);
+      unmatchedTable = unmatchedTableName(
+        versionEntry.data,
+        evalResult.tableId,
+      );
     }
   } catch (err) {
     const latencyMs = Date.now() - startedAt;
@@ -486,7 +487,9 @@ export const mcpRoutes = new Hono<{ Bindings: Env }>();
 mcpRoutes.post('/v1/mcp', async (c) => {
   const requestIdHeader = c.req.header('x-request-id');
   const requestId =
-    requestIdHeader && requestIdHeader.length > 0 && requestIdHeader.length <= 200
+    requestIdHeader &&
+    requestIdHeader.length > 0 &&
+    requestIdHeader.length <= 200
       ? requestIdHeader
       : crypto.randomUUID();
 
@@ -503,12 +506,9 @@ mcpRoutes.post('/v1/mcp', async (c) => {
     // still reflects the underlying failure so non-MCP tooling (curl, CI
     // assertions) can branch on status alone.
     return c.json(
-      jsonRpcError(
-        null,
-        JSON_RPC_INVALID_REQUEST,
-        auth.error.message,
-        { code: auth.error.code },
-      ),
+      jsonRpcError(null, JSON_RPC_INVALID_REQUEST, auth.error.message, {
+        code: auth.error.code,
+      }),
       auth.error.status,
     );
   }
