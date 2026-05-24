@@ -13,15 +13,5 @@
   // on `leverie.dev/api/*`; that more-specific route wins over `leverie.dev/*`.
   "assets": {
     "not_found_handling": "single-page-application"
-  },
-  // Production route. `@cloudflare/vite-plugin` does not propagate
-  // `env.preview` / `env.prod` overrides into the generated dist/wrangler.json
-  // it hands to `wrangler deploy`, so a separate `wrangler.preview.jsonc` (or
-  // similar) is the recommended path when a preview environment is added.
-  "routes": [
-    {
-      "pattern": "leverie.dev/*",
-      "zone_name": "leverie.dev"
-    }
-  ]
+  }
 }
