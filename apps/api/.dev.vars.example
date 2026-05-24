@@ -7,6 +7,10 @@ DATABASE_URL="postgres://dev:dev@localhost:5432/leverie_dev"
 # Generate with: openssl rand -base64 32
 BETTER_AUTH_SECRET="REPLACE_ME_WITH_openssl_rand_base64_32"
 
+# API key lookup HMAC key ring. Keep each secret 32+ bytes. Rotate by adding a
+# new version under keys and pointing active to it.
+HMAC_KEY_RING_JSON='{"active":"v1","keys":{"v1":"REPLACE_ME_WITH_openssl_rand_base64_32"}}'
+
 # Public base URL the SPA uses to reach Better Auth. Local dev points at the
 # Vite editor origin so cookies set by /api/auth/verify-email (which is hit
 # directly from an email-link redirect) are scoped to the same host the SPA

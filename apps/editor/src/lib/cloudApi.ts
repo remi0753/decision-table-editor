@@ -75,6 +75,32 @@ export type CloudInvitation = {
   createdAt: string;
 };
 
+export type CloudApiKeyRole = Extract<
+  CloudRole,
+  'editor' | 'viewer' | 'runner'
+>;
+
+export type CloudApiKeyScopeMode = 'all' | 'allowlist';
+
+export type CloudApiKey = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  keyPrefix: string;
+  role: CloudApiKeyRole;
+  scopeMode: CloudApiKeyScopeMode;
+  logicIds: string[];
+  expiresAt?: string | null;
+  lastUsedAt?: string | null;
+  revokedAt?: string | null;
+  createdAt: string;
+};
+
+export type CreateApiKeyResponse = {
+  apiKey: CloudApiKey;
+  secret: string;
+};
+
 export type InvitationPreview = {
   invitation: {
     email: string;
@@ -269,6 +295,40 @@ export async function createWorkspace(orgId: string, name: string) {
 
 export async function listLogics(workspaceId: string) {
   return api<{ logics: CloudLogic[] }>(`/api/workspaces/${workspaceId}/logics`);
+}
+
+export async function listApiKeys(workspaceId: string) {
+  return api<{ apiKeys: CloudApiKey[] }>(
+    `/api/workspaces/${workspaceId}/api-keys`,
+  );
+}
+
+export async function createApiKey(input: {
+  workspaceId: string;
+  name: string;
+  role: CloudApiKeyRole;
+  scopeMode: CloudApiKeyScopeMode;
+  logicIds: string[];
+}) {
+  return api<CreateApiKeyResponse>(
+    `/api/workspaces/${input.workspaceId}/api-keys`,
+    {
+      method: 'POST',
+      body: {
+        name: input.name,
+        role: input.role,
+        scopeMode: input.scopeMode,
+        logicIds: input.logicIds,
+      },
+    },
+  );
+}
+
+export async function revokeApiKey(apiKeyId: string) {
+  return api<{ apiKey: CloudApiKey }>(`/api/api-keys/${apiKeyId}/revoke`, {
+    method: 'POST',
+    body: {},
+  });
 }
 
 export async function createLogic(workspaceId: string, logic: Logic) {

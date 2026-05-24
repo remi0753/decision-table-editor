@@ -100,6 +100,9 @@ describe('P3 schema contract', () => {
 
   it('keeps partial uniqueness for active tenant slugs and active invitations/memberships', () => {
     expectSql(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "user_email_uniq" ON "user" USING btree ("email")',
+    );
+    expectSql(
       'CREATE UNIQUE INDEX IF NOT EXISTS "org_slug_not_purged_uniq" ON "org" USING btree ("slug") WHERE lifecycle_status IN (\'active\', \'deleting\', \'purging\')',
     );
     expectSql(

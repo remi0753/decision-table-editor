@@ -6,6 +6,7 @@ import { InvitePage } from '@/components/invite/InvitePage';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { RunnerPage } from '@/components/runner/RunnerPage';
 import { OrgSettingsPage } from '@/components/settings/OrgSettingsPage';
+import { WorkspaceSettingsPage } from '@/components/settings/WorkspaceSettingsPage';
 import { TopPage } from '@/components/top/TopPage';
 import { loadFromStorage } from '@/hooks/useLocalStorage';
 import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
@@ -96,6 +97,9 @@ export default function App() {
   if (window.location.pathname.startsWith('/run/')) return <RunnerPage />;
   if (window.location.pathname === '/invite') return <InvitePage />;
   if (window.location.pathname === '/settings/org') return <OrgSettingsPage />;
+  if (window.location.pathname === '/settings/workspace') {
+    return <WorkspaceSettingsPage />;
+  }
   if (window.location.pathname === '/edit') return <EditorApp />;
   if (window.location.pathname === '/auth') return <AuthPage />;
   if (window.location.pathname === '/access') return <AccessPage />;
