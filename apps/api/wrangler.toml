@@ -60,7 +60,7 @@ EMAIL_FROM = "LEVERIE <auth@leverie.dev>"
 
 [[env.prod.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "REPLACE_WITH_PROD_KV_NAMESPACE_ID"
+id = "c00a51a75cb347ed8582d285d05b9f7e"
 
 # ──────────────────────────────────────────────────────────────────────────
 # Cron Triggers — see [design_p3_infrastructure.md §2.5] for the job list.
