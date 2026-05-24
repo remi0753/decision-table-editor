@@ -39,6 +39,8 @@ const baseEnv = {
   BETTER_AUTH_URL: 'http://localhost:8787',
   BETTER_AUTH_SECRET: 'test-secret',
   CORS_ALLOWED_ORIGINS: '',
+  HMAC_KEY_RING_JSON:
+    '{"active":"v1","keys":{"v1":"abcdefghijklmnopqrstuvwxyz123456"}}',
 };
 
 let currentDb: FakeDb;
@@ -82,6 +84,9 @@ function createFakeDb(
     update(table: unknown) {
       return writeBuilder(writes, { table });
     },
+    delete(table: unknown) {
+      return writeBuilder(writes, { table });
+    },
     execute: vi.fn(async () => executeQueue.shift() ?? [{ ok: 1 }]),
     transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
       callback({
@@ -93,6 +98,9 @@ function createFakeDb(
           return writeBuilder(writes, { table });
         },
         update(table: unknown) {
+          return writeBuilder(writes, { table });
+        },
+        delete(table: unknown) {
           return writeBuilder(writes, { table });
         },
         execute: vi.fn(async () => [{ ok: 1 }]),
@@ -249,7 +257,30 @@ function makeWorkspaceRow() {
   return {
     id: 'workspace-1',
     orgId: 'org-1',
+    slug: 'default',
+    name: 'Default workspace',
     deletedAt: null,
+  };
+}
+
+function makeApiKeyRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'api-key-1',
+    workspaceId: 'workspace-1',
+    name: 'Production MCP',
+    lookupSecretVersion: 'v1',
+    lookupDigest: 'digest',
+    keyHash: 'hash',
+    keyPrefix: 'lvr_abcdef12',
+    role: 'viewer',
+    scopeMode: 'allowlist',
+    expiresAt: null,
+    lastUsedAt: null,
+    revokedAt: null,
+    createdAt: new Date('2026-05-22T00:00:00.000Z'),
+    createdActorType: 'user',
+    createdActorId: ownerUser.id,
+    ...overrides,
   };
 }
 
@@ -273,6 +304,34 @@ beforeEach(() => {
 });
 
 describe('org route behavior', () => {
+  it('rejects sign-up when the email already belongs to a user', async () => {
+    currentUser = null;
+    currentDb = createFakeDb({
+      select: [[{ id: ownerUser.id }]],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/auth/sign-up/email',
+        {
+          name: 'Duplicate',
+          email: 'OWNER@example.test',
+          password: 'correct horse battery staple',
+        },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'USER_ALREADY_EXISTS',
+      message: 'An account already exists for this email address.',
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
   it('returns 401 from /api/me when no session is present', async () => {
     currentUser = null;
     currentDb = createFakeDb();
@@ -557,6 +616,146 @@ describe('org route behavior', () => {
     });
     expect(currentDb.transaction).not.toHaveBeenCalled();
     expect(currentDb.writes).toHaveLength(0);
+  });
+});
+
+describe('api key route behavior', () => {
+  it('lets org owners issue scoped API keys and returns the secret once', async () => {
+    currentUser = ownerUser;
+    currentDb = createFakeDb({
+      select: [
+        [makeWorkspaceRow()],
+        [membership('owner')],
+        [{ id: 'logic-1' }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/workspaces/workspace-1/api-keys',
+        {
+          name: 'Production MCP',
+          role: 'viewer',
+          scopeMode: 'allowlist',
+          logicIds: ['logic-1'],
+        },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.secret).toMatch(/^lvr_/);
+    expect(body.apiKey).toMatchObject({
+      workspaceId: 'workspace-1',
+      name: 'Production MCP',
+      role: 'viewer',
+      scopeMode: 'allowlist',
+      logicIds: ['logic-1'],
+      createdActorType: 'user',
+      createdActorId: ownerUser.id,
+    });
+    expect(body.apiKey).not.toHaveProperty('lookupDigest');
+    expect(body.apiKey).not.toHaveProperty('keyHash');
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      workspaceId: 'workspace-1',
+      name: 'Production MCP',
+      role: 'viewer',
+      scopeMode: 'allowlist',
+      lookupSecretVersion: 'v1',
+      createdActorId: ownerUser.id,
+    });
+    expect(currentDb.writes[1]?.values).toEqual([
+      {
+        workspaceId: 'workspace-1',
+        apiKeyId: body.apiKey.id,
+        logicId: 'logic-1',
+      },
+    ]);
+    expect(currentDb.writes[2]?.values).toMatchObject({
+      action: 'api_key.created',
+      targetType: 'api_key',
+      targetId: body.apiKey.id,
+    });
+  });
+
+  it('prevents editors from managing API keys', async () => {
+    currentUser = editorUser;
+    currentDb = createFakeDb({
+      select: [[makeWorkspaceRow()], [membership('editor')]],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/workspaces/workspace-1/api-keys',
+        { name: 'Agent', role: 'runner', scopeMode: 'all' },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(403);
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('rejects allow-list scopes containing logics outside the workspace', async () => {
+    currentUser = ownerUser;
+    currentDb = createFakeDb({
+      select: [[makeWorkspaceRow()], [membership('owner')], []],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/workspaces/workspace-1/api-keys',
+        {
+          name: 'Bad scope',
+          role: 'viewer',
+          scopeMode: 'allowlist',
+          logicIds: ['other-logic'],
+        },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: 'invalid_scope',
+        missingLogicIds: ['other-logic'],
+      },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('revokes API keys without deleting historical rows', async () => {
+    currentUser = ownerUser;
+    currentDb = createFakeDb({
+      select: [
+        [{ apiKey: makeApiKeyRow(), workspace: makeWorkspaceRow() }],
+        [membership('owner')],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/api-keys/api-key-1/revoke', {}, { method: 'POST' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    expect(currentDb.writes[0]?.set).toMatchObject({
+      revokedAt: expect.any(Date),
+    });
+    expect(currentDb.writes[1]?.values).toMatchObject({
+      action: 'api_key.revoked',
+      targetType: 'api_key',
+      targetId: 'api-key-1',
+    });
   });
 });
 

@@ -1,11 +1,13 @@
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { createAuth } from './auth.js';
 import { createDb } from './db/client.js';
+import { user as userTable } from './db/schema.js';
 import type { Env } from './env.js';
 import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
+import { apiKeyRoutes } from './routes/apiKeys.js';
 import { logicRoutes } from './routes/logics.js';
 import { orgRoutes } from './routes/orgs.js';
 import { workspaceRoutes } from './routes/workspaces.js';
@@ -127,6 +129,49 @@ app.get('/healthz/db', async (c) => {
   }
 });
 
+app.post('/api/auth/sign-up/email', async (c) => {
+  const body = await c.req.raw
+    .clone()
+    .json()
+    .catch(() => null);
+  const email =
+    body && typeof body === 'object' && 'email' in body
+      ? (body as { email?: unknown }).email
+      : null;
+
+  if (typeof email === 'string') {
+    const db = createDb(c.env.DATABASE_URL);
+    const [existingUser] = await db
+      .select({ id: userTable.id })
+      .from(userTable)
+      .where(eq(userTable.email, email.trim().toLowerCase()))
+      .limit(1);
+
+    if (existingUser) {
+      return c.json(
+        {
+          code: 'USER_ALREADY_EXISTS',
+          message: 'An account already exists for this email address.',
+        },
+        422,
+      );
+    }
+  }
+
+  const db = createDb(c.env.DATABASE_URL);
+  const auth = createAuth(db, {
+    baseURL: c.env.BETTER_AUTH_URL,
+    secret: c.env.BETTER_AUTH_SECRET,
+    trustedOrigins: getAllowedOrigins(c.env),
+    googleClientId: c.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: c.env.GOOGLE_CLIENT_SECRET,
+    resendApiKey: c.env.RESEND_API_KEY,
+    emailFrom: c.env.EMAIL_FROM,
+    secondaryStorage: resolveSecondaryStorage(c.env),
+  });
+  return auth.handler(c.req.raw);
+});
+
 // Better Auth router. Mounted at /api/auth/* by convention; Better Auth handles
 // sign-up / sign-in / OAuth / session refresh / sign-out endpoints internally.
 app.on(['GET', 'POST'], '/api/auth/*', (c) => {
@@ -147,6 +192,7 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => {
 app.route('/', orgRoutes);
 app.route('/', workspaceRoutes);
 app.route('/', logicRoutes);
+app.route('/', apiKeyRoutes);
 
 // Hourly sweep that physically deletes abandoned sign-up rows so an attacker
 // cannot fill the `user` table (and indefinitely squat on real email

@@ -167,13 +167,22 @@ export function CloudMenu() {
               <div className="space-y-2">
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(92px,1fr))] gap-2">
                   {orgRole === 'owner' || orgRole === 'admin' ? (
-                    <a
-                      href="/settings/org"
-                      className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                    >
-                      <Settings className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{t.settings}</span>
-                    </a>
+                    <>
+                      <a
+                        href="/settings/org"
+                        className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                      >
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">Org</span>
+                      </a>
+                      <a
+                        href="/settings/workspace"
+                        className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                      >
+                        <Settings className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{t.workspaceSection}</span>
+                      </a>
+                    </>
                   ) : null}
                   <button
                     type="button"

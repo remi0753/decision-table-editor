@@ -233,8 +233,7 @@ export function OrgSettingsPage() {
               Organization settings
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-              Manage members and pending invitations for Runner and editor
-              access.
+              Manage organization members, roles, and pending invitations.
             </p>
           </div>
 
@@ -270,7 +269,7 @@ export function OrgSettingsPage() {
             </h2>
             <p className="mt-2 text-sm text-gray-500">
               Ask an organization owner or admin to manage members for this
-              workspace.
+              organization.
             </p>
           </section>
         ) : selectedOrg ? (

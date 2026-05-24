@@ -90,14 +90,15 @@ primary API shape is same-origin `leverie.dev/api/*`. Set it only when exercisin
 the `api.leverie.dev` fallback, as a comma-separated list of SPA origins allowed
 to send credentialed requests.
 
-Secrets (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`,
-`GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`) are set per-environment via:
+Secrets (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `HMAC_KEY_RING_JSON`,
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`) are set
+per-environment via:
 
 ```bash
 wrangler secret put DATABASE_URL --env preview
 wrangler secret put DATABASE_URL --env prod
-# repeat for BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-# and RESEND_API_KEY when email delivery is enabled
+# repeat for BETTER_AUTH_SECRET, HMAC_KEY_RING_JSON, GOOGLE_CLIENT_ID,
+# GOOGLE_CLIENT_SECRET, and RESEND_API_KEY when email delivery is enabled
 ```
 
 Workers Routes (production `leverie.dev/api/*` → this Worker) are commented out in [wrangler.toml](./wrangler.toml) until the Cloudflare zone is wired up for deploy.
