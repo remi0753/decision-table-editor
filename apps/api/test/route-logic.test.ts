@@ -163,7 +163,7 @@ function materializeWrite(operation: WriteOperation) {
 
 async function loadApp() {
   const module = await import('../src/index.js');
-  return module.default;
+  return module.app;
 }
 
 function jsonRequest(path: string, body?: unknown, init?: RequestInit) {
@@ -381,7 +381,6 @@ describe('org route behavior', () => {
       },
       org: { name: 'Acme Ops' },
       authHint: {
-        invitedEmailHasAccount: true,
         currentUserEmail: null,
         currentUserMatchesInvitation: false,
       },

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
@@ -10,7 +11,7 @@ import { orgRoutes } from './routes/orgs.js';
 import { workspaceRoutes } from './routes/workspaces.js';
 import { resolveSecondaryStorage } from './secondaryStorage.js';
 
-const app = new Hono<{ Bindings: Env }>();
+export const app = new Hono<{ Bindings: Env }>();
 
 // 1 MB ceiling on request bodies under /api/*. The largest legitimate payload
 // is a logic draft (jsonb), and the editor caps real-world drafts well under
@@ -92,4 +93,47 @@ app.route('/', orgRoutes);
 app.route('/', workspaceRoutes);
 app.route('/', logicRoutes);
 
-export default app;
+// Hourly sweep that physically deletes abandoned sign-up rows so an attacker
+// cannot fill the `user` table (and indefinitely squat on real email
+// addresses via the UNIQUE constraint on user.email) by spamming sign-up
+// requests against random mailboxes.
+//
+// Safety filter: only deletes rows that never verified AND have no membership
+// / audit / execution_log references. Unverified users cannot legitimately
+// reach those code paths today, so the NOT EXISTS clauses are defensive
+// belt-and-suspenders against schema drift. session and account rows cascade
+// via the user FK; the verification table has no FK back to user, so we
+// separately sweep expired verification rows.
+export async function runScheduledMaintenance(env: Env) {
+  const db = createDb(env.DATABASE_URL);
+  await db.execute(sql`
+    DELETE FROM "user"
+    WHERE email_verified_at IS NULL
+      AND deleted_at IS NULL
+      AND created_at < now() - interval '24 hours'
+      AND NOT EXISTS (
+        SELECT 1 FROM membership WHERE membership.user_id = "user".id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM audit_event WHERE audit_event.actor_user_id = "user".id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM execution_log WHERE execution_log.caller_user_id = "user".id
+      )
+  `);
+  await db.execute(sql`
+    DELETE FROM verification
+    WHERE expires_at < now() - interval '7 days'
+  `);
+}
+
+export default {
+  fetch: app.fetch.bind(app),
+  scheduled: async (
+    _event: ScheduledEvent,
+    env: Env,
+    ctx: ExecutionContext,
+  ) => {
+    ctx.waitUntil(runScheduledMaintenance(env));
+  },
+};

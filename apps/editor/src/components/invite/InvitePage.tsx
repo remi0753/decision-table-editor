@@ -68,9 +68,11 @@ export function InvitePage() {
         const result = await previewInvitation(token);
         if (cancelled) return;
         setPreview(result);
-        setAuthMode(
-          result.authHint.invitedEmailHasAccount ? 'sign-in' : 'sign-up',
-        );
+        // Default to sign-up; the user can switch to sign-in via the toggle.
+        // We intentionally do not precompute account presence here — the API
+        // no longer returns it because it would let any invitation holder
+        // enumerate which addresses have LEVERIE accounts.
+        setAuthMode('sign-up');
       } catch (error) {
         toast.error(errorMessage(error));
       } finally {

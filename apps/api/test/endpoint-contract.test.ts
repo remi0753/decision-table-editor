@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import app from '../src/index.js';
+import { app } from '../src/index.js';
 
 type HonoRoute = {
   method: string;

@@ -690,12 +690,12 @@ orgRoutes.get('/api/invitations/preview', async (c) => {
 
   if (!row) return jsonError(c, 404, 'not_found', 'Invitation not found.');
 
-  const [account] = await db
-    .select({ id: user.id })
-    .from(user)
-    .where(and(eq(user.email, row.email), isNull(user.deletedAt)))
-    .limit(1);
-
+  // Intentionally do NOT look up whether the invited email already has an
+  // account here. Anyone holding an invitation token can call this endpoint,
+  // and editor / admin members can mint invitations for arbitrary addresses —
+  // returning that boolean would let them enumerate which addresses already
+  // have LEVERIE accounts. The editor's invite page must show both Sign in /
+  // Sign up options without precomputing which one applies.
   const sessionUser = await requireUser(c, db);
   const currentUserEmail = sessionUser?.email ?? null;
   const currentUserMatchesInvitation =
@@ -719,7 +719,6 @@ orgRoutes.get('/api/invitations/preview', async (c) => {
       name: row.orgName,
     },
     authHint: {
-      invitedEmailHasAccount: Boolean(account),
       currentUserEmail,
       currentUserMatchesInvitation,
     },
