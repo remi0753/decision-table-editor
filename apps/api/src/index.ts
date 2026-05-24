@@ -8,6 +8,7 @@ import { user as userTable } from './db/schema.js';
 import type { Env } from './env.js';
 import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
 import { apiKeyRoutes } from './routes/apiKeys.js';
+import { evaluateRoutes } from './routes/evaluate.js';
 import { logicRoutes } from './routes/logics.js';
 import { orgRoutes } from './routes/orgs.js';
 import { workspaceRoutes } from './routes/workspaces.js';
@@ -35,22 +36,24 @@ function hasRequestBody(request: Request) {
   );
 }
 
-app.use(
-  '/api/*',
-  bodyLimit({
-    maxSize: API_MAX_BODY_BYTES,
-    onError: (c) =>
-      c.json(
-        {
-          error: {
-            code: 'payload_too_large',
-            message: 'Request body exceeds 1 MB limit.',
-          },
+const apiBodyLimit = bodyLimit({
+  maxSize: API_MAX_BODY_BYTES,
+  onError: (c) =>
+    c.json(
+      {
+        error: {
+          code: 'payload_too_large',
+          message: 'Request body exceeds 1 MB limit.',
         },
-        413,
-      ),
-  }),
-);
+      },
+      413,
+    ),
+});
+
+app.use('/api/*', apiBodyLimit);
+// /v1/* is the Bearer-authenticated external API; it shares the same byte
+// ceiling but skips the cookie-based CSRF gate that follows.
+app.use('/v1/*', apiBodyLimit);
 
 app.use('/api/*', async (c, next) => {
   if (!UNSAFE_METHODS.has(c.req.method)) {
@@ -193,6 +196,18 @@ app.route('/', orgRoutes);
 app.route('/', workspaceRoutes);
 app.route('/', logicRoutes);
 app.route('/', apiKeyRoutes);
+
+// /v1/* — external public API surface (Bearer auth, no cookies, permissive
+// CORS). Mounted after /api/* but before the scheduled handler.
+app.use(
+  '/v1/*',
+  cors({
+    origin: '*',
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+  }),
+);
+app.route('/', evaluateRoutes);
 
 // Hourly sweep that physically deletes abandoned sign-up rows so an attacker
 // cannot fill the `user` table (and indefinitely squat on real email

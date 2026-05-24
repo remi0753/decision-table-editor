@@ -115,6 +115,9 @@ export function createAuth(db: Database, config: AuthConfig) {
       }),
     ],
     advanced: {
+      ipAddress: {
+        ipAddressHeaders: ['cf-connecting-ip'],
+      },
       database: {
         // Let the production user table's `uuidv7()` DB default generate user
         // IDs. Auth implementation tables keep app-generated UUID strings.

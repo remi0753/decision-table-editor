@@ -3,8 +3,11 @@ main = "src/index.ts"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
 
-# Workers Routes (production): leverie.dev/api/* → this Worker.
+# Workers Routes (production): leverie.dev/api/* and /v1/* → this Worker.
 # See [design_p3_infrastructure.md §3.2] for the path-based origin rationale.
+# /api/* is the browser surface (cookie session, CSRF gate); /v1/* is the
+# external Bearer-authenticated API added in P4.2. Both share the same Worker
+# but diverge their middleware (see apps/api/src/index.ts).
 # Routes are configured per environment below; preview / prod target different
 # zones so dev iteration doesn't touch the production hostname.
 
@@ -28,6 +31,7 @@ CORS_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
 name = "leverie-api-preview"
 routes = [
   { pattern = "preview.leverie.dev/api/*", zone_name = "leverie.dev" },
+  { pattern = "preview.leverie.dev/v1/*", zone_name = "leverie.dev" },
 ]
 
 [env.preview.vars]
@@ -51,6 +55,7 @@ id = "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID"
 name = "leverie-api"
 routes = [
   { pattern = "leverie.dev/api/*", zone_name = "leverie.dev" },
+  { pattern = "leverie.dev/v1/*", zone_name = "leverie.dev" },
 ]
 
 [env.prod.vars]
@@ -72,3 +77,10 @@ id = "c00a51a75cb347ed8582d285d05b9f7e"
 crons = [
   "0 * * * *",  # unverified user + expired verification sweep (hourly)
 ]
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
