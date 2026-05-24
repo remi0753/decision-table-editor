@@ -22,6 +22,9 @@ CORS_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
 # ──────────────────────────────────────────────────────────────────────────
 [env.preview]
 name = "leverie-api-preview"
+routes = [
+  { pattern = "preview.leverie.dev/api/*", zone_name = "leverie.dev" },
+]
 
 [env.preview.vars]
 BETTER_AUTH_URL = "https://preview.leverie.dev"
@@ -30,25 +33,19 @@ BETTER_AUTH_URL = "https://preview.leverie.dev"
 # send credentialed requests.
 CORS_ALLOWED_ORIGINS = ""
 
-# Add when Cloudflare zone is set up:
-# routes = [
-#   { pattern = "preview.leverie.dev/api/*", zone_name = "leverie.dev" }
-# ]
-
 # ──────────────────────────────────────────────────────────────────────────
 # Production environment
 # ──────────────────────────────────────────────────────────────────────────
 [env.prod]
-name = "leverie-api-prod"
+name = "leverie-api"
+routes = [
+  { pattern = "leverie.dev/api/*", zone_name = "leverie.dev" },
+]
 
 [env.prod.vars]
 BETTER_AUTH_URL = "https://leverie.dev"
 CORS_ALLOWED_ORIGINS = ""
-
-# Add when Cloudflare zone is set up:
-# routes = [
-#   { pattern = "leverie.dev/api/*", zone_name = "leverie.dev" }
-# ]
+EMAIL_FROM = "LEVERIE <auth@leverie.dev>"
 
 # ──────────────────────────────────────────────────────────────────────────
 # Cron Triggers — see [design_p3_infrastructure.md §2.5] for the job list.
