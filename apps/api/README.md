@@ -2,7 +2,12 @@
 
 LEVERIE Cloud API — Hono on Cloudflare Workers, backed by Neon Postgres via Drizzle, authentication by Better Auth.
 
-**Surface**: `leverie.dev/api/*` (path-based, same origin as Editor / Runner UI). See [doc/design_p3_infrastructure.md §3.2](../../doc/design_p3_infrastructure.md) for the origin rationale.
+**Surface**:
+
+- `leverie.dev/api/*` — browser surface (cookie session via Better Auth, CSRF gate, credentialed CORS). Used by Editor and Runner UI.
+- `leverie.dev/v1/*` — external Bearer-authenticated API for LLM agents, MCP bridges, and customer integrations. Permissive CORS, no cookies.
+
+Both share the same Worker but diverge on middleware. See [doc/design_p3_infrastructure.md §3.2](../../doc/design_p3_infrastructure.md) for the origin rationale and [apps/api/src/index.ts](./src/index.ts) for the middleware stack.
 
 **Status**: Cloud foundation in progress. The full 12-table production schema ([design_p3_schema.md v7](../../doc/design_p3_schema.md)) is represented in Drizzle, the initial migration is self-contained, Better Auth is reconciled with the production `user` shape, the API origin decision is finalized as path-based `/api/*`, GitHub Actions run Drizzle migrations against local / preview / production database targets, Better Auth has email/password, magic-link, Google OAuth, and Resend delivery wiring, and the tenant + logic CRUD/versioning APIs are available.
 
@@ -56,34 +61,38 @@ Worker listens on `http://localhost:8787`. Endpoints:
 - `POST /api/orgs/:orgId/invitations/:invitationId/revoke` — revoke pending invitation
 - `GET /api/invitations/preview` — validate an invitation token and return org/email hints for onboarding
 - `GET / POST /api/invitations/accept` — accept invitation with a token
+- `GET / POST /api/workspaces/:workspaceId/api-keys` — API key list / create (owner/admin only; secret returned once)
+- `PATCH /api/api-keys/:apiKeyId` — rename, change role, or update allow-list
+- `POST /api/api-keys/:apiKeyId/revoke` — revoke an API key
+- `POST /v1/logics/:logicId/evaluate` — **external** Bearer-authenticated evaluate ([Evaluate API](#evaluate-api-v1) below)
 
 ---
 
 ## Scripts
 
-| Script | What it does |
-|---|---|
-| `pnpm dev` | `wrangler dev` — local Worker on :8787 |
-| `pnpm build` | `wrangler deploy --dry-run --outdir=dist` — bundle size + type check via wrangler |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm deploy:preview` | deploy to `leverie-api-preview` Worker (preview env) |
-| `pnpm deploy:prod` | deploy to `leverie-api-prod` Worker (prod env) |
-| `pnpm db:up` / `db:down` | start / stop local docker-compose (Postgres 18 + Neon proxy) |
-| `pnpm db:push` | apply schema directly (dev only; prefer `db:migrate` when validating migrations) |
-| `pnpm db:generate` | generate a new migration from schema diff |
-| `pnpm db:migrate` | apply pending migrations |
-| `pnpm db:psql` | open psql against local Postgres |
-| `pnpm smoke:origin` | compare same-origin `/api/*` and cross-origin fallback CORS / cookie behavior against a running local Worker |
+| Script                   | What it does                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`               | `wrangler dev` — local Worker on :8787                                                                       |
+| `pnpm build`             | `wrangler deploy --dry-run --outdir=dist` — bundle size + type check via wrangler                            |
+| `pnpm typecheck`         | `tsc --noEmit`                                                                                               |
+| `pnpm deploy:preview`    | deploy to `leverie-api-preview` Worker (preview env)                                                         |
+| `pnpm deploy:prod`       | deploy to `leverie-api-prod` Worker (prod env)                                                               |
+| `pnpm db:up` / `db:down` | start / stop local docker-compose (Postgres 18 + Neon proxy)                                                 |
+| `pnpm db:push`           | apply schema directly (dev only; prefer `db:migrate` when validating migrations)                             |
+| `pnpm db:generate`       | generate a new migration from schema diff                                                                    |
+| `pnpm db:migrate`        | apply pending migrations                                                                                     |
+| `pnpm db:psql`           | open psql against local Postgres                                                                             |
+| `pnpm smoke:origin`      | compare same-origin `/api/*` and cross-origin fallback CORS / cookie behavior against a running local Worker |
 
 ---
 
 ## Environment matrix
 
-| Env | Worker name | Hostname | Postgres |
-|---|---|---|---|
-| local | (no name) | `localhost:8787` | docker-compose Postgres + Neon proxy |
-| preview | `leverie-api-preview` | `preview.leverie.dev` | Neon preview branch |
-| prod | `leverie-api-prod` | `leverie.dev` | Neon main branch |
+| Env     | Worker name           | Hostname              | Postgres                             |
+| ------- | --------------------- | --------------------- | ------------------------------------ |
+| local   | (no name)             | `localhost:8787`      | docker-compose Postgres + Neon proxy |
+| preview | `leverie-api-preview` | `preview.leverie.dev` | Neon preview branch                  |
+| prod    | `leverie-api-prod`    | `leverie.dev`         | Neon main branch                     |
 
 `CORS_ALLOWED_ORIGINS` is intentionally empty in preview / prod because the
 primary API shape is same-origin `leverie.dev/api/*`. Set it only when exercising
@@ -101,7 +110,10 @@ wrangler secret put DATABASE_URL --env prod
 # GOOGLE_CLIENT_SECRET, and RESEND_API_KEY when email delivery is enabled
 ```
 
-Workers Routes (production `leverie.dev/api/*` → this Worker) are commented out in [wrangler.toml](./wrangler.toml) until the Cloudflare zone is wired up for deploy.
+Workers Routes are declared per environment in [wrangler.toml](./wrangler.toml):
+`preview.leverie.dev/{api,v1}/*` for preview, `leverie.dev/{api,v1}/*` for prod.
+Both prefixes route to the same Worker; the middleware stack in [src/index.ts](./src/index.ts)
+diverges per prefix (`/api/*` = cookie + CSRF + credentialed CORS, `/v1/*` = Bearer + permissive CORS).
 
 ---
 
@@ -181,72 +193,160 @@ and [Google OAuth for web server applications](https://developers.google.com/ide
 
 ---
 
-## Tenant API Smoke Flow
+## Evaluate API (`/v1`)
 
-The examples below assume a running local Worker and use cookie jars so Better
-Auth session cookies round-trip correctly.
+External surface for LLM agents, MCP bridges, and customer integrations. Authenticated with workspace-scoped API keys issued from the org settings UI (P4.1). Implementation: [src/routes/evaluate.ts](./src/routes/evaluate.ts).
 
-```bash
-BASE="http://localhost:8787"
-OWNER_COOKIE="/tmp/leverie-owner-cookie.txt"
-AUTHOR_COOKIE="/tmp/leverie-author-cookie.txt"
+### Endpoint
 
-# 1) Sign up the owner.
-curl -fsS -c "$OWNER_COOKIE" "$BASE/api/auth/sign-up/email" \
-  -H 'content-type: application/json' \
-  -d '{"email":"owner@example.test","password":"password123456","name":"Owner"}'
-
-# 2) Create an org. This also creates owner membership and a default workspace.
-curl -fsS -b "$OWNER_COOKIE" "$BASE/api/orgs" \
-  -H 'content-type: application/json' \
-  -d '{"name":"Acme Ops","slug":"acme-ops"}'
-
-# 3) List org memberships for the signed-in owner.
-curl -fsS -b "$OWNER_COOKIE" "$BASE/api/me"
+```
+POST /v1/logics/:logicId/evaluate
 ```
 
-Use the `org.id` returned by step 2:
+### Headers
 
-```bash
-ORG_ID="paste-org-id"
+| Header          | Required | Description                                                                                                                                     |
+| --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Authorization` | yes      | `Bearer lvr_<base64url>` — the API key secret returned once when the key was created                                                            |
+| `Content-Type`  | yes      | `application/json`                                                                                                                              |
+| `X-Request-Id`  | no       | Caller-supplied correlation id, max 200 chars. Stored on `execution_log.request_id` and echoed in the response. Auto-generated UUID when absent |
 
-# 4) Create another workspace.
-curl -fsS -b "$OWNER_COOKIE" "$BASE/api/orgs/$ORG_ID/workspaces" \
-  -H 'content-type: application/json' \
-  -d '{"name":"Claims Review","slug":"claims-review"}'
+### Query parameters
 
-# 5) Invite an Author. With RESEND_API_KEY configured, Resend sends the email.
-#    The response also includes acceptUrl (/invite?token=...) to keep local
-#    smoke testing simple.
-curl -fsS -b "$OWNER_COOKIE" "$BASE/api/orgs/$ORG_ID/invitations" \
-  -H 'content-type: application/json' \
-  -d '{"email":"author@example.test","role":"editor"}'
+| Param     | Default      | Allowed                                           | Notes                                                                                                                                      |
+| --------- | ------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `version` | `production` | `production`, `latest`, `v<N>` (positive integer) | `draft` is **rejected** (400 `invalid_version`) — drafts are mutable and unsnapshot'd, which breaks the execution_log / audit replay model |
+
+### Request body
+
+Minimal shape — exactly one required field, `inputs`. Versioning, auth, and correlation live in the URL / headers so the body stays a clean record of evaluation inputs (and so future expansion does not pollute `execution_log.inputs`).
+
+```json
+{
+  "inputs": {
+    "Customer Type": "Corp",
+    "Amount": 5500000,
+    "Has Guarantor": true
+  }
+}
 ```
 
-The product UI sends invited users to `/invite?token=...`, where new users can
-create an account before accepting the invitation. For API smoke testing, sign
-up or sign in as the invited user, then accept the token from the returned
-`acceptUrl` or the delivered email:
+| Field          | Type                        | Rules                                                                                                                                                                                                                                                                      |
+| -------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inputs`       | object                      | **Required.** Object (not array, not null). Missing → 400 `invalid_inputs`                                                                                                                                                                                                 |
+| `inputs.<key>` | string \| number \| boolean | Keys can be field **names** (e.g. `"Customer Type"`) or internal **field ids** (e.g. `"f1"`); the engine resolves either via `normaliseInputKeys`. Numbers and booleans are coerced to string before evaluation (the engine then re-coerces per the field's declared type) |
 
-```bash
-curl -fsS -c "$AUTHOR_COOKIE" "$BASE/api/auth/sign-up/email" \
-  -H 'content-type: application/json' \
-  -d '{"email":"author@example.test","password":"password123456","name":"Author"}'
+**Limits**:
 
-TOKEN="paste-token-from-accept-url"
-curl -fsS -b "$AUTHOR_COOKIE" "$BASE/api/invitations/accept" \
-  -H 'content-type: application/json' \
-  -d "{\"token\":\"$TOKEN\"}"
+- Request body ≤ 1 MB (enforced by `/v1/*` body limit)
+- `inputs` ≤ 200 keys
+- Each `inputs` value ≤ 4000 chars (post-stringification)
+- `null` / `undefined` / arrays / nested objects in `inputs` are silently dropped — these would have failed evaluation anyway, and dropping keeps the surface forgiving for partial inputs
+
+### Response — 200 OK (matched)
+
+```json
+{
+  "logic": { "id": "...", "slug": "approval", "name": "Approval" },
+  "version": { "id": "...", "versionNumber": 2, "requestedType": "production" },
+  "result": { "status": "ok", "outputs": { "Decision": "approve" } },
+  "trace": [
+    {
+      "table": "Main",
+      "depth": 0,
+      "matchedRow": { "index": 1, "conclusion": "terminal" },
+      "skippedRows": []
+    }
+  ],
+  "requestId": "...",
+  "latencyMs": 12
+}
 ```
 
-Role rules in this slice:
+`outputs` is keyed by output **column name** (matching what `@leverie/schema`'s `logicToOutputSchema` advertises). `trace` uses 1-based row indices and field names — no internal IDs leak.
 
-- `owner` and `admin` can manage members and invitations.
-- Only `owner` can invite or grant another `owner`.
-- `editor` and higher can create or update workspaces.
-- `owner` can request org deletion; this soft-deletes the org and queues an
-  `org_deletion_job` for the later purge worker.
-- Removing or demoting the last active `owner` is rejected.
+### Response — 200 OK (no rule matched)
+
+```json
+{
+  "logic":    { ... },
+  "version":  { ... },
+  "result":   { "status": "no_match", "unmatchedTable": "Main" },
+  "trace":    [ ... ],
+  "requestId": "...",
+  "latencyMs": 7
+}
+```
+
+The HTTP status stays 200 because the call itself succeeded — it's the _logic_ that produced no match. `unmatchedTable` is the **name** of the table at which evaluation stopped.
+
+### Errors
+
+| HTTP | Code                          | Cause                                                                                                                   |
+| ---- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 400  | `invalid_inputs`              | Body missing `inputs`, or `inputs` is not an object, or a value exceeds 4000 chars                                      |
+| 400  | `invalid_version`             | `?version=` is neither `production`, `latest`, nor `v<N>`                                                               |
+| 401  | `missing_authorization`       | `Authorization` header absent                                                                                           |
+| 401  | `invalid_authorization`       | Header is not `Bearer <token>`                                                                                          |
+| 401  | `invalid_api_key`             | Token does not match any active API key (HMAC lookup miss, or scrypt verify failed)                                     |
+| 401  | `api_key_revoked`             | Key was revoked via `POST /api/api-keys/:id/revoke`                                                                     |
+| 401  | `api_key_expired`             | Key's `expiresAt` has passed                                                                                            |
+| 401  | `api_key_secret_unconfigured` | Server is missing `HMAC_KEY_RING_JSON` — operational misconfiguration                                                   |
+| 403  | `logic_not_in_scope`          | API key is in `allowlist` mode and the requested logic is not in its `api_key_logic_scope`                              |
+| 404  | `not_found`                   | Logic does not exist in the API key's workspace                                                                         |
+| 404  | `no_published_version`        | The requested version (`production` not pinned, `latest` with zero versions, or non-existent `v<N>`) cannot be resolved |
+| 413  | `payload_too_large`           | Request body > 1 MB                                                                                                     |
+| 429  | `rate_limited`                | Per-key rate limit tripped; response includes `Retry-After` header and `retryAfterSeconds` field                        |
+| 500  | `evaluation_failed`           | Engine threw — `error_message` (truncated to 2000 chars) is persisted to `execution_log`                                |
+
+All error responses share the shape `{ "error": { "code": "...", "message": "..." } }`. The `rate_limited` body additionally carries `retryAfterSeconds`.
+
+### Rate limits
+
+Per-key fixed window (Cloudflare KV / Redis backed via `secondaryStorage`):
+
+| Window | Limit        |
+| ------ | ------------ |
+| 10 s   | 60 requests  |
+| 60 s   | 600 requests |
+
+Both must pass; the stricter one trips first under sustained load. Tighter or per-plan tiers land with P6 billing.
+
+### Persistence
+
+Every call writes one row to `execution_log` regardless of outcome:
+
+| Status     | Filled columns                                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| `ok`       | `inputs`, `result` (= `{status:"ok", outputs}`), `trace`, `logic_version_id`, `resolved_version_number`              |
+| `no_match` | `inputs`, `result` (= `{status:"no_match", unmatchedTable}`), `trace`, `logic_version_id`, `resolved_version_number` |
+| `error`    | `error_code`, `error_message`; `result` / `trace` left NULL (per `execution_log_status_payload_chk`)                 |
+
+Common columns: `caller_actor_type='api_key'`, `caller_channel='api_key'`, `caller_api_key_id`, `request_id`, `latency_ms`. `api_key.last_used_at` is best-effort bumped on every successful authentication.
+
+### Curl example
+
+```bash
+# 1) Create an API key (browser session via /api/* — see Tenant API Smoke Flow).
+SECRET=$(curl -fsS -b "$OWNER_COOKIE" \
+  "$BASE/api/workspaces/$WORKSPACE_ID/api-keys" \
+  -H 'content-type: application/json' \
+  -d '{"name":"Production MCP","role":"viewer","scopeMode":"all"}' \
+  | jq -r '.secret')
+
+# 2) Evaluate the production version of a logic.
+curl -fsS "$BASE/v1/logics/$LOGIC_ID/evaluate?version=production" \
+  -H "authorization: Bearer $SECRET" \
+  -H 'content-type: application/json' \
+  -d '{"inputs":{"Customer Type":"Corp","Amount":5500000,"Has Guarantor":true}}'
+
+# 3) Pin a specific version.
+curl -fsS "$BASE/v1/logics/$LOGIC_ID/evaluate?version=v3" \
+  -H "authorization: Bearer $SECRET" \
+  -H 'content-type: application/json' \
+  -H 'x-request-id: nightly-backfill-2026-05-24-batch-001' \
+  -d '{"inputs":{"Amount":50}}'
+```
 
 ---
 
@@ -254,25 +354,25 @@ Role rules in this slice:
 
 [api-migrations.yml](../../.github/workflows/api-migrations.yml) owns the database migration workflow:
 
-| Trigger | What runs |
-|---|---|
-| PR opened / updated | local Postgres 18 migration validation, API typecheck, Worker dry-run build |
+| Trigger                      | What runs                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| PR opened / updated          | local Postgres 18 migration validation, API typecheck, Worker dry-run build         |
 | Internal PR opened / updated | create or reuse Neon branch `gh-pr-<number>`, then run `pnpm db:migrate` against it |
-| PR closed | delete Neon branch `gh-pr-<number>` |
-| push to `main` | run `pnpm db:migrate` against production Neon |
-| manual dispatch | run migrations against shared preview or production |
+| PR closed                    | delete Neon branch `gh-pr-<number>`                                                 |
+| push to `main`               | run `pnpm db:migrate` against production Neon                                       |
+| manual dispatch              | run migrations against shared preview or production                                 |
 
 Required GitHub configuration:
 
-| Type | Name | Used for |
-|---|---|---|
-| variable | `NEON_PROJECT_ID` | Neon branch actions |
+| Type     | Name                         | Used for                                             |
+| -------- | ---------------------------- | ---------------------------------------------------- |
+| variable | `NEON_PROJECT_ID`            | Neon branch actions                                  |
 | variable | `NEON_PREVIEW_PARENT_BRANCH` | parent branch for PR preview DBs, defaults to `main` |
-| variable | `NEON_PREVIEW_DATABASE` | Neon database name, defaults to `neondb` |
-| variable | `NEON_PREVIEW_ROLE` | migration role, defaults to `neondb_owner` |
-| secret | `NEON_API_KEY` | create / delete preview branches |
-| secret | `NEON_PREVIEW_DATABASE_URL` | manual shared-preview migration |
-| secret | `NEON_PROD_DATABASE_URL` | production migration |
+| variable | `NEON_PREVIEW_DATABASE`      | Neon database name, defaults to `neondb`             |
+| variable | `NEON_PREVIEW_ROLE`          | migration role, defaults to `neondb_owner`           |
+| secret   | `NEON_API_KEY`               | create / delete preview branches                     |
+| secret   | `NEON_PREVIEW_DATABASE_URL`  | manual shared-preview migration                      |
+| secret   | `NEON_PROD_DATABASE_URL`     | production migration                                 |
 
 ---
 

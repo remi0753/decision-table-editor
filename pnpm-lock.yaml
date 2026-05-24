@@ -29,6 +29,9 @@ importers:
       '@leverie/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@leverie/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       '@neondatabase/serverless':
         specifier: ^0.10.4
         version: 0.10.4

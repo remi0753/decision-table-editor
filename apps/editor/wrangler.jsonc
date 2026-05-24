@@ -10,7 +10,8 @@
   // and `not_found_handling: "single-page-application"` makes Workers Assets
   // return index.html for any path that does not match a built asset, so
   // client-side routing works. The API is a separate Worker (apps/api) mounted
-  // on `leverie.dev/api/*`; that more-specific route wins over `leverie.dev/*`.
+  // on `leverie.dev/api/*` (browser surface) and `leverie.dev/v1/*` (external
+  // Bearer-authenticated API); those more-specific routes win over `/*`.
   "assets": {
     "not_found_handling": "single-page-application"
   }

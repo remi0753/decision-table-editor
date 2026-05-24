@@ -1,5 +1,6 @@
 import type { Logic } from '@leverie/engine';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { hashPassword } from '../src/password.js';
 
 type SessionUser = {
   id: string;
@@ -1208,6 +1209,344 @@ describe('logic route behavior', () => {
       targetType: 'logic_version',
       targetId: body.version.id,
       metadata: { logicId: 'logic-1', versionNumber: 2 },
+    });
+  });
+});
+
+describe('evaluate API (P4.2)', () => {
+  const apiSecret = 'lvr_test_secret_token_abcdef0123456789';
+  let apiKeyHash = '';
+
+  beforeAll(async () => {
+    apiKeyHash = await hashPassword(apiSecret);
+  });
+
+  function makeApiKeyForAuth(overrides: Record<string, unknown> = {}) {
+    return makeApiKeyRow({
+      keyHash: apiKeyHash,
+      // The real lookupDigest is HMAC(secret); the route looks for an exact
+      // (lookup_secret_version, lookup_digest) match in the SELECT result, so
+      // queueing this fake row is what stands in for the digest match.
+      ...overrides,
+    });
+  }
+
+  function evaluateRequest(
+    path: string,
+    body: unknown,
+    init?: { headers?: HeadersInit },
+  ) {
+    return new Request(`http://localhost${path}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiSecret}`,
+        ...init?.headers,
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it('rejects calls missing an Authorization header', async () => {
+    currentDb = createFakeDb();
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      new Request('http://localhost/v1/logics/logic-1/evaluate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ inputs: {} }),
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'missing_authorization' },
+    });
+  });
+
+  it('rejects API keys whose HMAC digest does not match any row', async () => {
+    currentDb = createFakeDb({ select: [[]] });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      evaluateRequest('/v1/logics/logic-1/evaluate', { inputs: { Amount: 50 } }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'invalid_api_key' },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('rejects revoked API keys without writing an execution_log', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ revokedAt: new Date('2026-05-01T00:00:00.000Z') }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      evaluateRequest('/v1/logics/logic-1/evaluate', { inputs: { Amount: 50 } }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'api_key_revoked' },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('blocks logics outside the allow-list scope before evaluating', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'allowlist' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [makeLogicRow()],
+        [], // empty scope lookup
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      evaluateRequest('/v1/logics/logic-1/evaluate', { inputs: { Amount: 50 } }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'logic_not_in_scope' },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('evaluates production by default and persists an ok execution_log', async () => {
+    const data = makeLogic();
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [makeLogicRow(data)],
+        [{ ...makeVersionRow(2), data }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      evaluateRequest('/v1/logics/logic-1/evaluate', {
+        inputs: { Amount: 50 },
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      logic: { id: 'logic-1', slug: 'approval', name: 'Approval' },
+      version: { id: 'version-2', versionNumber: 2, requestedType: 'production' },
+      result: { status: 'ok', outputs: { Decision: 'approve' } },
+    });
+    expect(body.trace).toEqual([
+      expect.objectContaining({
+        table: 'Main',
+        matchedRow: expect.objectContaining({ index: 1, conclusion: 'terminal' }),
+      }),
+    ]);
+    expect(typeof body.requestId).toBe('string');
+    expect(typeof body.latencyMs).toBe('number');
+
+    expect(currentDb.writes).toHaveLength(2);
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      workspaceId: 'workspace-1',
+      logicId: 'logic-1',
+      logicVersionId: 'version-2',
+      requestedVersionType: 'production',
+      requestedVersionNumber: null,
+      resolvedVersionNumber: 2,
+      status: 'ok',
+      callerActorType: 'api_key',
+      callerChannel: 'api_key',
+      callerApiKeyId: 'api-key-1',
+    });
+    expect(currentDb.writes[1]?.set).toMatchObject({
+      lastUsedAt: expect.any(Date),
+    });
+  });
+
+  it('returns no_match with unmatched table name when no row applies', async () => {
+    const data = makeLogic();
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [makeLogicRow(data)],
+        [{ ...makeVersionRow(2), data }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      // Amount 500 > 100, no row matches `<= 100`
+      evaluateRequest('/v1/logics/logic-1/evaluate?version=production', {
+        inputs: { Amount: 500 },
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.result).toEqual({
+      status: 'no_match',
+      unmatchedTable: 'Main',
+    });
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      status: 'no_match',
+      logicVersionId: 'version-2',
+    });
+  });
+
+  it('resolves a pinned version number and reports requested type "version"', async () => {
+    const data = makeLogic();
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [makeLogicRow(data)],
+        [{ ...makeVersionRow(3), data }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      evaluateRequest('/v1/logics/logic-1/evaluate?version=v3', {
+        inputs: { Amount: 50 },
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      version: { id: 'version-3', versionNumber: 3, requestedType: 'version' },
+    });
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      requestedVersionType: 'version',
+      requestedVersionNumber: 3,
+      resolvedVersionNumber: 3,
+    });
+  });
+
+  it('rejects draft as a version target for API key callers', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [makeLogicRow()],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      evaluateRequest('/v1/logics/logic-1/evaluate?version=draft', {
+        inputs: {},
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'invalid_version' },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('returns 404 when production is not pinned', async () => {
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [{ ...makeLogicRow(), productionVersionId: null }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      evaluateRequest('/v1/logics/logic-1/evaluate', { inputs: {} }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'no_published_version' },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('records an error execution_log when inputs are malformed', async () => {
+    const data = makeLogic();
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            apiKey: makeApiKeyForAuth({ scopeMode: 'all' }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [makeLogicRow(data)],
+        [{ ...makeVersionRow(2), data }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      evaluateRequest('/v1/logics/logic-1/evaluate', { notInputs: true }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'invalid_inputs' },
+    });
+    expect(currentDb.writes).toHaveLength(1);
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      status: 'error',
+      errorCode: 'invalid_inputs',
+      callerActorType: 'api_key',
+      callerChannel: 'api_key',
+      callerApiKeyId: 'api-key-1',
     });
   });
 });
