@@ -584,7 +584,11 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   },
 
   signUp: async (name, email, password, localLogic, importLogic) => {
-    await signUpEmail(name, email, password);
+    // With email verification required, sign-up returns no session — the user
+    // must click the link in the verification email before initializeCloud
+    // can fetch /api/me. Callers should drive a "check your email" UI rather
+    // than relying on this method to land the user inside the editor.
+    await signUpEmail(name, email, password, `${window.location.origin}/edit`);
     sessionStorage.removeItem('leverie-editor-mode');
     const me = await getMe().catch(() => null);
     if (me && me.orgs.length === 0) {

@@ -1,10 +1,10 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink } from 'better-auth/plugins';
-import { eq } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { Database } from './db/client.js';
-import { user as userTable } from './db/schema.js';
-import { sendMagicLinkEmail } from './email.js';
+import { invitation, user as userTable } from './db/schema.js';
+import { sendMagicLinkEmail, sendVerificationEmail } from './email.js';
 
 type AuthConfig = {
   baseURL: string;
@@ -24,6 +24,19 @@ const generateDatabaseId = ({ model }: { model: string }) => {
 const emailVerifiedToTimestamp = (value: unknown) => {
   if (value instanceof Date) return value;
   if (value === true) return new Date();
+  return null;
+};
+
+// Better Auth core treats `emailVerified` as boolean; our DB column is a
+// nullable timestamp. We declare the additionalField as type:'date' so the
+// Drizzle adapter persists/reads a real Date — but we return that Date (or
+// null) verbatim from output so the Drizzle adapter's customTransformOutput
+// (which wraps any non-null date value in `new Date(...)`) does not coerce
+// a coerced boolean back into `new Date(false)` === epoch. Better Auth's
+// `if (user.emailVerified)` checks remain correct because a Date is truthy
+// and null is falsy.
+const emailVerifiedFromTimestamp = (value: unknown) => {
+  if (value instanceof Date) return value;
   return null;
 };
 
@@ -87,7 +100,7 @@ export function createAuth(db: Database, config: AuthConfig) {
           defaultValue: null,
           transform: {
             input: emailVerifiedToTimestamp,
-            output: (value) => value !== null,
+            output: emailVerifiedFromTimestamp,
           },
         },
         lastLoginAt: {
@@ -108,7 +121,24 @@ export function createAuth(db: Database, config: AuthConfig) {
     },
     emailAndPassword: {
       enabled: true,
-      autoSignIn: true,
+      // Sign-up no longer creates a session; the user must click the link in
+      // the verification email first. This blocks bulk signups against
+      // unowned mailboxes.
+      autoSignIn: false,
+      requireEmailVerification: true,
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendVerificationEmail(
+          {
+            resendApiKey: config.resendApiKey,
+            from: config.emailFrom,
+          },
+          { email: user.email, url },
+        );
+      },
     },
     databaseHooks: {
       session: {
@@ -122,6 +152,34 @@ export function createAuth(db: Database, config: AuthConfig) {
         },
       },
       user: {
+        create: {
+          // An open invitation token in the user's inbox already proves they
+          // own the address, so we pre-verify the account at creation time.
+          // This lets the invite flow (signUp → signIn → acceptInvitation)
+          // run end-to-end without bouncing through the email-link redirect.
+          before: async (user) => {
+            const email = user.email?.toLowerCase();
+            if (!email) return;
+            const [pending] = await db
+              .select({ id: invitation.id })
+              .from(invitation)
+              .where(
+                and(
+                  eq(invitation.email, email),
+                  isNull(invitation.acceptedAt),
+                  isNull(invitation.revokedAt),
+                  gt(invitation.expiresAt, new Date()),
+                ),
+              )
+              .limit(1);
+            if (!pending) return;
+            // Pass `true` here, not a Date — the additionalFields transform
+            // (input: emailVerifiedToTimestamp) converts it to `new Date()`
+            // before the insert reaches the DB. Returning a Date directly
+            // would bypass the transform and trip the boolean type.
+            return { data: { ...user, emailVerified: true } };
+          },
+        },
         delete: {
           before: async (user) => {
             await db
