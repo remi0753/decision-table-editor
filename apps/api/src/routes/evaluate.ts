@@ -45,7 +45,7 @@
 
 import type { Logic, TraceStep } from '@leverie/engine';
 import { evaluateTable } from '@leverie/engine';
-import { formatTrace, type FormattedTraceStep } from '@leverie/schema';
+import { type FormattedTraceStep, formatTrace } from '@leverie/schema';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb, type Database } from '../db/client.js';
@@ -190,7 +190,11 @@ export async function authenticateApiKey(
   // random short strings should never reach the DB.
   if (!secret.startsWith('lvr_') || secret.length < 20) {
     return {
-      error: { code: 'invalid_api_key', message: 'Invalid API key.', status: 401 },
+      error: {
+        code: 'invalid_api_key',
+        message: 'Invalid API key.',
+        status: 401,
+      },
     };
   }
 
@@ -222,12 +226,20 @@ export async function authenticateApiKey(
     if (!row) continue;
     if (row.apiKey.revokedAt) {
       return {
-        error: { code: 'api_key_revoked', message: 'API key was revoked.', status: 401 },
+        error: {
+          code: 'api_key_revoked',
+          message: 'API key was revoked.',
+          status: 401,
+        },
       };
     }
     if (row.apiKey.expiresAt && row.apiKey.expiresAt.getTime() <= Date.now()) {
       return {
-        error: { code: 'api_key_expired', message: 'API key has expired.', status: 401 },
+        error: {
+          code: 'api_key_expired',
+          message: 'API key has expired.',
+          status: 401,
+        },
       };
     }
     const verified = await verifyPassword({
@@ -238,14 +250,22 @@ export async function authenticateApiKey(
       // HMAC collided but scrypt did not — should be statistically impossible
       // with a 32-byte random secret, but if it ever happens, fail closed.
       return {
-        error: { code: 'invalid_api_key', message: 'Invalid API key.', status: 401 },
+        error: {
+          code: 'invalid_api_key',
+          message: 'Invalid API key.',
+          status: 401,
+        },
       };
     }
     return { apiKey: row.apiKey, workspace: row.workspace };
   }
 
   return {
-    error: { code: 'invalid_api_key', message: 'Invalid API key.', status: 401 },
+    error: {
+      code: 'invalid_api_key',
+      message: 'Invalid API key.',
+      status: 401,
+    },
   };
 }
 
@@ -354,7 +374,8 @@ export function coerceInputs(
     if (typeof value === 'string') serialized = value;
     else if (typeof value === 'number' && Number.isFinite(value)) {
       serialized = String(value);
-    } else if (typeof value === 'boolean') serialized = value ? 'true' : 'false';
+    } else if (typeof value === 'boolean')
+      serialized = value ? 'true' : 'false';
     else continue;
     if (serialized.length > INPUT_VALUE_MAX) {
       return {
@@ -395,7 +416,10 @@ export function normaliseInputs(
   return coerceInputs(inputs);
 }
 
-export function outputsByName(logicData: Logic, outputs: Record<string, string>) {
+export function outputsByName(
+  logicData: Logic,
+  outputs: Record<string, string>,
+) {
   // Walk every table once to map output column id → name. Different tables
   // may share a name on purpose — the union shape is the same as what
   // logicToOutputSchema advertises to LLMs.
@@ -594,7 +618,8 @@ evaluateRoutes.post('/v1/logics/:logicId/evaluate', async (c) => {
         {
           error: {
             code: 'logic_not_in_scope',
-            message: 'This API key does not have access to the requested logic.',
+            message:
+              'This API key does not have access to the requested logic.',
           },
         },
         403,
@@ -634,7 +659,8 @@ evaluateRoutes.post('/v1/logics/:logicId/evaluate', async (c) => {
     );
   }
 
-  const requestedVersionType: 'latest' | 'production' | 'version' = version.type;
+  const requestedVersionType: 'latest' | 'production' | 'version' =
+    version.type;
   const requestedVersionNumber =
     requestedVersionType === 'version' ? version.versionNumber : null;
 
@@ -677,8 +703,7 @@ evaluateRoutes.post('/v1/logics/:logicId/evaluate', async (c) => {
     }
   } catch (err) {
     const latencyMs = Date.now() - startedAt;
-    const message =
-      err instanceof Error ? err.message : 'evaluation_failed';
+    const message = err instanceof Error ? err.message : 'evaluation_failed';
     await recordErrorExecutionLog(db, {
       workspaceId: auth.workspace.id,
       logicId: logicRow.id,
@@ -721,7 +746,7 @@ evaluateRoutes.post('/v1/logics/:logicId/evaluate', async (c) => {
     requestId,
   });
 
-    await touchApiKeyLastUsedAt(db, auth.apiKey.id);
+  await touchApiKeyLastUsedAt(db, auth.apiKey.id);
 
   return c.json({
     logic: {
