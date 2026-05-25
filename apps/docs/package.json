@@ -1,0 +1,32 @@
+{
+  "name": "@leverie/docs",
+  "private": true,
+  "version": "0.1.0",
+  "description": "LEVERIE documentation site for product introduction, editor usage, Hosted API, and Hosted MCP.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5174",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
+    "test": "vitest run --passWithNoTests",
+    "preview": "vite build && wrangler dev",
+    "deploy:preview": "vite build && wrangler deploy --env preview",
+    "deploy:prod": "vite build && wrangler deploy --env prod"
+  },
+  "dependencies": {
+    "lucide-react": "^0.511.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.3.4",
+    "vitest": "^4.1.6",
+    "wrangler": "^4.92.0"
+  }
+}

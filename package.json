@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build --filter=@leverie/editor",
+    "build:docs": "turbo run build --filter=@leverie/docs",
     "build:packages": "turbo run build --filter='./packages/*'",
     "build:publishable": "turbo run build --filter='./packages/*' --filter=leverie-mcp",
     "build:local": "pnpm run lint && pnpm run typecheck && pnpm run build",

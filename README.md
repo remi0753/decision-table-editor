@@ -378,6 +378,7 @@ LEVERIE uses a **mixed-license** setup so that the libraries you embed in your o
 |---|---|---|
 | `packages/engine/` `packages/checks/` `packages/schema/` `packages/ui-runtime/` | **Apache License 2.0** | True OSS. Embed, modify, ship inside commercial products freely. |
 | `apps/mcp-server/` (npm: `leverie-mcp`) | **Apache License 2.0** | Same as above. Run `npx leverie-mcp` in any context, including commercial deployments. |
+| `apps/docs/` | **Apache License 2.0** | Documentation site. Reuse, translate, and quote freely. |
 | `apps/editor/` `apps/api/` and the repository as a whole | **[Functional Source License 1.1, ALv2 Future License (FSL-1.1-ALv2)](https://fsl.software/)** | Source-available. Free to read, modify, and self-host for your own internal use (including inside a company). Prohibited: making the software available to third parties as a commercial product or service that competes with LEVERIE. **Automatically converts to Apache License 2.0 two years after each release.** |
 
 If you want a managed/hosted LEVERIE without standing it up yourself, use **[leverie.dev](https://leverie.dev)** (paid plans). Otherwise, self-hosting under FSL is free for any non-competing use.
