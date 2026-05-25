@@ -13,13 +13,10 @@
 // consumed by the editor. Publishing it as a public OpenAPI doc would invite
 // integrations that we don't intend to support yet.
 //
-// Why this lives in `packages/openapi` (not `apps/api`):
-//   * The docs site (`apps/docs`) embeds Scalar and renders the same spec.
-//     Fetching `/v1/openapi.json` at runtime would force the API worker to be
-//     running in every environment (local dev, CI screenshots, statically-
-//     built docs preview). Importing `buildOpenApiDocument` directly into the
-//     docs bundle keeps the docs page self-contained while the API worker
-//     still serves the same document for SDK generators and MCP catalogs.
+// This lives in `apps/api` because the docs site links to the served
+// `/v1/openapi.json` endpoint rather than importing or rendering the spec at
+// build time. Keeping it beside the route makes the public API contract local
+// to the worker that serves it.
 
 export type OpenApiOptions = {
   // Absolute URL of the API origin. We expose it as the single `servers[0]` so
