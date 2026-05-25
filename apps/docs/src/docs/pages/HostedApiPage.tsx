@@ -122,6 +122,23 @@ POST /v1/logics/loan-review/evaluate?version=v7`}
           failures.
         </Callout>
       </DocSection>
+
+      <DocSection title="OpenAPI spec">
+        <p>
+          The full machine-readable OpenAPI 3.1 specification for the{' '}
+          <code>/v1</code> surface — Evaluate plus the hosted MCP endpoint — is
+          served at a stable URL. Point SDK generators, Postman, Insomnia, or
+          MCP catalogs at it.
+        </p>
+        <CodeBlock
+          title="OpenAPI spec endpoint"
+          code={`GET https://leverie.dev/v1/openapi.json`}
+        />
+        <p>
+          The document is public and cacheable for one hour. It is regenerated
+          on every deploy, so what you fetch always matches the live API.
+        </p>
+      </DocSection>
     </>
   );
 }
