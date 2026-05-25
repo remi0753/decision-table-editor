@@ -1,3 +1,4 @@
+import { buildOpenApiDocument } from '@leverie/openapi';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
@@ -208,6 +209,21 @@ app.use(
     allowMethods: ['GET', 'POST', 'OPTIONS'],
   }),
 );
+// P4.6 — Public OpenAPI 3.1 document for the /v1/* surface. Unauthenticated
+// (the spec describes the auth scheme; requiring auth to read it would defeat
+// SDK generators / MCP catalogs / Scalar). Cached for 1 hour at the edge so
+// the API worker isn't billed for every docs render. BETTER_AUTH_URL is the
+// canonical absolute URL of this API origin in every environment (set in
+// wrangler.toml per env); when empty, buildOpenApiDocument falls back to a
+// relative `/` server URL so the document is still valid OpenAPI.
+app.get('/v1/openapi.json', (c) => {
+  const serverUrl = c.env.BETTER_AUTH_URL?.trim() || undefined;
+  const document = buildOpenApiDocument({ serverUrl });
+  return c.json(document, 200, {
+    'Cache-Control': 'public, max-age=3600',
+  });
+});
+
 app.route('/', evaluateRoutes);
 app.route('/', mcpRoutes);
 

@@ -15,6 +15,7 @@
     "deploy:prod": "vite build && wrangler deploy --env prod"
   },
   "dependencies": {
+    "@leverie/openapi": "workspace:*",
     "lucide-react": "^0.511.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

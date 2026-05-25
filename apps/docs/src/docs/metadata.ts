@@ -153,6 +153,7 @@ export const pages: Page[] = [
       'Response body',
       'Version selection',
       'Failure behavior',
+      'OpenAPI spec',
     ],
   },
   {

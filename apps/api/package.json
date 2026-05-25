@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@leverie/engine": "workspace:*",
+    "@leverie/openapi": "workspace:*",
     "@leverie/schema": "workspace:*",
     "@neondatabase/serverless": "^0.10.4",
     "better-auth": "^1.1.4",

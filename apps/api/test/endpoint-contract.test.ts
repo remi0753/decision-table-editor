@@ -64,6 +64,7 @@ describe('API endpoint contract', () => {
         'POST /api/invitations/accept',
         'POST /v1/logics/:logicId/evaluate',
         'POST /v1/mcp',
+        'GET /v1/openapi.json',
       ]),
     );
   });
