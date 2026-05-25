@@ -80,14 +80,15 @@ The editor continuously checks each table and highlights problems:
 ```
 apps/                # Deployable / distributable executables
   editor/            # browser SPA (this README focuses on running it)
-  mcp-server/        # leverie-mcp — standalone MCP CLI (P1)
+  api/               # hosted API + hosted MCP worker
+  docs/              # documentation site
 packages/            # Importable libraries
   engine/            # @leverie/engine — evaluation engine
   checks/            # @leverie/checks — quality checks
   schema/            # @leverie/schema — JSON Schema generation
 ```
 
-**Role split:** `apps/*` are things you run or distribute — the SPA, the CLI/Docker image (`leverie-mcp`), and the future cloud API server. `packages/*` are pure libraries consumed via `import` (publishable to npm as `@leverie/*`).
+**Role split:** `apps/*` are deployable products — the editor, hosted API / MCP worker, and docs site. `packages/*` are pure libraries consumed via `import` (publishable to npm as `@leverie/*`).
 
 ### Install and run locally
 
@@ -324,23 +325,20 @@ CSV header conventions:
 
 ---
 
-### 6. Use your logic from an LLM (MCP)
+### 6. Use your logic from an LLM (Hosted MCP)
 
-Once a logic is exported as JSON, you can expose it to Claude Desktop, Cursor, Cline, VS Code (Copilot agent mode), or any other [Model Context Protocol](https://modelcontextprotocol.io/) client via the **`leverie-mcp`** CLI:
+Once a logic is saved in LEVERIE Cloud and published to production, you can expose it to agents through the hosted [Model Context Protocol](https://modelcontextprotocol.io/) endpoint:
 
 ```bash
-# One file → one MCP tool
-npx leverie-mcp serve /absolute/path/to/my-logic.json
-
-# A directory → every *.json becomes its own tool
-npx leverie-mcp serve /absolute/path/to/logics/
+curl https://leverie.dev/v1/mcp \
+  -H "Authorization: Bearer lvr_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-You don't run this in a terminal day-to-day — you add it to your MCP client's config and the client spawns it on demand. Per-client setup snippets (Claude Desktop / Cursor / Cline / VS Code / Claude Code), an end-to-end verification recipe, and a troubleshooting table live in [apps/mcp-server/README.md](apps/mcp-server/README.md).
+Hosted MCP uses the same API keys as the Evaluate API. Each published logic becomes one callable tool, with input and output schemas generated from `@leverie/schema`. See the docs site source in [apps/docs](apps/docs/) and the worker implementation in [apps/api/src/routes/mcp.ts](apps/api/src/routes/mcp.ts).
 
-Three ready-to-run sample logics live in [examples/](examples/) — point your client at that directory and you immediately get a `loan_review`, `support_ticket_routing`, and `refund_eligibility` tool with worked LLM prompts.
-
-A prebuilt Docker image is published to GitHub Container Registry as `ghcr.io/remi0753/leverie-mcp` for setups where `npx` isn't an option.
+Three sample logics live in [examples/](examples/) for import, publishing, and MCP tool-call demos: `loan_review`, `support_ticket_routing`, and `refund_eligibility`.
 
 ---
 
@@ -377,7 +375,6 @@ LEVERIE uses a **mixed-license** setup so that the libraries you embed in your o
 | Path | License | What it means |
 |---|---|---|
 | `packages/engine/` `packages/checks/` `packages/schema/` `packages/ui-runtime/` | **Apache License 2.0** | True OSS. Embed, modify, ship inside commercial products freely. |
-| `apps/mcp-server/` (npm: `leverie-mcp`) | **Apache License 2.0** | Same as above. Run `npx leverie-mcp` in any context, including commercial deployments. |
 | `apps/docs/` | **Apache License 2.0** | Documentation site. Reuse, translate, and quote freely. |
 | `apps/editor/` `apps/api/` and the repository as a whole | **[Functional Source License 1.1, ALv2 Future License (FSL-1.1-ALv2)](https://fsl.software/)** | Source-available. Free to read, modify, and self-host for your own internal use (including inside a company). Prohibited: making the software available to third parties as a commercial product or service that competes with LEVERIE. **Automatically converts to Apache License 2.0 two years after each release.** |
 

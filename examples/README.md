@@ -1,13 +1,8 @@
 # LEVERIE examples
 
-Three ready-to-run decision logics that demonstrate what an LLM sees when it calls a [`leverie-mcp`](../apps/mcp-server/) server. Point any MCP client at this directory and you get **three tools** — one per `*.json` file — with full input schemas, output schemas, and execution traces.
+Three ready-to-run decision logics that demonstrate the kind of tools LEVERIE exposes through Hosted MCP after import and publish. Each file can become one MCP tool with full input schemas, output schemas, and execution traces.
 
-```bash
-npx leverie-mcp serve ./examples/
-# → serving 3 tools on stdio: loan_review, refund_eligibility, support_ticket_routing
-```
-
-Each file is a valid Logic JSON v2 — open it in the [LEVERIE editor](../) to see the tables and rules as a grid.
+Each file is a valid Logic JSON v2 — open it in the [LEVERIE editor](../) to see the tables and rules as a grid, then publish it to expose it from the hosted `/v1/mcp` endpoint.
 
 ## The samples
 
@@ -19,7 +14,7 @@ Each file is a valid Logic JSON v2 — open it in the [LEVERIE editor](../) to s
 
 ## Try it from an LLM
 
-After wiring `leverie-mcp serve /absolute/path/to/examples/` into your MCP client (see the [setup guide](../apps/mcp-server/README.md#connect-from-your-llm-client)), ask the assistant to call each tool:
+After importing and publishing the examples, ask your MCP client to call the hosted tools:
 
 ### Loan Review
 
@@ -53,19 +48,29 @@ Expected: `Approve` — *"Loyalty tier: extended 30-day window"*. The trace show
 
 ## Smoke-testing without an LLM
 
-You can drive the server directly over JSON-RPC to confirm the same verdicts:
+You can drive the hosted endpoint directly over JSON-RPC to confirm the same verdicts:
 
 ```bash
-{
-  printf '%s\n' \
-    '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}' \
-    '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}' \
-    '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"support_ticket_routing","arguments":{"Priority":"P0","Customer Tier":"enterprise","Has Outage":true}}}';
-} | npx -y leverie-mcp serve ./examples/
+curl https://leverie.dev/v1/mcp \
+  -H "Authorization: Bearer lvr_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "support_ticket_routing",
+      "arguments": {
+        "Priority": "P0",
+        "Customer Tier": "enterprise",
+        "Has Outage": true
+      }
+    }
+  }'
 ```
 
 The `structuredContent` in the response contains the final outputs (`Queue`, `SLA`) plus the trace.
 
 ## Editing or remixing
 
-Open any of these files in the [LEVERIE editor](../) via **Import** to inspect them visually, tweak the rules, and re-export. The MCP server picks the updated file up on the next client connection — or immediately if you run `leverie-mcp serve ./examples/ --watch`.
+Open any of these files in the [LEVERIE editor](../) via **Import** to inspect them visually, tweak the rules, save to a workspace, and publish a new production version. Hosted MCP serves the current production pin for each scoped API key.

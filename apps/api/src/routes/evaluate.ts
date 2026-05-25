@@ -1,10 +1,9 @@
-// P4.2 — Hosted Evaluate API. The first cloud-side counterpart to the
-// Standalone MCP `leverie-mcp` CLI: external systems (LLM agents, hosted MCP
-// bridges in P4.4, customer integrations) authenticate with an API key and
-// call a published Logic version. The contract intentionally hides every
-// internal id — inputs and outputs are keyed by field / column **names** so
-// callers can derive shape from the metadata API (P4.3) without learning the
-// editor's id scheme.
+// P4.2 — Hosted Evaluate API. External systems (LLM agents, hosted MCP
+// bridges, customer integrations) authenticate with an API key and call a
+// published Logic version. The contract intentionally hides every internal id
+// — inputs and outputs are keyed by field / column **names** so callers can
+// derive shape from the metadata API (P4.3) without learning the editor's id
+// scheme.
 //
 // Why this lives outside /api/*:
 //   * /api/* is the browser surface (cookie-based session, CSRF gate, CORS
