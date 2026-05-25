@@ -1,13 +1,12 @@
-// P4.3 — Hosted MCP server. Cloud-side counterpart to the Standalone MCP CLI
-// (`leverie-mcp serve`): external LLM agents connect with an API key and the
-// server exposes every logic in scope as a callable MCP tool with input /
+// P4.3 — Hosted MCP server. External LLM agents connect with an API key and
+// the server exposes every logic in scope as a callable MCP tool with input /
 // output JSON Schemas derived from `@leverie/schema`.
 //
 // Transport: stateless JSON-RPC 2.0 over HTTP POST. Each request is a complete
 // MCP message; the server holds no session state between requests. This trades
 // the bidirectional streamable-HTTP transport away for Workers-friendly
-// statelessness — clients that need persistent sessions can either reissue
-// `initialize` per request or fall back to the Standalone MCP CLI. The
+// statelessness — clients that need persistent sessions can reissue
+// `initialize` per request or keep client-side session state in a bridge. The
 // stateless choice is intentional and documented in roadmap P4.3.
 //
 // Why same /v1/* prefix as evaluate, not /mcp/*:

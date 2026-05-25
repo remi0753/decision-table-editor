@@ -91,7 +91,7 @@ function suffixOf(prefix: string, id: string): number {
 
 // Object.hasOwn is ES2022; engine still targets ES2020 lib so call the
 // prototype form directly. Bumping lib to ES2022 would force the same on
-// every downstream package (checks / schema / editor / mcp-server / ui-runtime),
+// every downstream package (checks / schema / editor / api / ui-runtime),
 // which is out of scope for this change.
 function hasOwn(obj: object, key: string): boolean {
   // biome-ignore lint/suspicious/noPrototypeBuiltins: ES2020 lib (see above)

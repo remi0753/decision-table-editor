@@ -13,9 +13,8 @@ export function HostedMcpPage() {
           sessions, which keeps it friendly to edge runtimes and simple bridges.
         </p>
         <p>
-          This hosted surface is the cloud counterpart to the standalone local
-          MCP server. Instead of pointing an agent at a local JSON file, the
-          agent reaches published logic in a workspace through a scoped API key.
+          Instead of pointing an agent at local JSON files, the agent reaches
+          published logic in a workspace through a scoped API key.
         </p>
         <figure className="media-card compact">
           <img

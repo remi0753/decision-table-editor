@@ -353,22 +353,22 @@ curl -fsS "$BASE/v1/logics/$LOGIC_ID/evaluate?version=v3" \
 
 ## Hosted MCP (`/v1/mcp`)
 
-The cloud-side counterpart to the Standalone MCP CLI ([`leverie-mcp`](../mcp-server/README.md)). LLM agents connect with an API key and the server exposes every logic the key can reach as a callable MCP tool, with input / output JSON Schemas derived from `@leverie/schema`.
+Hosted MCP lets LLM agents connect with an API key and call every published logic the key can reach as an MCP tool, with input / output JSON Schemas derived from `@leverie/schema`.
 
 Implementation: [src/routes/mcp.ts](./src/routes/mcp.ts).
 
-### Standalone MCP vs Hosted MCP
+### Hosted MCP model
 
-The same MCP contract is published from two data planes — pick the one that fits the deployment shape:
+Hosted MCP uses the cloud data plane and production publishing model:
 
-| Aspect             | Standalone (`leverie-mcp serve`)              | Hosted (`POST /v1/mcp`)                          |
-| ------------------ | --------------------------------------------- | ------------------------------------------------ |
-| Transport          | stdio                                         | HTTP POST (JSON-RPC 2.0, stateless)              |
-| Data source        | Logic JSON file(s) on the local filesystem    | Postgres — published `logic_version` snapshots   |
-| Auth               | none (local trust boundary)                   | Bearer API key (`Authorization: Bearer lvr_...`) |
-| Tool catalog       | `tools/list` shows every file in the directory| `tools/list` shows every in-scope logic with a pinned production version |
-| Tool freshness     | `--watch` reload from file                    | Always served from the current production pin    |
-| Editor integration | Editor → JSON export → run CLI                | Editor saves → publish → tool catalog updates    |
+| Aspect             | Hosted (`POST /v1/mcp`)                          |
+| ------------------ | ------------------------------------------------ |
+| Transport          | HTTP POST (JSON-RPC 2.0, stateless)              |
+| Data source        | Postgres — published `logic_version` snapshots   |
+| Auth               | Bearer API key (`Authorization: Bearer lvr_...`) |
+| Tool catalog       | `tools/list` shows every in-scope logic with a pinned production version |
+| Tool freshness     | Always served from the current production pin    |
+| Editor integration | Editor saves → publish → tool catalog updates    |
 
 ### Endpoint
 
@@ -376,7 +376,7 @@ The same MCP contract is published from two data planes — pick the one that fi
 POST /v1/mcp
 ```
 
-Single endpoint for all JSON-RPC methods. Stateless — the server holds no session between requests, so every request reissues authentication and (when needed) `initialize`. This trades the streamable-HTTP transport's bidirectional channel away in exchange for Workers-friendly statelessness. Clients that need session affinity can either reissue `initialize` per request or fall back to the Standalone MCP CLI.
+Single endpoint for all JSON-RPC methods. Stateless — the server holds no session between requests, so every request reissues authentication and (when needed) `initialize`. This trades the streamable-HTTP transport's bidirectional channel away in exchange for Workers-friendly statelessness. Clients that need session affinity should reissue `initialize` per request or use a bridge process that keeps client-side session state.
 
 ### Headers
 
@@ -472,8 +472,8 @@ curl -fsS "$BASE/v1/mcp" \
 
 Most stdio-only MCP clients (Claude Desktop, Cursor, Cline) cannot speak this transport directly. Two patterns work today:
 
-1. **Bridge via the Standalone CLI**: have the agent host run `leverie-mcp serve ./logics/` against a directory of exported Logic JSON files. See [apps/mcp-server/README.md](../mcp-server/README.md) for client-specific setup.
-2. **Direct HTTP MCP**: clients that support HTTP MCP transports (or which can wrap a custom transport) can POST directly to `/v1/mcp`. The wire format is plain JSON-RPC 2.0 — the curl examples above are the entire protocol.
+1. **Direct HTTP MCP**: clients that support HTTP MCP transports (or which can wrap a custom transport) can POST directly to `/v1/mcp`. The wire format is plain JSON-RPC 2.0 — the curl examples above are the entire protocol.
+2. **Bridge process**: stdio-only clients can run a small bridge that accepts local MCP messages and forwards them to `/v1/mcp` with an API key.
 
 A native streamable-HTTP transport for hosted MCP is intentionally deferred — P4.5 ships a TypeScript SDK that wraps `/v1/mcp` for the most common consumption path, and P4.6 publishes an OpenAPI doc covering both `/v1` surfaces.
 
