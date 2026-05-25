@@ -19,6 +19,7 @@ Version 2.0 (see the `LICENSE` file inside each directory):
 - `packages/schema/`
 - `packages/ui-runtime/`
 - `apps/mcp-server/`
+- `apps/docs/`
 
 All other source files, including `apps/editor/` and `apps/api/`, are licensed
 under the terms below.

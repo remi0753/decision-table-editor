@@ -1,0 +1,54 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "leverie-docs",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-05-15",
+  "observability": {
+    "enabled": true
+  },
+  // Workers Assets serve the Vite build output. With base: '/docs/' and
+  // outDir: 'dist/docs', a request for /docs/foo maps to ./dist/docs/foo
+  // without any prefix rewriting. The Worker script (src/worker.ts) is bound
+  // to the same route and adds:
+  //   - /docs and /docs/ → /docs/introduction redirect
+  //   - SPA fallback for unknown /docs/* paths (serves /docs/index.html)
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Always invoke the Worker, then let it delegate to ASSETS via fetch.
+    // Needed because (a) we redirect /docs and /docs/ to /docs/introduction
+    // before any asset lookup, and (b) we serve /docs/index.html as the SPA
+    // fallback for unknown /docs/* paths — both decisions live in the Worker.
+    "run_worker_first": true,
+    // Serve files at their exact path. Without this, /docs/index.html is
+    // auto-rewritten to /docs/, which breaks the Worker's SPA fallback
+    // (the rewrite produces a 307 instead of the HTML body).
+    "html_handling": "none"
+  },
+  // ──────────────────────────────────────────────────────────────────────
+  // Production environment
+  // ──────────────────────────────────────────────────────────────────────
+  "env": {
+    "prod": {
+      "name": "leverie-docs",
+      // Workers Routes precedence: leverie.dev/docs and leverie.dev/docs/*
+      // are more specific than the editor's leverie.dev/* route, so these
+      // patterns win for any path under /docs. The api Worker keeps owning
+      // /api/* and /v1/*.
+      "routes": [
+        { "pattern": "leverie.dev/docs", "zone_name": "leverie.dev" },
+        { "pattern": "leverie.dev/docs/*", "zone_name": "leverie.dev" }
+      ]
+    },
+    // ────────────────────────────────────────────────────────────────────
+    // Preview environment (branch deploys, smoke tests)
+    // ────────────────────────────────────────────────────────────────────
+    "preview": {
+      "name": "leverie-docs-preview",
+      "routes": [
+        { "pattern": "preview.leverie.dev/docs", "zone_name": "leverie.dev" },
+        { "pattern": "preview.leverie.dev/docs/*", "zone_name": "leverie.dev" }
+      ]
+    }
+  }
+}

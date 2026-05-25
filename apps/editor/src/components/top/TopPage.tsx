@@ -36,6 +36,9 @@ export function TopPage() {
             <a href="#fit" className="hover:text-violet-800">
               Use cases
             </a>
+            <a href="/docs/introduction" className="hover:text-violet-800">
+              Docs
+            </a>
           </nav>
           <div className="flex items-center gap-2">
             <a
