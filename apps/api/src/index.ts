@@ -1,4 +1,3 @@
-import { buildOpenApiDocument } from '@leverie/openapi';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
@@ -7,6 +6,7 @@ import { createAuth } from './auth.js';
 import { createDb } from './db/client.js';
 import { user as userTable } from './db/schema.js';
 import type { Env } from './env.js';
+import { buildOpenApiDocument } from './openapi.js';
 import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
 import { apiKeyRoutes } from './routes/apiKeys.js';
 import { evaluateRoutes } from './routes/evaluate.js';

@@ -4,9 +4,9 @@
 //   * GET /v1/openapi.json    — route wiring (status, content-type, cache, CORS,
 //                                no auth required, server url propagated)
 
-import { buildOpenApiDocument } from '@leverie/openapi';
 import { describe, expect, it } from 'vitest';
 import { app } from '../src/index.js';
+import { buildOpenApiDocument } from '../src/openapi.js';
 
 const baseEnv = {
   DATABASE_URL: 'postgres://unit-test',
