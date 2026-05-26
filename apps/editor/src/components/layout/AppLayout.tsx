@@ -4,6 +4,7 @@ import {
   Download,
   FilePlus,
   FlaskConical,
+  Loader2,
   Menu,
   Redo2,
   Sparkles,
@@ -275,13 +276,21 @@ export function AppLayout() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         <aside className="w-80 border-r bg-gray-50 overflow-hidden flex flex-col shrink-0">
           <LeftPane />
         </aside>
         <main className="flex-1 overflow-hidden bg-gray-50">
           <RightPane onOpenSampleGallery={() => setSampleGalleryOpen(true)} />
         </main>
+        {cloudMode === 'checking' ? (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/90 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3 text-gray-700">
+              <Loader2 className="h-7 w-7 animate-spin text-violet-600" />
+              <div className="text-sm font-medium">{t.cloudChecking}</div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <SampleGalleryDialog
