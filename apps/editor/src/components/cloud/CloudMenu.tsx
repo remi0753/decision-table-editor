@@ -9,7 +9,7 @@ import {
   Settings,
   UserCircle,
 } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useT } from '@/i18n/useT';
@@ -30,12 +30,27 @@ export function CloudMenu() {
   const signIn = useCloudStore((s) => s.signIn);
   const signUp = useCloudStore((s) => s.signUp);
   const signOutToAuth = useCloudStore((s) => s.signOutToAuth);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (rootRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [open]);
 
   const status =
     mode === 'checking'
@@ -74,7 +89,7 @@ export function CloudMenu() {
   const workspaceName = workspace?.name ?? t.localMode;
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <Tooltip content={status}>
         <button
           type="button"
