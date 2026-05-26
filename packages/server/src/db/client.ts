@@ -25,3 +25,8 @@ export function createDb(
   const sql = neon(databaseUrl);
   return drizzle(sql, { schema });
 }
+
+export async function checkDatabaseHealth(databaseUrl: string) {
+  const db = createDb(databaseUrl);
+  await db.execute('select 1');
+}

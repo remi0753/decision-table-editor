@@ -1,6 +1,6 @@
 import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { createDb } from '../db/client.js';
+import { createDb, type Database } from '../db/client.js';
 import {
   invitation,
   membership,
@@ -30,6 +30,7 @@ import {
   requireUser,
   rolePersona,
   sha256Base64Url,
+  slugWithRandomSuffix,
   writeAudit,
 } from './shared.js';
 
@@ -50,6 +51,26 @@ function rowsFromExecute<T>(result: unknown): T[] {
     return (result as { rows: T[] }).rows;
   }
   return [];
+}
+
+async function findAvailableOrgSlug(db: Database, base: string) {
+  async function slugExists(slug: string) {
+    const [row] = await db
+      .select({ id: org.id })
+      .from(org)
+      .where(eq(org.slug, slug))
+      .limit(1);
+
+    return Boolean(row);
+  }
+
+  if (!(await slugExists(base))) return base;
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const candidate = slugWithRandomSuffix(base);
+    if (!(await slugExists(candidate))) return candidate;
+  }
+  return fallbackSlug('org');
 }
 
 export const orgRoutes = new Hono<{ Bindings: Env }>();
@@ -156,21 +177,41 @@ orgRoutes.post('/api/orgs', async (c) => {
   if (!name) return jsonError(c, 400, 'invalid_name', 'Name is required.');
 
   const requestedSlug = parseBodyString(body, 'slug', { max: 63 });
-  const slug = requestedSlug
+  const baseSlug = requestedSlug
     ? normalizeSlug(requestedSlug)
     : normalizeSlug(name) || fallbackSlug('org');
-  const slugError = assertSlug(c, slug);
+  const slugError = assertSlug(c, baseSlug);
   if (slugError) return slugError;
+  const slug = requestedSlug
+    ? baseSlug
+    : await findAvailableOrgSlug(db, baseSlug);
 
-  const [createdOrg] = await db
-    .insert(org)
-    .values({
-      name,
-      slug,
-      createdActorType: 'user',
-      createdActorId: user.id,
-    })
-    .returning();
+  let createdOrg: typeof org.$inferSelect | undefined;
+  try {
+    [createdOrg] = await db
+      .insert(org)
+      .values({
+        name,
+        slug,
+        createdActorType: 'user',
+        createdActorId: user.id,
+      })
+      .returning();
+  } catch (error) {
+    const maybeError = error as { code?: string; constraint?: string };
+    if (
+      maybeError.code === '23505' &&
+      maybeError.constraint === 'org_slug_not_purged_uniq'
+    ) {
+      return jsonError(
+        c,
+        409,
+        'slug_conflict',
+        'An organization with this slug already exists.',
+      );
+    }
+    throw error;
+  }
 
   if (!createdOrg) {
     return jsonError(c, 500, 'org_create_failed', 'Could not create org.');

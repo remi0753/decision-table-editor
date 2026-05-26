@@ -51,10 +51,21 @@ export type TranslationSet = {
   namePlaceholder: string;
   emailPlaceholder: string;
   passwordPlaceholder: string;
+  createCloudLogicTitle: string;
+  logicIdLabel: string;
+  logicIdPlaceholder: string;
+  logicIdHint: string;
+  logicIdInvalid: string;
+  createCloudLogicSubmit: string;
+  cancel: string;
+  useSelectedWorkspace: string;
+  connecting: string;
 
   // LeftPane
   logicNameLabel: string;
   logicNamePlaceholder: string;
+  logicDescriptionLabel: string;
+  logicDescriptionPlaceholder: string;
   tableList: string;
   tableGraph: string;
   addTable: string;
@@ -275,6 +286,10 @@ export type TranslationSet = {
   sampleGalleryDescription: string;
   sampleGalleryFooter: string;
   useSample: string;
+  createFromSample: string;
+  replaceWithSample: string;
+  createSampleLocalConfirm: (name: string) => string;
+  replaceWithSampleConfirm: (name: string) => string;
   startFromSample: string;
   startFromSampleHint: string;
   sampleLoaded: (name: string) => string;
@@ -332,9 +347,21 @@ export const translations: Record<Lang, TranslationSet> = {
     namePlaceholder: 'Name',
     emailPlaceholder: 'Email',
     passwordPlaceholder: 'Password',
+    createCloudLogicTitle: 'Create cloud logic',
+    logicIdLabel: 'Logic ID',
+    logicIdPlaceholder: 'credit-screening',
+    logicIdHint:
+      'Use lowercase letters, numbers, and hyphens only. It must start and end with a letter or number, up to 63 characters.',
+    logicIdInvalid: 'Logic ID is not in an allowed format.',
+    createCloudLogicSubmit: 'Create',
+    cancel: 'Cancel',
+    useSelectedWorkspace: 'Use selected workspace',
+    connecting: 'Connecting...',
 
     logicNameLabel: 'Logic Name',
     logicNamePlaceholder: 'Logic name',
+    logicDescriptionLabel: 'Description',
+    logicDescriptionPlaceholder: 'What this logic decides, and when to use it',
     tableList: 'Tables',
     tableGraph: 'Table Graph',
     addTable: 'Add table',
@@ -566,10 +593,16 @@ export const translations: Record<Lang, TranslationSet> = {
     samplesShort: 'Samples',
     sampleGalleryTitle: 'Start from a sample',
     sampleGalleryDescription:
-      'Pick a ready-made decision logic from a familiar business scenario, load it into the editor, and reach an evaluation in under five minutes.',
+      'Pick a ready-made decision logic from a familiar business scenario. Create a new logic from it, or explicitly replace the current one.',
     sampleGalleryFooter:
-      'Loading a sample replaces the current logic. Your previous logic stays in the browser only until you load or import something else.',
+      'Creating from a sample keeps your current cloud logic separate. Replacing the current logic is a destructive action and asks for confirmation.',
     useSample: 'Load this sample',
+    createFromSample: 'Create new from sample',
+    replaceWithSample: 'Replace current logic',
+    createSampleLocalConfirm: (name) =>
+      `Open "${name}" as a new local draft?\nThe current local draft will be closed.`,
+    replaceWithSampleConfirm: (name) =>
+      `Replace the current logic with "${name}"?\nThis will overwrite the draft you are editing.`,
     startFromSample: 'Start from a sample',
     startFromSampleHint:
       'New here? Load a ready-made example (support routing, refunds, credit screening) to see a working decision logic in seconds.',
@@ -627,9 +660,21 @@ export const translations: Record<Lang, TranslationSet> = {
     namePlaceholder: '名前',
     emailPlaceholder: 'メール',
     passwordPlaceholder: 'パスワード',
+    createCloudLogicTitle: 'クラウドロジックを作成',
+    logicIdLabel: 'ロジックID',
+    logicIdPlaceholder: 'credit-screening',
+    logicIdHint:
+      '半角小文字英数字とハイフンのみ使用できます。先頭と末尾は英数字、最大63文字です。',
+    logicIdInvalid: 'ロジックIDの形式が正しくありません。',
+    createCloudLogicSubmit: '作成',
+    cancel: 'キャンセル',
+    useSelectedWorkspace: '選択したワークスペースを使う',
+    connecting: '接続中...',
 
     logicNameLabel: 'ロジック名',
     logicNamePlaceholder: 'ロジック名',
+    logicDescriptionLabel: '説明',
+    logicDescriptionPlaceholder: 'このロジックが判断する内容や利用シーン',
     tableList: 'テーブル一覧',
     tableGraph: 'テーブル関係図',
     addTable: 'テーブルを追加',
@@ -862,10 +907,16 @@ export const translations: Record<Lang, TranslationSet> = {
     samplesShort: 'サンプル',
     sampleGalleryTitle: 'サンプルから始める',
     sampleGalleryDescription:
-      '業務でよくあるシナリオの決定ロジックを選んでエディタに読み込み、5 分以内に評価まで体験できます。',
+      '業務でよくあるシナリオの決定ロジックを選び、新しいロジックとして作成できます。現在のロジックを置き換える場合は明示的に選択してください。',
     sampleGalleryFooter:
-      'サンプルを読み込むと現在のロジックは置き換わります。元のロジックは別のサンプル / インポートで上書きされるまでブラウザに残っています。',
+      'サンプルから新規作成すると、現在のクラウドロジックとは別に保存されます。現在のロジックを置き換える操作では確認が表示されます。',
     useSample: 'このサンプルを読み込む',
+    createFromSample: 'サンプルから新規作成',
+    replaceWithSample: '現在のロジックを置き換え',
+    createSampleLocalConfirm: (name) =>
+      `「${name}」を新しいローカル下書きとして開きますか？\n現在のローカル下書きは閉じられます。`,
+    replaceWithSampleConfirm: (name) =>
+      `現在のロジックを「${name}」で置き換えますか？\n編集中の下書きは上書きされます。`,
     startFromSample: 'サンプルから始める',
     startFromSampleHint:
       '初めての方はこちら。サポート振り分け・返金可否・与信スクリーニングなど、すぐ動く実例をワンクリックで読み込めます。',

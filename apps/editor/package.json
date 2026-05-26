@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:bundled": "vite build --mode bundled --outDir dist-bundled --emptyOutDir",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "preview": "vite build && wrangler dev",

@@ -22,6 +22,15 @@ type AuthConfig = {
   secondaryStorage?: SecondaryStorage;
 };
 
+export type Auth = {
+  api: {
+    getSession(options: { headers: Headers }): Promise<{
+      user: { id: string; email: string; name?: string | null };
+    } | null>;
+  };
+  handler(request: Request): Response | Promise<Response>;
+};
+
 const generateDatabaseId = ({ model }: { model: string }) => {
   if (model === 'user') return false;
   return crypto.randomUUID();
@@ -53,7 +62,7 @@ const emailVerifiedFromTimestamp = (value: unknown) => {
 // Better Auth exposes `emailVerified` as a boolean, while the production schema
 // stores the verification instant in `email_verified_at`. The field override
 // below keeps the auth API shape stable and maps storage to our timestamp.
-export function createAuth(db: Database, config: AuthConfig) {
+export function createAuth(db: Database, config: AuthConfig): Auth {
   const googleProvider =
     config.googleClientId && config.googleClientSecret
       ? {
@@ -239,7 +248,5 @@ export function createAuth(db: Database, config: AuthConfig) {
         },
       },
     },
-  });
+  }) as unknown as Auth;
 }
-
-export type Auth = ReturnType<typeof createAuth>;

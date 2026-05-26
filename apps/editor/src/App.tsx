@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AccessPage } from '@/components/access/AccessPage';
 import { AuthPage } from '@/components/auth/AuthPage';
@@ -7,7 +7,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { RunnerPage } from '@/components/runner/RunnerPage';
 import { OrgSettingsPage } from '@/components/settings/OrgSettingsPage';
 import { WorkspaceSettingsPage } from '@/components/settings/WorkspaceSettingsPage';
-import { TopPage } from '@/components/top/TopPage';
 import { loadFromStorage } from '@/hooks/useLocalStorage';
 import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
 import { useT } from '@/i18n/useT';
@@ -15,6 +14,18 @@ import { useCloudStore } from '@/store/cloudStore';
 import { clearHistory } from '@/store/historyStore';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
+
+// The marketing top page only ships with the cloud (leverie.dev) build. In the
+// bundled flavor consumed by @leverie/server, `/` redirects straight to /edit
+// and the TopPage chunk is never loaded.
+const TopPage =
+  import.meta.env.VITE_FLAVOR === 'bundled'
+    ? null
+    : lazy(() =>
+        import('@/components/top/TopPage').then((m) => ({
+          default: m.TopPage,
+        })),
+      );
 
 function EditorApp() {
   const importLogic = useLogicStore((s) => s.importLogic);
@@ -103,5 +114,13 @@ export default function App() {
   if (window.location.pathname === '/edit') return <EditorApp />;
   if (window.location.pathname === '/auth') return <AuthPage />;
   if (window.location.pathname === '/access') return <AccessPage />;
-  return <TopPage />;
+  if (TopPage === null) {
+    window.location.replace('/edit');
+    return null;
+  }
+  return (
+    <Suspense fallback={null}>
+      <TopPage />
+    </Suspense>
+  );
 }

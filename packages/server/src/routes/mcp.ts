@@ -512,7 +512,7 @@ mcpRoutes.post('/v1/mcp', async (c) => {
     );
   }
 
-  const rateLimit = await enforceEvaluateRateLimit(c.env, auth.apiKey.id);
+  const rateLimit = await enforceEvaluateRateLimit(c, auth.apiKey.id);
   if (!rateLimit.allowed) {
     return c.json(
       jsonRpcError(null, JSON_RPC_INVALID_REQUEST, 'Rate limit exceeded.', {

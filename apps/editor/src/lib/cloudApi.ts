@@ -331,11 +331,16 @@ export async function revokeApiKey(apiKeyId: string) {
   });
 }
 
-export async function createLogic(workspaceId: string, logic: Logic) {
+export async function createLogic(
+  workspaceId: string,
+  logic: Logic,
+  options: { slug?: string } = {},
+) {
   return api<{ logic: CloudLogic }>(`/api/workspaces/${workspaceId}/logics`, {
     method: 'POST',
     body: {
       name: logic.name,
+      slug: options.slug,
       description: logic.description,
       data: logic,
     },

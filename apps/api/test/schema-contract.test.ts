@@ -4,16 +4,20 @@ import { describe, expect, it } from 'vitest';
 
 const apiRoot = resolve(import.meta.dirname, '..');
 const repoRoot = resolve(apiRoot, '../..');
+const serverRoot = resolve(repoRoot, 'packages/server');
 const migrations = [
   'drizzle/0000_normal_pride.sql',
   'drizzle/0001_petite_toro.sql',
   'drizzle/0002_old_champions.sql',
 ]
-  .map((path) => readFileSync(resolve(apiRoot, path), 'utf8'))
+  .map((path) => readFileSync(resolve(serverRoot, path), 'utf8'))
   .join('\n');
-const schemaSource = readFileSync(resolve(apiRoot, 'src/db/schema.ts'), 'utf8');
+const schemaSource = readFileSync(
+  resolve(serverRoot, 'src/db/schema.ts'),
+  'utf8',
+);
 const logicRoutesSource = readFileSync(
-  resolve(apiRoot, 'src/routes/logics.ts'),
+  resolve(serverRoot, 'src/routes/logics.ts'),
   'utf8',
 );
 const designSchema = readFileSync(

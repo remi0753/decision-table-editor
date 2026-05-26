@@ -22,6 +22,18 @@ export interface KvLikeNamespace {
   delete(key: string): Promise<unknown>;
 }
 
+export type SecondaryStorageConfig<Bindings extends Record<string, unknown>> =
+  | SecondaryStorage
+  | ((env: Bindings) => SecondaryStorage)
+  | { type: 'memory' }
+  | { type: 'redis'; client: RedisLikeClient }
+  | { type: 'kv'; namespace: KvLikeNamespace }
+  | {
+      type: 'kv';
+      binding: keyof Bindings & string;
+      allowMemoryInLocalDev?: boolean;
+    };
+
 // Cloudflare Workers KV requires `expirationTtl >= 60`. Rate-limit windows
 // are usually shorter; we floor at 60 so KV accepts the write. The longer
 // TTL only delays cleanup — the rate-limiter computes its window from the
@@ -85,8 +97,8 @@ export function createRedisSecondaryStorage(
 }
 
 // In-process fallback for local dev / unit tests. Not safe across Worker
-// isolates — production deployments must wire `RATE_LIMIT_KV` (or a Redis
-// client) in instead.
+// isolates — production deployments must pass a KV namespace, Redis client,
+// or custom SecondaryStorage through createLeverieServer({ secondaryStorage }).
 export function createMemorySecondaryStorage(): SecondaryStorage {
   const store = new Map<string, { value: string; expiresAt: number | null }>();
   return {
@@ -121,18 +133,46 @@ function isLocalAuthUrl(value?: string) {
   }
 }
 
-// Selects the storage backend per-request. Workers bind `RATE_LIMIT_KV` to a
-// KV namespace in production / preview. Local dev (wrangler dev) gets an
-// in-memory fallback so the auth flow keeps working without provisioning KV.
+// Selects the storage backend per-request. Local dev gets an in-memory fallback
+// so the auth flow keeps working without provisioning external storage.
 // Production must fail closed; falling back to isolate-local memory silently
-// defeats auth and invitation rate limits on Cloudflare Workers.
-export function resolveSecondaryStorage(env: {
-  BETTER_AUTH_URL?: string;
-  RATE_LIMIT_KV?: KvLikeNamespace;
-}): SecondaryStorage {
-  if (env.RATE_LIMIT_KV) return createKvSecondaryStorage(env.RATE_LIMIT_KV);
+// defeats auth and invitation rate limits.
+export function resolveSecondaryStorage<
+  Bindings extends Record<string, unknown>,
+>(
+  env: Bindings & { BETTER_AUTH_URL?: string },
+  config?: SecondaryStorageConfig<Bindings>,
+): SecondaryStorage {
+  if (typeof config === 'function') return config(env);
+
+  if (config && 'get' in config && 'set' in config && 'delete' in config) {
+    return config;
+  }
+
+  if (config?.type === 'memory') return createMemorySecondaryStorage();
+  if (config?.type === 'redis') {
+    return createRedisSecondaryStorage(config.client);
+  }
+  if (config?.type === 'kv' && 'namespace' in config) {
+    return createKvSecondaryStorage(config.namespace);
+  }
+  if (config?.type === 'kv' && 'binding' in config) {
+    const namespace = env[config.binding];
+    if (namespace) {
+      return createKvSecondaryStorage(namespace as unknown as KvLikeNamespace);
+    }
+    if (!config.allowMemoryInLocalDev || !isLocalAuthUrl(env.BETTER_AUTH_URL)) {
+      throw new Error(
+        `KV binding "${config.binding}" is required for secondaryStorage.`,
+      );
+    }
+    return createMemorySecondaryStorage();
+  }
+
   if (!isLocalAuthUrl(env.BETTER_AUTH_URL)) {
-    throw new Error('RATE_LIMIT_KV binding is required outside local dev.');
+    throw new Error(
+      'secondaryStorage must be configured outside local development.',
+    );
   }
   return createMemorySecondaryStorage();
 }

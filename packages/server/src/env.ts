@@ -13,8 +13,7 @@ export type Env = {
   GOOGLE_CLIENT_SECRET?: string;
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
-  // Cloudflare KV namespace backing Better Auth and invitation rate-limit
-  // counters. Optional only for local dev; production fails closed when this
-  // binding is missing (see resolveSecondaryStorage).
+  // Optional Cloudflare KV namespace. It is used only when the server is
+  // created with `secondaryStorage: { type: 'kv', binding: 'RATE_LIMIT_KV' }`.
   RATE_LIMIT_KV?: KvLikeNamespace;
 };
