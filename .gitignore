@@ -1,5 +1,7 @@
 node_modules
 dist
+dist-bundled
+editor-dist
 playwright-report
 test-results
 .claude
@@ -21,3 +23,4 @@ AGENTS.md
 !.dev.vars.example
 .env*
 !.env.example
+!.env.bundled

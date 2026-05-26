@@ -1,3 +1,4 @@
+import type { Logic } from '@leverie/engine';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   Download,
@@ -9,8 +10,8 @@ import {
   Undo2,
   Upload,
 } from 'lucide-react';
-import { useState } from 'react';
-import { Toaster } from 'sonner';
+import { type FormEvent, useState } from 'react';
+import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
 import { CloudMenu } from '@/components/cloud/CloudMenu';
 import { CloudWorkspacePicker } from '@/components/cloud/CloudWorkspacePicker';
@@ -35,10 +36,27 @@ import { useUiStore } from '@/store/uiStore';
 import { LeftPane } from './LeftPane';
 import { RightPane } from './RightPane';
 
+const LOGIC_ID_PATTERN = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+
+function logicIdFromName(name: string) {
+  return (
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 63)
+      .replace(/-+$/g, '') || 'logic'
+  );
+}
+
 export function AppLayout() {
   const logic = useLogicStore((s) => s.logic);
   const resetLogic = useLogicStore((s) => s.resetLogic);
   const importLogic = useLogicStore((s) => s.importLogic);
+  const setSelectedTable = useUiStore((s) => s.setSelectedTable);
+  const setEvalDrawerOpen = useUiStore((s) => s.setEvalDrawerOpen);
+  const clearEvalInputs = useUiStore((s) => s.clearEvalInputs);
   const clearEvalResult = useUiStore((s) => s.clearEvalResult);
   const clearBatch = useUiStore((s) => s.clearBatch);
   const lang = useUiStore((s) => s.lang);
@@ -51,6 +69,14 @@ export function AppLayout() {
   const t = useT();
   const [sampleGalleryOpen, setSampleGalleryOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+  const [newCloudLogicOpen, setNewCloudLogicOpen] = useState(false);
+  const [newLogicName, setNewLogicName] = useState(t.initialLogicName);
+  const [newLogicId, setNewLogicId] = useState(
+    logicIdFromName(t.initialLogicName),
+  );
+  const [newLogicDescription, setNewLogicDescription] = useState('');
+  const [newLogicIdEdited, setNewLogicIdEdited] = useState(false);
+  const [pendingNewLogic, setPendingNewLogic] = useState<Logic | null>(null);
 
   useAutoSave(logic, cloudMode === 'local');
   useCloudAutoSave(logic);
@@ -59,14 +85,87 @@ export function AppLayout() {
     if (window.confirm(t.newLogicConfirm)) {
       const nextLogic = createInitialLogic();
       if (cloudMode === 'cloud') {
-        void createCloudLogicFrom(nextLogic, importLogic);
+        setNewLogicName(nextLogic.name);
+        setNewLogicId(logicIdFromName(nextLogic.name));
+        setNewLogicDescription(nextLogic.description ?? '');
+        setNewLogicIdEdited(false);
+        setPendingNewLogic(nextLogic);
+        setNewCloudLogicOpen(true);
       } else {
         resetLogic();
+        clearEvalResult();
+        clearBatch();
+        clearHistory();
       }
-      clearEvalResult();
-      clearBatch();
-      clearHistory();
     }
+  };
+
+  const applyLogicToEditor = (nextLogic: Logic) => {
+    importLogic(nextLogic);
+    setSelectedTable(nextLogic.entryTableId);
+    clearEvalInputs();
+    clearEvalResult();
+    clearBatch();
+    clearHistory();
+    setEvalDrawerOpen(true);
+  };
+
+  const openNewLogicDialog = (nextLogic: Logic) => {
+    setNewLogicName(nextLogic.name);
+    setNewLogicId(logicIdFromName(nextLogic.name));
+    setNewLogicDescription(nextLogic.description ?? '');
+    setNewLogicIdEdited(false);
+    setPendingNewLogic(nextLogic);
+    setNewCloudLogicOpen(true);
+  };
+
+  const handleCreateFromSample = (sampleLogic: Logic) => {
+    if (cloudMode === 'cloud') {
+      openNewLogicDialog(sampleLogic);
+      return;
+    }
+    if (!window.confirm(t.createSampleLocalConfirm(sampleLogic.name))) return;
+    applyLogicToEditor(sampleLogic);
+    toast.success(t.sampleLoaded(sampleLogic.name));
+  };
+
+  const handleReplaceWithSample = (sampleLogic: Logic) => {
+    if (!window.confirm(t.replaceWithSampleConfirm(sampleLogic.name))) return;
+    applyLogicToEditor(sampleLogic);
+    toast.success(t.sampleLoaded(sampleLogic.name));
+  };
+
+  const trimmedNewLogicName = newLogicName.trim();
+  const trimmedNewLogicId = newLogicId.trim();
+  const newLogicIdValid = LOGIC_ID_PATTERN.test(trimmedNewLogicId);
+  const newCloudLogicValid = trimmedNewLogicName.length > 0 && newLogicIdValid;
+
+  const handleCreateCloudLogic = (event: FormEvent) => {
+    event.preventDefault();
+    if (!newCloudLogicValid) return;
+    const description = newLogicDescription.trim() || undefined;
+    const nextLogic = {
+      ...(pendingNewLogic ?? createInitialLogic()),
+      name: trimmedNewLogicName,
+      description,
+    };
+    void createCloudLogicFrom(
+      nextLogic,
+      {
+        name: trimmedNewLogicName,
+        slug: trimmedNewLogicId,
+        description,
+      },
+      importLogic,
+    );
+    setNewCloudLogicOpen(false);
+    setPendingNewLogic(null);
+    setSelectedTable(nextLogic.entryTableId);
+    clearEvalInputs();
+    clearEvalResult();
+    clearBatch();
+    clearHistory();
+    setEvalDrawerOpen(true);
   };
 
   return (
@@ -188,6 +287,8 @@ export function AppLayout() {
       <SampleGalleryDialog
         open={sampleGalleryOpen}
         onOpenChange={setSampleGalleryOpen}
+        onCreateFromSample={handleCreateFromSample}
+        onReplaceCurrent={handleReplaceWithSample}
       />
       <BatchDialog
         open={batchDialogOpen}
@@ -195,6 +296,98 @@ export function AppLayout() {
         logic={logic}
       />
       <CloudWorkspacePicker />
+      {newCloudLogicOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-6">
+          <form
+            onSubmit={handleCreateCloudLogic}
+            className="w-full max-w-md rounded border border-gray-200 bg-white p-5 shadow-xl"
+          >
+            <h2 className="text-base font-semibold text-gray-900">
+              {t.createCloudLogicTitle}
+            </h2>
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-600">
+                  {t.logicNameLabel}
+                </span>
+                <input
+                  value={newLogicName}
+                  onChange={(event) => {
+                    const nextName = event.target.value;
+                    setNewLogicName(nextName);
+                    if (!newLogicIdEdited) {
+                      setNewLogicId(logicIdFromName(nextName));
+                    }
+                  }}
+                  required
+                  maxLength={120}
+                  className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  placeholder={t.logicNamePlaceholder}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-600">
+                  {t.logicIdLabel}
+                </span>
+                <input
+                  value={newLogicId}
+                  onChange={(event) => {
+                    setNewLogicIdEdited(true);
+                    setNewLogicId(event.target.value);
+                  }}
+                  required
+                  maxLength={63}
+                  pattern="[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
+                  className="h-10 w-full rounded border border-gray-200 bg-white px-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  placeholder={t.logicIdPlaceholder}
+                />
+                <span className="mt-1 block text-xs leading-5 text-gray-500">
+                  {t.logicIdHint}
+                </span>
+                {trimmedNewLogicId && !newLogicIdValid ? (
+                  <span className="mt-1 block text-xs text-red-600">
+                    {t.logicIdInvalid}
+                  </span>
+                ) : null}
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-gray-600">
+                  {t.logicDescriptionLabel}
+                </span>
+                <textarea
+                  value={newLogicDescription}
+                  onChange={(event) =>
+                    setNewLogicDescription(event.target.value)
+                  }
+                  maxLength={500}
+                  rows={3}
+                  className="w-full resize-none rounded border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  placeholder={t.logicDescriptionPlaceholder}
+                />
+              </label>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setNewCloudLogicOpen(false);
+                  setPendingNewLogic(null);
+                }}
+                className="h-9 rounded border border-gray-200 bg-white px-3 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="submit"
+                disabled={!newCloudLogicValid}
+                className="h-9 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+              >
+                {t.createCloudLogicSubmit}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

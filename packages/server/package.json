@@ -1,0 +1,70 @@
+{
+  "name": "@leverie/server",
+  "version": "0.1.0",
+  "description": "Self-hostable LEVERIE API server with the built editor management UI bundled.",
+  "license": "FSL-1.1-ALv2",
+  "type": "module",
+  "keywords": [
+    "leverie",
+    "decision-table",
+    "rules-engine",
+    "hono",
+    "mcp",
+    "hosted-api",
+    "self-hosted"
+  ],
+  "homepage": "https://github.com/remi0753/leverie/tree/main/packages/server#readme",
+  "bugs": {
+    "url": "https://github.com/remi0753/leverie/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/remi0753/leverie.git",
+    "directory": "packages/server"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "leverie-server": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "drizzle",
+    "editor-dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm --filter @leverie/editor build:bundled && tsc -p tsconfig.build.json && node scripts/copy-editor-assets.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@leverie/engine": "workspace:*",
+    "@leverie/schema": "workspace:*",
+    "@neondatabase/serverless": "^0.10.4",
+    "better-auth": "^1.1.4",
+    "drizzle-orm": "^0.36.4",
+    "hono": "^4.6.14",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.6"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  }
+}

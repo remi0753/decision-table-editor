@@ -7,7 +7,11 @@ import { auditEvent, membership } from '../db/schema.js';
 import type { Env } from '../env.js';
 import { getAllowedOrigins } from '../origins.js';
 import { checkFixedWindowRateLimit } from '../rateLimit.js';
-import { resolveSecondaryStorage } from '../secondaryStorage.js';
+import {
+  resolveSecondaryStorage,
+  type SecondaryStorage,
+  type SecondaryStorageConfig,
+} from '../secondaryStorage.js';
 
 export type AppContext = Context<{ Bindings: Env }>;
 export type Role = 'owner' | 'admin' | 'editor' | 'viewer' | 'runner';
@@ -74,8 +78,21 @@ export function normalizeSlug(input: string) {
     .replace(/-+$/g, '');
 }
 
+function randomLowerAlphaNumeric(length: number) {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+}
+
 export function fallbackSlug(prefix: string) {
-  return `${prefix}-${randomToken(6).toLowerCase()}`.slice(0, 63);
+  return `${prefix}-${randomLowerAlphaNumeric(8)}`.slice(0, 63);
+}
+
+export function slugWithRandomSuffix(base: string, suffixLength = 8) {
+  const suffix = randomLowerAlphaNumeric(suffixLength);
+  const prefix = base.slice(0, Math.max(1, 63 - suffix.length - 1));
+  return `${prefix}-${suffix}`;
 }
 
 export function parseBodyString(
@@ -149,11 +166,22 @@ export function parseRole(body: unknown) {
   return role as Role;
 }
 
+export function getSecondaryStorage(c: AppContext): SecondaryStorage {
+  const config = (
+    c as unknown as {
+      get(
+        name: 'secondaryStorageConfig',
+      ): SecondaryStorageConfig<Env> | undefined;
+    }
+  ).get('secondaryStorageConfig');
+  return resolveSecondaryStorage(c.env, config);
+}
+
 export async function enforceInvitationEmailRateLimit(
   c: AppContext,
   input: { orgId: string; actorUserId: string; email: string },
 ) {
-  const storage = resolveSecondaryStorage(c.env);
+  const storage = getSecondaryStorage(c);
   const emailDigest = await sha256Base64Url(input.email.toLowerCase());
   const result = await checkFixedWindowRateLimit(storage, [
     {
@@ -225,7 +253,7 @@ function authForRequest(c: AppContext, db: Database) {
     googleClientSecret: c.env.GOOGLE_CLIENT_SECRET,
     resendApiKey: c.env.RESEND_API_KEY,
     emailFrom: c.env.EMAIL_FROM,
-    secondaryStorage: resolveSecondaryStorage(c.env),
+    secondaryStorage: getSecondaryStorage(c),
   });
 }
 

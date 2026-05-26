@@ -31,6 +31,7 @@ import {
   requireMembership,
   rolePersona,
   sha256Base64Url,
+  slugWithRandomSuffix,
   writeAudit,
 } from './shared.js';
 
@@ -273,15 +274,8 @@ async function findAvailableLogicSlug(
 
   if (!(await slugExists(base))) return base;
 
-  // Cap the search so a pathological workspace cannot loop forever; fall back
-  // to a random-suffixed slug if every numbered candidate is taken.
-  const room = Math.max(1, 63 - base.length - 1);
-  for (let suffix = 2; suffix < 1000; suffix += 1) {
-    const tail = `-${suffix}`;
-    const candidate =
-      tail.length > room
-        ? `${base.slice(0, 63 - tail.length)}${tail}`
-        : `${base}${tail}`;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const candidate = slugWithRandomSuffix(base);
     if (!(await slugExists(candidate))) return candidate;
   }
   return fallbackSlug('logic');

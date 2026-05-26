@@ -1,39 +1,39 @@
+import type { Logic } from '@leverie/engine';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Sparkles, X } from 'lucide-react';
-import { toast } from 'sonner';
 import { useT } from '@/i18n/useT';
 import { getSampleTemplates } from '@/lib/sampleTemplates';
-import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreateFromSample: (logic: Logic) => void;
+  onReplaceCurrent: (logic: Logic) => void;
 }
 
-export function SampleGalleryDialog({ open, onOpenChange }: Props) {
+export function SampleGalleryDialog({
+  open,
+  onOpenChange,
+  onCreateFromSample,
+  onReplaceCurrent,
+}: Props) {
   const lang = useUiStore((s) => s.lang);
-  const importLogic = useLogicStore((s) => s.importLogic);
-  const setSelectedTable = useUiStore((s) => s.setSelectedTable);
-  const setEvalDrawerOpen = useUiStore((s) => s.setEvalDrawerOpen);
-  const clearEvalInputs = useUiStore((s) => s.clearEvalInputs);
-  const clearEvalResult = useUiStore((s) => s.clearEvalResult);
-  const clearBatch = useUiStore((s) => s.clearBatch);
   const t = useT();
   const templates = getSampleTemplates(lang);
 
-  const handleLoad = (templateId: string) => {
+  const handleCreate = (templateId: string) => {
     const template = templates.find((tpl) => tpl.id === templateId);
     if (!template) return;
-    const logic = template.buildLogic();
-    importLogic(logic);
-    setSelectedTable(logic.entryTableId);
-    clearEvalInputs();
-    clearEvalResult();
-    clearBatch();
-    setEvalDrawerOpen(true);
+    onCreateFromSample(template.buildLogic());
     onOpenChange(false);
-    toast.success(t.sampleLoaded(template.name));
+  };
+
+  const handleReplace = (templateId: string) => {
+    const template = templates.find((tpl) => tpl.id === templateId);
+    if (!template) return;
+    onReplaceCurrent(template.buildLogic());
+    onOpenChange(false);
   };
 
   return (
@@ -82,13 +82,22 @@ export function SampleGalleryDialog({ open, onOpenChange }: Props) {
                     </li>
                   ))}
                 </ul>
-                <button
-                  type="button"
-                  onClick={() => handleLoad(tpl.id)}
-                  className="mt-4 bg-violet-600 text-white text-sm font-medium px-3 py-1.5 rounded hover:bg-violet-700"
-                >
-                  {t.useSample}
-                </button>
+                <div className="mt-4 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCreate(tpl.id)}
+                    className="rounded bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-700"
+                  >
+                    {t.createFromSample}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleReplace(tpl.id)}
+                    className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                  >
+                    {t.replaceWithSample}
+                  </button>
+                </div>
               </article>
             ))}
           </div>

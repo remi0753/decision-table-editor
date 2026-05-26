@@ -9,9 +9,10 @@ type HonoRoute = {
 };
 
 const sourceRoot = resolve(import.meta.dirname, '..');
+const serverSourceRoot = resolve(sourceRoot, '..', '..', 'packages', 'server');
 
-function readSource(path: string) {
-  return readFileSync(resolve(sourceRoot, path), 'utf8');
+function readServerSource(path: string) {
+  return readFileSync(resolve(serverSourceRoot, path), 'utf8');
 }
 
 function routeSignatures() {
@@ -70,9 +71,9 @@ describe('API endpoint contract', () => {
   });
 
   it('keeps same-origin API CORS constrained to explicit dev/fallback origins', () => {
-    const indexSource = readSource('src/index.ts');
+    const indexSource = readServerSource('src/index.ts');
 
-    expect(indexSource).toContain("app.use(\n  '/api/*'");
+    expect(indexSource).toContain("app.use('/api/*'");
     expect(indexSource).toContain('resolveCorsOrigin(origin, c.env)');
     expect(indexSource).toContain('credentials: true');
     expect(indexSource).toContain(
@@ -84,14 +85,14 @@ describe('API endpoint contract', () => {
   });
 
   it('keeps Better Auth sessions backed by the database despite secondary storage', () => {
-    const authSource = readSource('src/auth.ts');
+    const authSource = readServerSource('src/auth.ts');
 
     expect(authSource).toContain('storeSessionInDatabase: true');
   });
 
   it('uses the native scrypt password handler for Workers CPU budget', () => {
-    const authSource = readSource('src/auth.ts');
-    const passwordSource = readSource('src/password.ts');
+    const authSource = readServerSource('src/auth.ts');
+    const passwordSource = readServerSource('src/password.ts');
 
     expect(authSource).toContain(
       "import { hashPassword, verifyPassword } from './password.js'",

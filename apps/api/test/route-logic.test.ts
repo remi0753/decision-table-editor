@@ -1,6 +1,6 @@
 import type { Logic } from '@leverie/engine';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { hashPassword } from '../src/password.js';
+import { hashPassword } from '../../../packages/server/src/password.js';
 
 type SessionUser = {
   id: string;
@@ -47,11 +47,11 @@ const baseEnv = {
 let currentDb: FakeDb;
 let currentUser: SessionUser | null;
 
-vi.mock('../src/db/client.js', () => ({
+vi.mock('../../../packages/server/src/db/client.js', () => ({
   createDb: vi.fn(() => currentDb),
 }));
 
-vi.mock('../src/auth.js', () => ({
+vi.mock('../../../packages/server/src/auth.js', () => ({
   createAuth: vi.fn(() => ({
     api: {
       getSession: vi.fn(async () =>
@@ -62,7 +62,7 @@ vi.mock('../src/auth.js', () => ({
   })),
 }));
 
-vi.mock('../src/email.js', () => ({
+vi.mock('../../../packages/server/src/email.js', () => ({
   sendInvitationEmail: vi.fn(async () => undefined),
 }));
 
@@ -168,6 +168,17 @@ function materializeWrite(operation: WriteOperation) {
     updatedAt: new Date('2026-05-22T00:00:00.000Z'),
     ...payload,
   };
+}
+
+function mockRandomSuffix(value = 1) {
+  return vi
+    .spyOn(crypto, 'getRandomValues')
+    .mockImplementation((array: ArrayBufferView | null) => {
+      if (array && 'fill' in array) {
+        (array as Uint8Array).fill(value);
+      }
+      return array;
+    });
 }
 
 async function loadApp() {
@@ -387,6 +398,31 @@ describe('org route behavior', () => {
       targetType: 'org',
       targetId: body.org.id,
     });
+  });
+
+  it('auto-suffixes an org slug when the derived one already exists', async () => {
+    currentUser = ownerUser;
+    const random = mockRandomSuffix();
+    currentDb = createFakeDb({
+      select: [[], [{ id: 'existing-org' }], []],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/orgs', { name: 'My organization' }, { method: 'POST' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.org).toMatchObject({
+      name: 'My organization',
+      slug: 'my-organization-bbbbbbbb',
+    });
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      slug: 'my-organization-bbbbbbbb',
+    });
+    random.mockRestore();
   });
 
   it('prevents non-managers from inviting members', async () => {
@@ -813,6 +849,31 @@ describe('workspace route behavior', () => {
       action: 'workspace.created',
     });
   });
+
+  it('auto-suffixes a workspace slug when the derived one already exists', async () => {
+    const random = mockRandomSuffix();
+    currentDb = createFakeDb({
+      select: [[membership('editor')], [{ value: 0 }], [{ id: 'workspace-1' }]],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/orgs/org-1/workspaces',
+        { name: 'Claims Review' },
+        { method: 'POST' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.workspace).toMatchObject({
+      name: 'Claims Review',
+      slug: 'claims-review-bbbbbbbb',
+    });
+    random.mockRestore();
+  });
 });
 
 describe('logic route behavior', () => {
@@ -900,6 +961,7 @@ describe('logic route behavior', () => {
   });
 
   it('auto-suffixes the slug when the derived one collides with an existing logic in the workspace', async () => {
+    const random = mockRandomSuffix();
     currentDb = createFakeDb({
       select: [
         [
@@ -928,9 +990,10 @@ describe('logic route behavior', () => {
     expect(response.status).toBe(201);
     const body = await response.json();
     expect(body.logic).toMatchObject({
-      slug: 'new-logic-2',
+      slug: 'new-logic-bbbbbbbb',
       name: 'New Logic',
     });
+    random.mockRestore();
   });
 
   it('blocks logic creation once the user has reached the per-account cap', async () => {

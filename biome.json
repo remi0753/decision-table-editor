@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/dist"]
+    "includes": ["**", "!!**/dist", "!!**/editor-dist", "!!.pnpm-store"]
   },
   "formatter": {
     "enabled": true,

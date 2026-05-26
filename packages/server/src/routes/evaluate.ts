@@ -59,7 +59,7 @@ import {
 import type { Env } from '../env.js';
 import { verifyPassword } from '../password.js';
 import { checkFixedWindowRateLimit } from '../rateLimit.js';
-import { resolveSecondaryStorage } from '../secondaryStorage.js';
+import { type AppContext, getSecondaryStorage } from './shared.js';
 
 // 60 req / 10s smooths short bursts (a single chat-of-thought issuing several
 // tool calls in flight) while 600 / min caps sustained load so a runaway agent
@@ -437,8 +437,11 @@ export function unmatchedTableName(logicData: Logic, tableId: string): string {
   return logicData.tables[tableId]?.name ?? tableId;
 }
 
-export async function enforceEvaluateRateLimit(env: Env, apiKeyId: string) {
-  const storage = resolveSecondaryStorage(env);
+export async function enforceEvaluateRateLimit(
+  c: AppContext,
+  apiKeyId: string,
+) {
+  const storage = getSecondaryStorage(c);
   return checkFixedWindowRateLimit(
     storage,
     EVALUATE_RATE_LIMITS.map((rule) => ({
@@ -560,7 +563,7 @@ evaluateRoutes.post('/v1/logics/:logicId/evaluate', async (c) => {
     return c.json(body, status);
   }
 
-  const rateLimit = await enforceEvaluateRateLimit(c.env, auth.apiKey.id);
+  const rateLimit = await enforceEvaluateRateLimit(c, auth.apiKey.id);
   if (!rateLimit.allowed) {
     return c.json(
       {

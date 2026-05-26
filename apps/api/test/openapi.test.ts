@@ -5,8 +5,8 @@
 //                                no auth required, server url propagated)
 
 import { describe, expect, it } from 'vitest';
+import { buildOpenApiDocument } from '../../../packages/server/src/openapi.js';
 import { app } from '../src/index.js';
-import { buildOpenApiDocument } from '../src/openapi.js';
 
 const baseEnv = {
   DATABASE_URL: 'postgres://unit-test',

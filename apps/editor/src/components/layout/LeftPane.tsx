@@ -4,6 +4,7 @@ import {
   FieldsSectionActions,
 } from '@/components/fields/FieldsSection';
 import { DagGraph } from '@/components/graph/DagGraph';
+import { LogicDescriptionField } from '@/components/logic/LogicDescriptionField';
 import { AccordionSection } from '@/components/ui/AccordionSection';
 import { InlineEdit } from '@/components/ui/InlineEdit';
 import { useT } from '@/i18n/useT';
@@ -32,6 +33,9 @@ export function LeftPane() {
             inputClassName="text-sm w-full"
             placeholder={t.logicNamePlaceholder}
           />
+        </div>
+        <div className="mb-3">
+          <LogicDescriptionField />
         </div>
         <CloudLogicControls />
       </div>

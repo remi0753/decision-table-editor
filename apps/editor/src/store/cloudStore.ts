@@ -57,12 +57,24 @@ type CloudStore = {
       orgId: string;
       workspaceId?: string;
       logicId?: string | 'new';
+      newLogic?: {
+        name: string;
+        slug: string;
+        description?: string;
+      };
     },
     localLogic: Logic,
     importLogic: (logic: Logic) => void,
   ) => Promise<void>;
   createCloudLogicFrom: (
     logic: Logic,
+    options:
+      | {
+          name: string;
+          slug: string;
+          description?: string;
+        }
+      | undefined,
     importLogic: (logic: Logic) => void,
   ) => Promise<void>;
   switchCloudLogic: (
@@ -116,6 +128,16 @@ function uniqueLogicName(baseName: string, existing: CloudLogic[]) {
   return `${baseName} ${Date.now()}`;
 }
 
+function normalizeSlug(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 63)
+    .replace(/-+$/g, '');
+}
+
 async function listLogicsByWorkspace(workspaces: CloudWorkspace[]) {
   const entries = await Promise.all(
     workspaces.map(async (workspace) => {
@@ -141,7 +163,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   error: null,
   choices: null,
 
-  initializeCloud: async (localLogic, importLogic, options) => {
+  initializeCloud: async (_localLogic, importLogic, options) => {
     if (initializeRequest) return initializeRequest;
 
     initializeRequest = (async () => {
@@ -220,9 +242,23 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
                 });
                 return;
               }
-              const cloudLogic = cloudResult
-                ? cloudResult.logic
-                : (await createLogic(preferredWorkspace.id, localLogic)).logic;
+              if (!cloudResult) {
+                set({
+                  mode: 'selecting',
+                  user: me.user,
+                  org: preferredOrg,
+                  choices: {
+                    orgs,
+                    roleByOrgId,
+                    workspacesByOrgId,
+                    logicsByWorkspaceId,
+                    preferNewLogic: true,
+                  },
+                  error: null,
+                });
+                return;
+              }
+              const cloudLogic = cloudResult.logic;
               importLogic(cloudLogic.draftData);
               set({
                 mode: 'cloud',
@@ -337,9 +373,24 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           });
           return;
         }
-        const cloudLogic = cloudResult
-          ? cloudResult.logic
-          : (await createLogic(workspace.id, localLogic)).logic;
+        if (!cloudResult) {
+          set({
+            mode: 'selecting',
+            user: me.user,
+            org,
+            orgRole,
+            choices: {
+              orgs,
+              roleByOrgId,
+              workspacesByOrgId,
+              logicsByWorkspaceId: { [workspace.id]: logics.logics },
+              preferNewLogic: true,
+            },
+            error: null,
+          });
+          return;
+        }
+        const cloudLogic = cloudResult.logic;
 
         importLogic(cloudLogic.draftData);
         set({
@@ -434,9 +485,22 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       if (!cloudResult && !canEditCloud(orgRole)) {
         throw new Error('Ask an editor for a Runner link to open.');
       }
+      const newLogicInput = input.newLogic;
+      const nextLogic =
+        !cloudResult && newLogicInput
+          ? {
+              ...localLogic,
+              name: newLogicInput.name,
+              description: newLogicInput.description || undefined,
+            }
+          : localLogic;
       const cloudLogic =
         cloudResult?.logic ??
-        (await createLogic(workspace.id, localLogic)).logic;
+        (
+          await createLogic(workspace.id, nextLogic, {
+            slug: newLogicInput?.slug,
+          })
+        ).logic;
 
       importLogic((cloudResult?.logic ?? cloudLogic).draftData);
       set({
@@ -461,10 +525,18 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
     }
   },
 
-  createCloudLogicFrom: async (logic, importLogic) => {
+  createCloudLogicFrom: async (logic, options, importLogic) => {
     const { mode, workspace } = get();
     if (mode !== 'cloud' || !workspace) {
-      importLogic(logic);
+      importLogic(
+        options
+          ? {
+              ...logic,
+              name: options.name,
+              description: options.description || undefined,
+            }
+          : logic,
+      );
       set({
         mode: 'local',
         saveState: 'idle',
@@ -483,9 +555,12 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       const existing = await listLogics(workspace.id);
       const nextLogic = {
         ...logic,
-        name: uniqueLogicName(logic.name, existing.logics),
+        name: options?.name ?? uniqueLogicName(logic.name, existing.logics),
+        description: options?.description || logic.description,
       };
-      const result = await createLogic(workspace.id, nextLogic);
+      const result = await createLogic(workspace.id, nextLogic, {
+        slug: options?.slug ?? normalizeSlug(nextLogic.name),
+      });
       importLogic(result.logic.draftData);
       set({
         mode: 'cloud',

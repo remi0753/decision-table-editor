@@ -1,9 +1,23 @@
 import { Cloud, Plus } from 'lucide-react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { useT } from '@/i18n/useT';
 import { useCloudStore } from '@/store/cloudStore';
 import { useLogicStore } from '@/store/logicStore';
 
 const NEW_LOGIC = 'new';
+const LOGIC_ID_PATTERN = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+
+function logicIdFromName(name: string) {
+  return (
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 63)
+      .replace(/-+$/g, '') || 'logic'
+  );
+}
 
 export function CloudWorkspacePicker() {
   const logic = useLogicStore((s) => s.logic);
@@ -15,6 +29,15 @@ export function CloudWorkspacePicker() {
   const [orgId, setOrgId] = useState('');
   const [workspaceId, setWorkspaceId] = useState('');
   const [logicId, setLogicId] = useState(NEW_LOGIC);
+  const [logicName, setLogicName] = useState(logic.name);
+  const [logicStableId, setLogicStableId] = useState(
+    logicIdFromName(logic.name),
+  );
+  const [logicDescription, setLogicDescription] = useState(
+    logic.description ?? '',
+  );
+  const [logicIdEdited, setLogicIdEdited] = useState(false);
+  const t = useT();
 
   const workspaces = useMemo(
     () => (orgId && choices ? (choices.workspacesByOrgId[orgId] ?? []) : []),
@@ -32,6 +55,12 @@ export function CloudWorkspacePicker() {
     selectedRole === 'owner' ||
     selectedRole === 'admin' ||
     selectedRole === 'editor';
+  const creatingNewLogic = logicId === NEW_LOGIC;
+  const trimmedLogicName = logicName.trim();
+  const trimmedLogicStableId = logicStableId.trim();
+  const logicStableIdValid = LOGIC_ID_PATTERN.test(trimmedLogicStableId);
+  const logicFormValid =
+    !creatingNewLogic || (trimmedLogicName.length > 0 && logicStableIdValid);
 
   useEffect(() => {
     if (!choices || orgId) return;
@@ -50,6 +79,12 @@ export function CloudWorkspacePicker() {
     );
   }, [canCreateLogic, choices?.preferNewLogic, logics]);
 
+  useEffect(() => {
+    setLogicName(logic.name);
+    setLogicDescription(logic.description ?? '');
+    if (!logicIdEdited) setLogicStableId(logicIdFromName(logic.name));
+  }, [logic.description, logic.name, logicIdEdited]);
+
   if (mode !== 'selecting' || !choices) return null;
 
   const handleSubmit = async (event: FormEvent) => {
@@ -60,6 +95,13 @@ export function CloudWorkspacePicker() {
         orgId,
         workspaceId: workspaceId || undefined,
         logicId,
+        newLogic: creatingNewLogic
+          ? {
+              name: trimmedLogicName,
+              slug: trimmedLogicStableId,
+              description: logicDescription.trim() || undefined,
+            }
+          : undefined,
       },
       logic,
       importLogic,
@@ -166,17 +208,83 @@ export function CloudWorkspacePicker() {
                 ) : null}
               </select>
             </label>
+
+            {creatingNewLogic && canCreateLogic ? (
+              <div className="space-y-3 rounded border border-gray-200 bg-gray-50 p-3">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                    {t.logicNameLabel}
+                  </span>
+                  <input
+                    value={logicName}
+                    onChange={(event) => {
+                      const nextName = event.target.value;
+                      setLogicName(nextName);
+                      if (!logicIdEdited) {
+                        setLogicStableId(logicIdFromName(nextName));
+                      }
+                    }}
+                    required
+                    maxLength={120}
+                    className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    placeholder={t.logicNamePlaceholder}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                    {t.logicIdLabel}
+                  </span>
+                  <input
+                    value={logicStableId}
+                    onChange={(event) => {
+                      setLogicIdEdited(true);
+                      setLogicStableId(event.target.value);
+                    }}
+                    required
+                    maxLength={63}
+                    pattern="[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
+                    className="h-10 w-full rounded border border-gray-200 bg-white px-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    placeholder={t.logicIdPlaceholder}
+                  />
+                  <span className="mt-1 block text-xs leading-5 text-gray-500">
+                    {t.logicIdHint}
+                  </span>
+                  {trimmedLogicStableId && !logicStableIdValid ? (
+                    <span className="mt-1 block text-xs text-red-600">
+                      {t.logicIdInvalid}
+                    </span>
+                  ) : null}
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                    {t.logicDescriptionLabel}
+                  </span>
+                  <textarea
+                    value={logicDescription}
+                    onChange={(event) =>
+                      setLogicDescription(event.target.value)
+                    }
+                    maxLength={500}
+                    rows={3}
+                    className="w-full resize-none rounded border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    placeholder={t.logicDescriptionPlaceholder}
+                  />
+                </label>
+              </div>
+            ) : null}
           </div>
 
           <button
             type="submit"
-            disabled={saveState === 'saving' || !orgId || !logicId}
+            disabled={
+              saveState === 'saving' || !orgId || !logicId || !logicFormValid
+            }
             className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
-            {saveState === 'saving'
-              ? 'Connecting...'
-              : 'Use selected workspace'}
+            {saveState === 'saving' ? t.connecting : t.useSelectedWorkspace}
           </button>
         </form>
       </div>

@@ -1,6 +1,6 @@
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { createDb } from '../db/client.js';
+import { createDb, type Database } from '../db/client.js';
 import { workspace } from '../db/schema.js';
 import type { Env } from '../env.js';
 import {
@@ -12,6 +12,7 @@ import {
   parseBodyString,
   requireMembership,
   rolePersona,
+  slugWithRandomSuffix,
   writeAudit,
 } from './shared.js';
 
@@ -20,6 +21,36 @@ import {
 // effective limit is 1 active workspace per org until product-level multi-
 // workspace support lands.
 const MAX_WORKSPACES_PER_ORG = 1;
+
+async function findAvailableWorkspaceSlug(
+  db: Database,
+  orgId: string,
+  base: string,
+) {
+  async function slugExists(slug: string) {
+    const [row] = await db
+      .select({ id: workspace.id })
+      .from(workspace)
+      .where(
+        and(
+          eq(workspace.orgId, orgId),
+          eq(workspace.slug, slug),
+          isNull(workspace.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return Boolean(row);
+  }
+
+  if (!(await slugExists(base))) return base;
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const candidate = slugWithRandomSuffix(base);
+    if (!(await slugExists(candidate))) return candidate;
+  }
+  return fallbackSlug('workspace');
+}
 
 export const workspaceRoutes = new Hono<{ Bindings: Env }>();
 
@@ -65,24 +96,44 @@ workspaceRoutes.post('/api/orgs/:orgId/workspaces', async (c) => {
   if (!name) return jsonError(c, 400, 'invalid_name', 'Name is required.');
 
   const requestedSlug = parseBodyString(body, 'slug', { max: 63 });
-  const slug = requestedSlug
+  const baseSlug = requestedSlug
     ? normalizeSlug(requestedSlug)
     : normalizeSlug(name) || fallbackSlug('workspace');
-  const slugError = assertSlug(c, slug);
+  const slugError = assertSlug(c, baseSlug);
   if (slugError) return slugError;
+  const slug = requestedSlug
+    ? baseSlug
+    : await findAvailableWorkspaceSlug(db, orgId, baseSlug);
 
   const description = parseBodyString(body, 'description', { max: 500 });
-  const [created] = await db
-    .insert(workspace)
-    .values({
-      orgId,
-      name,
-      slug,
-      description,
-      createdActorType: 'user',
-      createdActorId: access.user.id,
-    })
-    .returning();
+  let created: typeof workspace.$inferSelect | undefined;
+  try {
+    [created] = await db
+      .insert(workspace)
+      .values({
+        orgId,
+        name,
+        slug,
+        description,
+        createdActorType: 'user',
+        createdActorId: access.user.id,
+      })
+      .returning();
+  } catch (error) {
+    const maybeError = error as { code?: string; constraint?: string };
+    if (
+      maybeError.code === '23505' &&
+      maybeError.constraint === 'workspace_org_slug_active_uniq'
+    ) {
+      return jsonError(
+        c,
+        409,
+        'slug_conflict',
+        'A workspace with this slug already exists in the organization.',
+      );
+    }
+    throw error;
+  }
 
   if (!created) {
     return jsonError(
