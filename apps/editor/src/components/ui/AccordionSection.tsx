@@ -21,11 +21,11 @@ export function AccordionSection({
 }: Props) {
   return (
     <div className="border-b last:border-b-0">
-      <div className="flex items-center justify-between gap-1 pl-3 pr-3 py-1.5 bg-gray-100/60">
+      <div className="flex items-center justify-between gap-1 border-l-2 border-violet-500 bg-violet-50/80 py-1.5 pl-2.5 pr-3 shadow-[inset_0_-1px_0_rgba(124,58,237,0.08)]">
         <button
           type="button"
           onClick={onToggle}
-          className="flex items-center gap-1 flex-1 min-w-0 text-left text-xs font-semibold text-gray-600 hover:text-gray-800"
+          className="flex items-center gap-1 flex-1 min-w-0 text-left text-xs font-semibold text-violet-800 hover:text-violet-950"
         >
           {open ? (
             <ChevronDown size={12} className="shrink-0" />

@@ -1,4 +1,5 @@
 import { EvaluationPanel } from '@/components/evaluation/EvaluationPanel';
+import { LogicInsightBar } from '@/components/logic/LogicInsightBar';
 import { DecisionTable } from '@/components/table/DecisionTable';
 import { useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
@@ -20,12 +21,15 @@ export function RightPane({ onOpenSampleGallery }: Props) {
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <div className="flex-1 min-h-0 overflow-y-auto p-4">
           {tableId && logic.tables[tableId] ? (
-            <div className="border rounded-lg bg-white overflow-hidden">
-              <DecisionTable
-                tableId={tableId}
-                onOpenSampleGallery={onOpenSampleGallery}
-              />
-            </div>
+            <>
+              <LogicInsightBar />
+              <div className="border rounded-lg bg-white overflow-hidden">
+                <DecisionTable
+                  tableId={tableId}
+                  onOpenSampleGallery={onOpenSampleGallery}
+                />
+              </div>
+            </>
           ) : (
             <div className="text-gray-400 text-sm p-4">{t.selectTable}</div>
           )}

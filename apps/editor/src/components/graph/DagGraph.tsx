@@ -90,7 +90,11 @@ function FitViewWatcher({ nodeCount }: { nodeCount: number }) {
   return null;
 }
 
-export function DagGraph() {
+interface DagGraphProps {
+  height?: number;
+}
+
+export function DagGraph({ height = 220 }: DagGraphProps) {
   const logic = useLogicStore((s) => s.logic);
   const selectedTableId = useUiStore((s) => s.selectedTableId);
   const setSelectedTable = useUiStore((s) => s.setSelectedTable);
@@ -143,7 +147,7 @@ export function DagGraph() {
   );
 
   return (
-    <div style={{ height: 220 }}>
+    <div style={{ height }}>
       <ReactFlow
         nodes={layoutedNodes}
         edges={edges}

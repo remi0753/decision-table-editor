@@ -110,6 +110,12 @@ export type TranslationSet = {
   setEntryTitle: string;
   tableTab: string;
   flowchartTab: string;
+  logicOverview: string;
+  logicOverviewSummary: (tableCount: number, linkCount: number) => string;
+  logicOverviewTables: string;
+  logicOverviewLinks: string;
+  showLogicOverview: string;
+  hideLogicOverview: string;
   conclusion: string;
   manageOutputCols: string;
   addConditionCol: string;
@@ -408,6 +414,13 @@ export const translations: Record<Lang, TranslationSet> = {
     setEntryTitle: 'Set this table as the entry point',
     tableTab: 'Table',
     flowchartTab: 'Flowchart',
+    logicOverview: 'Logic overview',
+    logicOverviewSummary: (tableCount, linkCount) =>
+      `${tableCount} table${tableCount === 1 ? '' : 's'} with ${linkCount} link${linkCount === 1 ? '' : 's'}`,
+    logicOverviewTables: 'Tables',
+    logicOverviewLinks: 'Links',
+    showLogicOverview: 'Show logic overview',
+    hideLogicOverview: 'Hide logic overview',
     conclusion: 'Conclusion',
     manageOutputCols: 'Manage output columns',
     addConditionCol: 'Add condition column',
@@ -722,6 +735,13 @@ export const translations: Record<Lang, TranslationSet> = {
     setEntryTitle: 'このテーブルをエントリーポイントに設定',
     tableTab: 'テーブル',
     flowchartTab: 'フローチャート',
+    logicOverview: 'ロジック俯瞰',
+    logicOverviewSummary: (tableCount, linkCount) =>
+      `${tableCount}テーブル、${linkCount}リンク`,
+    logicOverviewTables: 'テーブル',
+    logicOverviewLinks: 'リンク',
+    showLogicOverview: 'ロジック俯瞰を表示',
+    hideLogicOverview: 'ロジック俯瞰を隠す',
     conclusion: '結論',
     manageOutputCols: '出力列を管理',
     addConditionCol: '条件列を追加',
