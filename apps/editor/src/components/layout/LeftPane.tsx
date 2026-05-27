@@ -3,7 +3,6 @@ import {
   FieldsSection,
   FieldsSectionActions,
 } from '@/components/fields/FieldsSection';
-import { DagGraph } from '@/components/graph/DagGraph';
 import { LogicDescriptionField } from '@/components/logic/LogicDescriptionField';
 import { AccordionSection } from '@/components/ui/AccordionSection';
 import { InlineEdit } from '@/components/ui/InlineEdit';
@@ -40,14 +39,6 @@ export function LeftPane() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <AccordionSection
-          title={t.tableGraph}
-          open={sections.dag}
-          onToggle={() => toggleSection('dag')}
-        >
-          <DagGraph />
-        </AccordionSection>
-
         <AccordionSection
           title={t.fieldDefinitions}
           open={sections.fields}
