@@ -4,7 +4,9 @@ import {
   CheckCircle2,
   GitBranch,
   Github,
+  KeyRound,
   Play,
+  Server,
   ShieldCheck,
   Sparkles,
   Table2,
@@ -32,6 +34,9 @@ export function TopPage() {
             </a>
             <a href="#flow" className="hover:text-violet-800">
               How it works
+            </a>
+            <a href="#integrations" className="hover:text-violet-800">
+              Integrations
             </a>
             <a href="#fit" className="hover:text-violet-800">
               Use cases
@@ -217,6 +222,47 @@ export function TopPage() {
         </section>
 
         <section
+          id="integrations"
+          className="border-y border-violet-200 bg-white px-4 py-28 md:px-8 md:py-36"
+        >
+          <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-600">
+                Integrations
+              </p>
+              <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
+                Run approved logic from products, workflows, and agents.
+              </h2>
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+                Publish a decision table once, then call it over HTTP or expose
+                it as an MCP tool. LEVERIE returns the matched result and trace,
+                so apps and AI agents can act without hiding the reasoning.
+              </p>
+            </div>
+            <div className="mt-16 grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-stretch">
+              <div className="grid gap-4">
+                <ApiPoint
+                  icon={<KeyRound />}
+                  title="Scoped keys"
+                  body="Issue keys for specific workspaces and production logics."
+                />
+                <ApiPoint
+                  icon={<Server />}
+                  title="Stable versions"
+                  body="Call the published snapshot while authors keep editing drafts."
+                />
+                <ApiPoint
+                  icon={<Bot />}
+                  title="MCP-ready tools"
+                  body="Let agents discover and call production logic with scoped access."
+                />
+              </div>
+              <ApiExecutionPreview />
+            </div>
+          </div>
+        </section>
+
+        <section
           id="fit"
           className="bg-violet-950 px-4 py-28 text-white md:px-8 md:py-36"
         >
@@ -281,6 +327,11 @@ export function TopPage() {
                 <li>
                   <a href="#flow" className="hover:text-white">
                     How it works
+                  </a>
+                </li>
+                <li>
+                  <a href="#integrations" className="hover:text-white">
+                    Integrations
                   </a>
                 </li>
                 <li>
@@ -366,6 +417,114 @@ function FlowStep({
       </p>
       <h3 className="mt-4 text-xl font-semibold text-gray-950">{title}</h3>
       <p className="mt-3 text-sm leading-7 text-gray-600">{body}</p>
+    </div>
+  );
+}
+
+function ApiPoint({
+  icon,
+  title,
+  body,
+}: {
+  icon: ReactNode;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="grid grid-cols-[2.5rem_1fr] gap-4 rounded-md border border-violet-200 bg-violet-50/70 p-4">
+      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-violet-600 text-white [&>svg]:h-5 [&>svg]:w-5">
+        {icon}
+      </div>
+      <div>
+        <h3 className="text-base font-semibold text-gray-950">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-gray-600">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+function ApiExecutionPreview() {
+  return (
+    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-violet-200 bg-violet-950 shadow-2xl shadow-violet-950/20">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.04] px-5 py-4">
+        <div>
+          <p className="text-sm font-semibold text-white">Production logic</p>
+          <p className="mt-1 text-xs text-violet-200/80">
+            Called from checkout, CRM, MCP clients, or internal systems
+          </p>
+        </div>
+        <span className="rounded-md bg-emerald-400 px-3 py-1.5 text-xs font-bold text-emerald-950">
+          200 OK
+        </span>
+      </div>
+      <div className="grid flex-1 gap-0 lg:grid-cols-[1.02fr_0.98fr]">
+        <div className="min-w-0 border-b border-white/10 bg-white/[0.03] p-5 lg:border-b-0 lg:border-r">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="mr-1 text-xs font-bold uppercase tracking-[0.16em] text-violet-200">
+              Invocation
+            </p>
+            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-violet-100">
+              HTTP API
+            </span>
+            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-violet-100">
+              MCP tool
+            </span>
+          </div>
+          <pre className="mt-4 max-w-full overflow-x-auto rounded-md border border-white/10 bg-black/30 p-4 text-sm leading-6 text-violet-50">
+            <code>{`POST /v1/logics/loan-review/evaluate
+
+{
+  "inputs": {
+    "customer": "Business",
+    "amount": 7200000,
+    "kyc": "Verified"
+  }
+}
+
+tools/call leverie.loan_review`}</code>
+          </pre>
+        </div>
+        <div className="min-w-0 bg-white p-5 text-gray-950">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-600">
+            Response
+          </p>
+          <div className="mt-4 rounded-md border border-violet-200 bg-violet-50 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-600">
+              Result
+            </p>
+            <p className="mt-3 text-2xl font-semibold text-violet-950">
+              Manager review
+            </p>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
+              <PreviewMetric label="Matched row" value="Intake row 1" />
+              <PreviewMetric label="Decision" value="review_required" />
+            </div>
+          </div>
+          <div className="mt-4 rounded-md border border-violet-200 bg-white p-4">
+            <TraceItem
+              status="checked"
+              title="Trace returned"
+              body="Customer is Business and amount is at least the manager threshold."
+            />
+          </div>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3">
+            <a
+              href="/docs/hosted-api"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-violet-700 hover:text-violet-900"
+            >
+              API docs
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </a>
+            <a
+              href="/docs/hosted-mcp"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-violet-700 hover:text-violet-900"
+            >
+              MCP docs
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
