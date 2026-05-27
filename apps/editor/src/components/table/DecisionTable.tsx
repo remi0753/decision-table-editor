@@ -6,10 +6,8 @@ import {
 } from '@dnd-kit/sortable';
 import { GitBranch, Plus, Settings, Sparkles, Table2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import { FlowChart } from '@/components/graph/FlowChart';
 import { IconButton } from '@/components/ui/IconButton';
-import { InlineEdit } from '@/components/ui/InlineEdit';
 import { useQualityChecks } from '@/hooks/useQualityChecks';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
@@ -19,6 +17,7 @@ import { ColumnHeader } from './ColumnHeader';
 import { OutputColsPanel } from './OutputColsPanel';
 import { SortableRow } from './RowHandle';
 import { TableHeaderMenu } from './TableHeaderMenu';
+import { TableTabs } from './TableTabs';
 
 interface Props {
   tableId: string;
@@ -40,8 +39,6 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
   const addRow = useLogicStore((s) => s.addRow);
   const moveRow = useLogicStore((s) => s.moveRow);
   const moveCol = useLogicStore((s) => s.moveCol);
-  const renameTable = useLogicStore((s) => s.renameTable);
-  const setEntryTable = useLogicStore((s) => s.setEntryTable);
   const highlightTarget = useUiStore((s) => s.highlightTarget);
   const setHighlightTarget = useUiStore((s) => s.setHighlightTarget);
   const t = useT();
@@ -105,11 +102,6 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
     if (from !== -1 && to !== -1) moveRow(tableId, from, to);
   };
 
-  const handleRename = (name: string) => {
-    const result = renameTable(tableId, name);
-    if (result.error) toast.error(result.error);
-  };
-
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     if (tab === 'flowchart') {
@@ -119,43 +111,22 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
 
   return (
     <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
-      <div className="flex flex-col">
+      <div className="flex min-h-0 flex-col bg-white">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
-          <div className="flex items-center gap-2">
-            <InlineEdit
-              value={table.name}
-              onSave={handleRename}
-              className="font-semibold text-sm"
-            />
-            {logic.entryTableId === tableId && (
-              <span className="bg-violet-100 text-violet-700 text-xs px-1.5 py-0.5 rounded">
-                {t.entryBadge}
-              </span>
-            )}
-            {logic.entryTableId !== tableId && (
-              <button
-                type="button"
-                onClick={() => setEntryTable(tableId)}
-                className="text-xs text-gray-400 hover:text-violet-600"
-                title={t.setEntryTitle}
-              >
-                {t.setEntry}
-              </button>
-            )}
-          </div>
+        <div className="flex min-h-11 min-w-0 items-stretch justify-between gap-3 border-b border-violet-100 bg-white">
+          <TableTabs activeTableId={tableId} />
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 py-1.5 pr-3 pl-1">
             {/* Tab switcher */}
-            <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white p-0.5">
+            <div className="flex h-8 items-center gap-0.5 rounded border border-gray-200 bg-gray-50 p-0.5">
               <button
                 type="button"
                 onClick={() => handleTabChange('table')}
                 className={cn(
-                  'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors',
+                  'flex h-7 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition-colors',
                   activeTab === 'table'
-                    ? 'bg-gray-100 text-gray-800'
-                    : 'text-gray-500 hover:text-gray-700',
+                    ? 'bg-white text-violet-800 shadow-sm'
+                    : 'text-gray-500 hover:bg-white hover:text-gray-700',
                 )}
               >
                 <Table2 size={11} /> {t.tableTab}
@@ -164,15 +135,15 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                 type="button"
                 onClick={() => handleTabChange('flowchart')}
                 className={cn(
-                  'flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors',
+                  'flex h-7 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition-colors',
                   activeTab === 'flowchart'
-                    ? 'bg-gray-100 text-gray-800'
-                    : 'text-gray-500 hover:text-gray-700',
+                    ? 'bg-white text-violet-800 shadow-sm'
+                    : 'text-gray-500 hover:bg-white hover:text-gray-700',
                 )}
               >
                 <GitBranch size={11} /> {t.flowchartTab}
                 {gapCount > 0 && (
-                  <span className="bg-yellow-200 text-yellow-800 text-[10px] font-semibold px-1 rounded leading-tight">
+                  <span className="rounded bg-yellow-100 px-1 text-[10px] font-semibold leading-tight text-yellow-800">
                     ⚠️ {gapCount}
                   </span>
                 )}
@@ -193,8 +164,8 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
               >
                 <thead>
                   <tr>
-                    <th className="border-b border-r bg-gray-50 w-14 sticky left-0 z-10" />
-                    <th className="border-b border-r bg-gray-50 w-10 text-xs text-gray-400 px-2">
+                    <th className="border-b border-r border-gray-200 bg-gray-100 w-14 sticky left-0 z-10" />
+                    <th className="border-b border-r border-gray-200 bg-gray-100 w-10 text-xs text-gray-500 px-2">
                       #
                     </th>
                     <SortableContext
@@ -211,7 +182,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                       ))}
                     </SortableContext>
                     <th
-                      className="border-b border-r bg-gray-50 p-0"
+                      className="border-b border-r border-gray-200 bg-gray-100 p-0"
                       style={{ width: 32, minWidth: 32, maxWidth: 32 }}
                     >
                       <button
@@ -225,7 +196,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                       </button>
                     </th>
                     <th
-                      className="border-b border-r bg-gray-50 px-2 py-1 text-xs font-medium relative"
+                      className="border-b border-r border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium relative text-gray-700"
                       style={{ minWidth: 240 }}
                     >
                       <div className="flex items-center justify-between">
@@ -247,7 +218,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                         />
                       )}
                     </th>
-                    <th className="border-b border-l bg-gray-50 w-16 sticky right-0 z-10" />
+                    <th className="border-b border-l border-gray-200 bg-gray-100 w-16 sticky right-0 z-10" />
                   </tr>
                 </thead>
                 <tbody>

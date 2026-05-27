@@ -10,7 +10,6 @@ import { InlineEdit } from '@/components/ui/InlineEdit';
 import { useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
-import { TablesSection } from './TablesSection';
 
 export function LeftPane() {
   const logic = useLogicStore((s) => s.logic);
@@ -47,14 +46,6 @@ export function LeftPane() {
           onToggle={() => toggleSection('dag')}
         >
           <DagGraph />
-        </AccordionSection>
-
-        <AccordionSection
-          title={t.tableList}
-          open={sections.tables}
-          onToggle={() => toggleSection('tables')}
-        >
-          <TablesSection />
         </AccordionSection>
 
         <AccordionSection

@@ -66,11 +66,13 @@ export type TranslationSet = {
   logicNamePlaceholder: string;
   logicDescriptionLabel: string;
   logicDescriptionPlaceholder: string;
-  tableList: string;
   tableGraph: string;
   addTable: string;
   deleteTable: string;
   deleteTableConfirm: (name: string) => string;
+  entryTableIcon: string;
+  scrollTabsLeft: string;
+  scrollTabsRight: string;
 
   // RightPane
   selectTable: string;
@@ -362,11 +364,13 @@ export const translations: Record<Lang, TranslationSet> = {
     logicNamePlaceholder: 'Logic name',
     logicDescriptionLabel: 'Description',
     logicDescriptionPlaceholder: 'What this logic decides, and when to use it',
-    tableList: 'Tables',
     tableGraph: 'Table Graph',
     addTable: 'Add table',
     deleteTable: 'Delete table',
     deleteTableConfirm: (name) => `Delete "${name}"?`,
+    entryTableIcon: 'Entry table',
+    scrollTabsLeft: 'Scroll tabs left',
+    scrollTabsRight: 'Scroll tabs right',
 
     selectTable: 'Select a table.',
 
@@ -675,11 +679,13 @@ export const translations: Record<Lang, TranslationSet> = {
     logicNamePlaceholder: 'ロジック名',
     logicDescriptionLabel: '説明',
     logicDescriptionPlaceholder: 'このロジックが判断する内容や利用シーン',
-    tableList: 'テーブル一覧',
     tableGraph: 'テーブル関係図',
     addTable: 'テーブルを追加',
     deleteTable: 'テーブルを削除',
     deleteTableConfirm: (name) => `「${name}」を削除しますか？`,
+    entryTableIcon: 'エントリーテーブル',
+    scrollTabsLeft: 'タブを左にスクロール',
+    scrollTabsRight: 'タブを右にスクロール',
 
     selectTable: 'テーブルを選択してください。',
 
