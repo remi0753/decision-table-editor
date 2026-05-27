@@ -41,7 +41,7 @@ export function ColumnHeader({ tableId, colId, fieldId }: Props) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        'border-b border-r bg-gray-50 px-2 py-1 text-xs font-medium min-w-40',
+        'border-b border-r border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium min-w-40',
         isDragging && 'bg-violet-50',
       )}
     >

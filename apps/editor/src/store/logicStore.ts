@@ -42,7 +42,7 @@ interface LogicStore {
   importLogic: (logic: Logic) => void;
   resetLogic: () => void;
 
-  addTable: () => void;
+  addTable: () => string;
   deleteTable: (tableId: string) => { error?: string };
   renameTable: (tableId: string, name: string) => { error?: string };
 
@@ -105,12 +105,12 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
   importLogic: (logic) => set({ logic }),
   resetLogic: () => set({ logic: createInitialLogic() }),
 
-  addTable: () =>
+  addTable: () => {
+    const t = getT();
+    const id = nextTableId(get().logic.nTable);
     set((s) => {
-      const t = getT();
-      const id = nextTableId(s.logic.nTable);
-      const name = t.initialTableName(s.logic.nTable);
       const ocolId = nextOColId(s.logic.nOCol);
+      const name = t.initialTableName(s.logic.nTable);
       return {
         logic: {
           ...s.logic,
@@ -128,7 +128,9 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
           },
         },
       };
-    }),
+    });
+    return id;
+  },
 
   deleteTable: (tableId) => {
     const { logic } = get();

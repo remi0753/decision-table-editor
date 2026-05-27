@@ -2,11 +2,10 @@ import type { BatchCase, BatchCaseResult, EvalResult } from '@leverie/engine';
 import { create } from 'zustand';
 import type { Lang } from '@/i18n/translations';
 
-export type LeftPaneSectionKey = 'dag' | 'tables' | 'fields';
+export type LeftPaneSectionKey = 'dag' | 'fields';
 
 interface LeftPaneSections {
   dag: boolean;
-  tables: boolean;
   fields: boolean;
 }
 
@@ -53,7 +52,7 @@ interface PersistedPrefs {
 }
 
 const DEFAULT_PREFS: PersistedPrefs = {
-  leftPaneSections: { dag: true, tables: true, fields: true },
+  leftPaneSections: { dag: true, fields: true },
   evalDrawerOpen: false,
 };
 
@@ -67,9 +66,6 @@ const loadPrefs = (): PersistedPrefs => {
       leftPaneSections: {
         dag:
           parsed?.leftPaneSections?.dag ?? DEFAULT_PREFS.leftPaneSections.dag,
-        tables:
-          parsed?.leftPaneSections?.tables ??
-          DEFAULT_PREFS.leftPaneSections.tables,
         fields:
           parsed?.leftPaneSections?.fields ??
           DEFAULT_PREFS.leftPaneSections.fields,
