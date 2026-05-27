@@ -159,79 +159,79 @@ export function TableTabs({ activeTableId }: Props) {
           ref={scrollerRef}
           className="flex-1 min-w-0 self-stretch flex items-end overflow-x-hidden gap-1.5"
         >
-        {tables.map((table) => {
-          const isActive = table.id === activeTableId;
-          const isEntry = logic.entryTableId === table.id;
-          const isRenaming = renameTargetId === table.id;
-          return (
-            <div
-              key={table.id}
-              data-tab-id={table.id}
-              onClick={() => !isRenaming && setSelectedTable(table.id)}
-              onDoubleClick={() =>
-                isActive && startRename(table.id, table.name)
-              }
-              onKeyDown={(e) =>
-                !isRenaming && e.key === 'Enter' && setSelectedTable(table.id)
-              }
-              role="tab"
-              aria-selected={isActive}
-              tabIndex={isRenaming ? -1 : 0}
-              className={cn(
-                'group relative flex items-center gap-1.5 pl-4 pr-2 text-xs cursor-pointer shrink-0 max-w-[220px] select-none border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-violet-300',
-                isActive
-                  ? 'h-[39px] -mb-px pb-[7px] rounded-t-md border-0 border-b-[3px] border-b-violet-600 text-violet-700 font-semibold z-10'
-                  : 'h-8 mb-1.5 rounded-md border-transparent bg-transparent text-gray-500 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-800',
-              )}
-            >
-              {isEntry && (
-                <LogIn
-                  size={12}
-                  strokeWidth={2.5}
-                  className={cn(
-                    'shrink-0',
-                    isActive ? 'text-violet-600' : 'text-violet-500',
-                  )}
-                  aria-label={t.entryTableIcon}
-                />
-              )}
-              {isRenaming ? (
-                <input
-                  ref={renameInputRef}
-                  value={renameDraft}
-                  onChange={(e) => setRenameDraft(e.target.value)}
-                  onBlur={commitRename}
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => {
-                    if (e.nativeEvent.isComposing) return;
-                    if (e.key === 'Enter') commitRename();
-                    if (e.key === 'Escape') setRenameTargetId(null);
-                  }}
-                  className="min-w-0 w-[132px] bg-white border border-violet-300 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-violet-400"
-                />
-              ) : (
-                <span className="truncate min-w-0">{table.name}</span>
-              )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteTarget({ id: table.id, name: table.name });
-                }}
-                title={t.deleteTable}
-                aria-label={t.deleteTable}
+          {tables.map((table) => {
+            const isActive = table.id === activeTableId;
+            const isEntry = logic.entryTableId === table.id;
+            const isRenaming = renameTargetId === table.id;
+            return (
+              <div
+                key={table.id}
+                data-tab-id={table.id}
+                onClick={() => !isRenaming && setSelectedTable(table.id)}
+                onDoubleClick={() =>
+                  isActive && startRename(table.id, table.name)
+                }
+                onKeyDown={(e) =>
+                  !isRenaming && e.key === 'Enter' && setSelectedTable(table.id)
+                }
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isRenaming ? -1 : 0}
                 className={cn(
-                  'shrink-0 inline-flex items-center justify-center w-4 h-4 rounded text-gray-400 transition-colors hover:text-red-600 hover:bg-red-50',
+                  'group relative flex items-center gap-1.5 pl-4 pr-2 text-xs cursor-pointer shrink-0 max-w-[220px] select-none border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-violet-300',
                   isActive
-                    ? 'opacity-100 text-violet-400'
-                    : 'opacity-0 group-hover:opacity-100',
+                    ? 'h-[39px] -mb-px pb-[7px] rounded-t-md border-0 border-b-[3px] border-b-violet-600 text-violet-700 font-semibold z-10'
+                    : 'h-8 mb-1.5 rounded-md border-transparent bg-transparent text-gray-500 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-800',
                 )}
               >
-                <X size={11} strokeWidth={2.5} />
-              </button>
-            </div>
-          );
-        })}
+                {isEntry && (
+                  <LogIn
+                    size={12}
+                    strokeWidth={2.5}
+                    className={cn(
+                      'shrink-0',
+                      isActive ? 'text-violet-600' : 'text-violet-500',
+                    )}
+                    aria-label={t.entryTableIcon}
+                  />
+                )}
+                {isRenaming ? (
+                  <input
+                    ref={renameInputRef}
+                    value={renameDraft}
+                    onChange={(e) => setRenameDraft(e.target.value)}
+                    onBlur={commitRename}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing) return;
+                      if (e.key === 'Enter') commitRename();
+                      if (e.key === 'Escape') setRenameTargetId(null);
+                    }}
+                    className="min-w-0 w-[132px] bg-white border border-violet-300 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-violet-400"
+                  />
+                ) : (
+                  <span className="truncate min-w-0">{table.name}</span>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget({ id: table.id, name: table.name });
+                  }}
+                  title={t.deleteTable}
+                  aria-label={t.deleteTable}
+                  className={cn(
+                    'shrink-0 inline-flex items-center justify-center w-4 h-4 rounded text-gray-400 transition-colors hover:text-red-600 hover:bg-red-50',
+                    isActive
+                      ? 'opacity-100 text-violet-400'
+                      : 'opacity-0 group-hover:opacity-100',
+                  )}
+                >
+                  <X size={11} strokeWidth={2.5} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
 
