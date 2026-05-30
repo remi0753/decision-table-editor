@@ -10,6 +10,7 @@ import {
   type LogicDiffSummary,
   type RuleDiff,
 } from '@/lib/logicDiffSummary';
+import { PublishDiffHeatmap } from './PublishDiffHeatmap';
 
 type Props = {
   logicId: string;
@@ -20,6 +21,7 @@ type Props = {
 };
 
 type RuleDiffTab = 'changed' | 'added' | 'removed' | 'all';
+type ViewMode = 'map' | 'detail';
 
 function changeTone(kind: RuleDiff['kind']) {
   if (kind === 'added')
@@ -121,7 +123,10 @@ function RuleDiffCard({ diff }: { diff: RuleDiff }) {
         : t.publishReviewChanged;
 
   return (
-    <section className="rounded border border-gray-200 bg-white">
+    <section
+      id={`rule-${diff.id}`}
+      className="rounded border border-gray-200 bg-white"
+    >
       <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2.5">
         <div className="min-w-0">
           <h3 className="truncate text-xs font-medium text-gray-600">
@@ -271,6 +276,8 @@ export function PublishDiffReviewDialog({
   const [error, setError] = useState('');
   const [summary, setSummary] = useState<LogicDiffSummary | null>(null);
   const [activeTab, setActiveTab] = useState<RuleDiffTab>('changed');
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
+  const [focusRuleId, setFocusRuleId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -327,6 +334,25 @@ export function PublishDiffReviewDialog({
     setActiveTab(nextTab);
   }, [summary]);
 
+  const handleSelectRule = (ruleId: string) => {
+    setViewMode('detail');
+    setActiveTab('all');
+    setFocusRuleId(ruleId);
+  };
+
+  useEffect(() => {
+    if (viewMode !== 'detail' || !focusRuleId) return;
+    const node = document.getElementById(`rule-${focusRuleId}`);
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    node.classList.add('ring-2', 'ring-violet-400');
+    const timer = window.setTimeout(() => {
+      node.classList.remove('ring-2', 'ring-violet-400');
+      setFocusRuleId(null);
+    }, 1600);
+    return () => window.clearTimeout(timer);
+  }, [viewMode, focusRuleId]);
+
   const handlePublish = async () => {
     setPublishing(true);
     try {
@@ -381,65 +407,96 @@ export function PublishDiffReviewDialog({
           ) : summary ? (
             <div className="flex h-full min-h-0 flex-col">
               <div className="flex min-h-0 flex-1 flex-col rounded border border-gray-200 bg-white">
-                <div className="border-b border-gray-100 px-4 pt-3">
+                <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2.5">
                   <h3 className="text-sm font-semibold text-gray-900">
                     {t.publishReviewRuleChanges}
                   </h3>
-                  <div className="mt-3 flex gap-1 overflow-x-auto">
-                    {(
-                      [
-                        'changed',
-                        'added',
-                        'removed',
-                        'all',
-                      ] satisfies RuleDiffTab[]
-                    ).map((tab) => {
-                      const selected = activeTab === tab;
-                      const count = ruleTabCount(summary, tab);
+                  <div className="inline-flex shrink-0 rounded border border-gray-200 p-0.5">
+                    {(['map', 'detail'] satisfies ViewMode[]).map((mode) => {
+                      const selected = viewMode === mode;
                       return (
                         <button
-                          key={tab}
+                          key={mode}
                           type="button"
-                          onClick={() => setActiveTab(tab)}
-                          className={`inline-flex h-8 shrink-0 items-center gap-1.5 border-b-2 px-3 text-xs font-medium ${
+                          onClick={() => setViewMode(mode)}
+                          className={`inline-flex h-7 items-center rounded px-3 text-xs font-medium ${
                             selected
-                              ? 'border-violet-600 text-violet-700'
-                              : 'border-transparent text-gray-500 hover:border-gray-200 hover:text-gray-800'
+                              ? 'bg-violet-600 text-white'
+                              : 'text-gray-600 hover:text-gray-900'
                           }`}
                         >
-                          <span>{ruleTabLabel(tab, t)}</span>
-                          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">
-                            {count}
-                          </span>
+                          {mode === 'map'
+                            ? t.publishReviewViewMap
+                            : t.publishReviewViewDetail}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-                {activeTab === 'changed' && hasRuleChanges ? (
-                  <ChangedTabMeta summary={summary} />
-                ) : null}
 
-                {hasRuleChanges ? (
-                  <div className="min-h-0 flex-1 overflow-y-auto p-3">
-                    {visibleRuleDiffs.length > 0 ? (
-                      <div className="space-y-3">
-                        {visibleRuleDiffs.map((diff) => (
-                          <RuleDiffCard key={diff.id} diff={diff} />
-                        ))}
+                {viewMode === 'map' ? (
+                  <PublishDiffHeatmap
+                    grids={summary.tableGrids}
+                    onSelectRule={handleSelectRule}
+                  />
+                ) : (
+                  <>
+                    <div className="flex gap-1 overflow-x-auto border-b border-gray-100 px-4">
+                      {(
+                        [
+                          'changed',
+                          'added',
+                          'removed',
+                          'all',
+                        ] satisfies RuleDiffTab[]
+                      ).map((tab) => {
+                        const selected = activeTab === tab;
+                        const count = ruleTabCount(summary, tab);
+                        return (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setActiveTab(tab)}
+                            className={`inline-flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-3 text-xs font-medium ${
+                              selected
+                                ? 'border-violet-600 text-violet-700'
+                                : 'border-transparent text-gray-500 hover:border-gray-200 hover:text-gray-800'
+                            }`}
+                          >
+                            <span>{ruleTabLabel(tab, t)}</span>
+                            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {activeTab === 'changed' && hasRuleChanges ? (
+                      <ChangedTabMeta summary={summary} />
+                    ) : null}
+
+                    {hasRuleChanges ? (
+                      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                        {visibleRuleDiffs.length > 0 ? (
+                          <div className="space-y-3">
+                            {visibleRuleDiffs.map((diff) => (
+                              <RuleDiffCard key={diff.id} diff={diff} />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                            {t.publishReviewNoChanges}
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                        {t.publishReviewNoChanges}
+                      <div className="p-3">
+                        <div className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                          {t.publishReviewNoChanges}
+                        </div>
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div className="p-3">
-                    <div className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                      {t.publishReviewNoChanges}
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>

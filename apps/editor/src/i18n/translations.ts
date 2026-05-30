@@ -65,6 +65,14 @@ export type TranslationSet = {
   publishReviewBackToDraft: string;
   publishReviewPublishAnyway: string;
   publishReviewPublishConfirm: string;
+  publishReviewViewMap: string;
+  publishReviewViewDetail: string;
+  publishReviewMapUnchanged: string;
+  publishReviewMapChangedRows: (count: number) => string;
+  publishReviewMapHint: string;
+  publishReviewMapConditions: string;
+  publishReviewMapResults: string;
+  publishReviewMapTableUnchanged: string;
   settings: string;
   share: string;
   shareRunner: string;
@@ -397,6 +405,15 @@ export const translations: Record<Lang, TranslationSet> = {
     publishReviewBackToDraft: 'Back to draft',
     publishReviewPublishAnyway: 'Publish anyway',
     publishReviewPublishConfirm: 'Publish',
+    publishReviewViewMap: 'Map',
+    publishReviewViewDetail: 'Details',
+    publishReviewMapUnchanged: 'Unchanged',
+    publishReviewMapChangedRows: (count) =>
+      `${count} changed ${count === 1 ? 'row' : 'rows'}`,
+    publishReviewMapHint: 'Click a highlighted row to jump to its details.',
+    publishReviewMapConditions: 'Conditions',
+    publishReviewMapResults: 'Results',
+    publishReviewMapTableUnchanged: 'No changes',
     settings: 'Settings',
     share: 'Share',
     shareRunner: 'Share Runner',
@@ -747,6 +764,14 @@ export const translations: Record<Lang, TranslationSet> = {
     publishReviewBackToDraft: '下書きに戻る',
     publishReviewPublishAnyway: 'このまま公開',
     publishReviewPublishConfirm: '公開する',
+    publishReviewViewMap: 'マップ',
+    publishReviewViewDetail: '詳細',
+    publishReviewMapUnchanged: '変更なし',
+    publishReviewMapChangedRows: (count) => `${count}行変更`,
+    publishReviewMapHint: '色の付いた行をクリックすると詳細を表示します。',
+    publishReviewMapConditions: '条件',
+    publishReviewMapResults: '結果',
+    publishReviewMapTableUnchanged: '変更なし',
     settings: '設定',
     share: '共有',
     shareRunner: 'Runnerを共有',
