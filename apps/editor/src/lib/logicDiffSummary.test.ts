@@ -113,4 +113,74 @@ describe('buildLogicDiffSummary', () => {
     expect(summary.conditionCellChanges).toBe(0);
     expect(summary.resultCellChanges).toBe(0);
   });
+
+  it('builds a per-cell table grid marking each cell status', () => {
+    const before = baseLogic();
+    const after = baseLogic();
+    after.tables.t1!.rows[0] = {
+      ...after.tables.t1!.rows[0]!,
+      cells: {
+        c1: { op: '=', val: 'Corporate' },
+        c2: { op: '=', val: '1000000' },
+      },
+      conclusion: { type: 'terminal', outputs: { oc1: 'Manager review' } },
+    };
+
+    const summary = buildLogicDiffSummary(before, after, options);
+    const grid = summary.tableGrids.find((g) => g.tableId === 't1');
+
+    expect(grid).toBeDefined();
+    expect(grid?.hasChanges).toBe(true);
+    expect(grid?.changedRows).toBe(1);
+    expect(grid?.columns.map((c) => c.kind)).toEqual([
+      'condition',
+      'condition',
+      'output',
+    ]);
+
+    const changedRow = grid?.rows.find((r) => r.rowId === 'r1');
+    expect(changedRow?.kind).toBe('changed');
+    expect(changedRow?.hasRuleDiff).toBe(true);
+    expect(changedRow?.cells.map((c) => c.status)).toEqual([
+      'changed', // c1 condition changed
+      'changed', // c2 condition added
+      'changed', // oc1 result changed
+    ]);
+
+    const untouchedRow = grid?.rows.find((r) => r.rowId === 'r2');
+    expect(untouchedRow?.kind).toBe('unchanged');
+    expect(untouchedRow?.cells.every((c) => c.status === 'unchanged')).toBe(
+      true,
+    );
+  });
+
+  it('marks added and removed grid rows uniformly and flags reorders', () => {
+    const before = baseLogic();
+    const after = baseLogic();
+    // Drop r1, add r3, leaving r2 shifted to the top (reordered).
+    after.tables.t1!.rows = [
+      after.tables.t1!.rows[1]!,
+      {
+        id: 'r3',
+        cells: { c1: { op: '=', val: 'Partner' } },
+        conclusion: { type: 'terminal', outputs: { oc1: 'Escalate' } },
+      },
+    ];
+
+    const summary = buildLogicDiffSummary(before, after, options);
+    const grid = summary.tableGrids.find((g) => g.tableId === 't1');
+
+    const removed = grid?.rows.find((r) => r.rowId === 'r1');
+    expect(removed?.kind).toBe('removed');
+    expect(removed?.cells.every((c) => c.status === 'removed')).toBe(true);
+
+    const added = grid?.rows.find((r) => r.rowId === 'r3');
+    expect(added?.kind).toBe('added');
+    expect(added?.cells.every((c) => c.status === 'added')).toBe(true);
+
+    const reordered = grid?.rows.find((r) => r.rowId === 'r2');
+    expect(reordered?.kind).toBe('changed');
+    expect(reordered?.reordered).toBe(true);
+    expect(reordered?.cells.every((c) => c.status === 'unchanged')).toBe(true);
+  });
 });

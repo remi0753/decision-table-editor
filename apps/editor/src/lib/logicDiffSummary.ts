@@ -35,6 +35,39 @@ export type RuleDiff = {
   };
 };
 
+export type CellStatus = 'unchanged' | 'changed' | 'added' | 'removed';
+
+export type GridColumn = {
+  id: string;
+  label: string;
+  kind: 'condition' | 'output';
+};
+
+export type GridRowCell = {
+  colId: string;
+  status: CellStatus;
+};
+
+export type GridRow = {
+  ruleId: string;
+  rowId: string;
+  kind: 'added' | 'removed' | 'changed' | 'unchanged';
+  beforeRowNumber?: number;
+  afterRowNumber?: number;
+  reordered: boolean;
+  hasRuleDiff: boolean;
+  cells: GridRowCell[];
+};
+
+export type TableGrid = {
+  tableId: string;
+  tableName: string;
+  columns: GridColumn[];
+  rows: GridRow[];
+  changedRows: number;
+  hasChanges: boolean;
+};
+
 export type LogicDiffSummary = {
   addedRules: number;
   removedRules: number;
@@ -43,6 +76,7 @@ export type LogicDiffSummary = {
   resultCellChanges: number;
   priorityChanges: number;
   ruleDiffs: RuleDiff[];
+  tableGrids: TableGrid[];
 };
 
 function stableStringify(value: unknown): string {
@@ -258,6 +292,159 @@ function resultChanges(
   });
 }
 
+function outputCellStatus(
+  beforeRow: Row,
+  afterRow: Row,
+  outputColId: string,
+): CellStatus {
+  const before = beforeRow.conclusion;
+  const after = afterRow.conclusion;
+  if (before.type !== after.type) return 'changed';
+  if (before.type === 'continue' && after.type === 'continue') {
+    return before.tableId === after.tableId ? 'unchanged' : 'changed';
+  }
+  if (before.type === 'terminal' && after.type === 'terminal') {
+    return (before.outputs[outputColId] || '') ===
+      (after.outputs[outputColId] || '')
+      ? 'unchanged'
+      : 'changed';
+  }
+  return 'unchanged';
+}
+
+function gridColumns(
+  beforeLogic: Logic,
+  afterLogic: Logic,
+  beforeTable: Table | undefined,
+  afterTable: Table | undefined,
+): GridColumn[] {
+  const conditionColIds = orderedConditionColIds(beforeTable, afterTable);
+  const outputColIds = orderedOutputColIds(beforeTable, afterTable);
+  const conditionLabelFor = (colId: string) =>
+    afterTable?.cols.some((col) => col.id === colId)
+      ? conditionLabel(afterTable, afterLogic, colId)
+      : conditionLabel(beforeTable, beforeLogic, colId);
+  const outputLabelFor = (colId: string) =>
+    afterTable?.outputCols.some((col) => col.id === colId)
+      ? outputLabel(afterTable, colId)
+      : outputLabel(beforeTable, colId);
+  return [
+    ...conditionColIds.map(
+      (id): GridColumn => ({
+        id,
+        label: conditionLabelFor(id),
+        kind: 'condition',
+      }),
+    ),
+    ...outputColIds.map(
+      (id): GridColumn => ({
+        id,
+        label: outputLabelFor(id),
+        kind: 'output',
+      }),
+    ),
+  ];
+}
+
+function buildTableGrid(
+  beforeLogic: Logic,
+  afterLogic: Logic,
+  tableId: string,
+  ruleIds: Set<string>,
+): TableGrid {
+  const beforeTable = beforeLogic.tables[tableId];
+  const afterTable = afterLogic.tables[tableId];
+  const columns = gridColumns(beforeLogic, afterLogic, beforeTable, afterTable);
+  const rowIds = Array.from(
+    new Set([
+      ...(beforeTable?.rows.map((row) => row.id) ?? []),
+      ...(afterTable?.rows.map((row) => row.id) ?? []),
+    ]),
+  );
+
+  const rows: GridRow[] = [];
+  for (const rowId of rowIds) {
+    const beforeIndex = beforeTable
+      ? beforeTable.rows.findIndex((row) => row.id === rowId)
+      : -1;
+    const afterIndex = afterTable
+      ? afterTable.rows.findIndex((row) => row.id === rowId)
+      : -1;
+    const beforeRow =
+      beforeIndex < 0 ? undefined : beforeTable?.rows[beforeIndex];
+    const afterRow = afterIndex < 0 ? undefined : afterTable?.rows[afterIndex];
+    const ruleId = `${tableId}:${rowId}`;
+    const hasRuleDiff = ruleIds.has(ruleId);
+
+    if (!beforeRow && afterRow) {
+      rows.push({
+        ruleId,
+        rowId,
+        kind: 'added',
+        afterRowNumber: afterIndex + 1,
+        reordered: false,
+        hasRuleDiff,
+        cells: columns.map((col) => ({ colId: col.id, status: 'added' })),
+      });
+      continue;
+    }
+
+    if (beforeRow && !afterRow) {
+      rows.push({
+        ruleId,
+        rowId,
+        kind: 'removed',
+        beforeRowNumber: beforeIndex + 1,
+        reordered: false,
+        hasRuleDiff,
+        cells: columns.map((col) => ({ colId: col.id, status: 'removed' })),
+      });
+      continue;
+    }
+
+    if (!beforeRow || !afterRow) continue;
+
+    const cells: GridRowCell[] = columns.map((col) => ({
+      colId: col.id,
+      status:
+        col.kind === 'condition'
+          ? sameValue(beforeRow.cells[col.id], afterRow.cells[col.id])
+            ? 'unchanged'
+            : 'changed'
+          : outputCellStatus(beforeRow, afterRow, col.id),
+    }));
+    const reordered = beforeIndex !== afterIndex;
+    const changed =
+      reordered || cells.some((cell) => cell.status !== 'unchanged');
+    rows.push({
+      ruleId,
+      rowId,
+      kind: changed ? 'changed' : 'unchanged',
+      beforeRowNumber: beforeIndex + 1,
+      afterRowNumber: afterIndex + 1,
+      reordered,
+      hasRuleDiff,
+      cells,
+    });
+  }
+
+  rows.sort(
+    (a, b) =>
+      (a.afterRowNumber ?? a.beforeRowNumber ?? 0) -
+      (b.afterRowNumber ?? b.beforeRowNumber ?? 0),
+  );
+
+  const changedRows = rows.filter((row) => row.kind !== 'unchanged').length;
+  return {
+    tableId,
+    tableName: afterTable?.name ?? beforeTable?.name ?? tableId,
+    columns,
+    rows,
+    changedRows,
+    hasChanges: changedRows > 0,
+  };
+}
+
 export function buildLogicDiffSummary(
   beforeLogic: Logic,
   afterLogic: Logic,
@@ -408,6 +595,11 @@ export function buildLogicDiffSummary(
     }
   }
 
+  const ruleIds = new Set(ruleDiffs.map((diff) => diff.id));
+  const tableGrids = tableIds
+    .map((tableId) => buildTableGrid(beforeLogic, afterLogic, tableId, ruleIds))
+    .sort((a, b) => Number(b.hasChanges) - Number(a.hasChanges));
+
   return {
     addedRules: ruleDiffs.filter((diff) => diff.kind === 'added').length,
     removedRules: ruleDiffs.filter((diff) => diff.kind === 'removed').length,
@@ -422,5 +614,6 @@ export function buildLogicDiffSummary(
     ),
     priorityChanges: ruleDiffs.filter((diff) => diff.priorityChange).length,
     ruleDiffs,
+    tableGrids,
   };
 }
