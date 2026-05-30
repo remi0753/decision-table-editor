@@ -40,6 +40,38 @@ export type TranslationSet = {
   createAccount: string;
   useExistingAccount: string;
   publish: string;
+  publishReviewTitle: string;
+  publishReviewLoading: string;
+  publishReviewLoadFailed: string;
+  publishReviewFirstPublishTitle: string;
+  publishReviewFirstPublishDescription: string;
+  publishReviewNoChanges: string;
+  publishReviewSummary: string;
+  publishReviewRuleChanges: string;
+  publishReviewAddedRules: string;
+  publishReviewChangedRules: string;
+  publishReviewRemovedRules: string;
+  publishReviewConditionCellChanges: string;
+  publishReviewResultCellChanges: string;
+  publishReviewPriorityChanges: string;
+  publishReviewRuleLabel: (
+    tableName: string,
+    rowId: string,
+    rowNumber?: number,
+  ) => string;
+  publishReviewAdded: string;
+  publishReviewChanged: string;
+  publishReviewRemoved: string;
+  publishReviewConditions: string;
+  publishReviewResults: string;
+  publishReviewConditionChanges: string;
+  publishReviewResultChanges: string;
+  publishReviewBefore: string;
+  publishReviewAfter: string;
+  publishReviewPriorityChanged: (before: number, after: number) => string;
+  publishReviewBackToDraft: string;
+  publishReviewPublishAnyway: string;
+  publishReviewPublishConfirm: string;
   settings: string;
   share: string;
   shareRunner: string;
@@ -344,6 +376,37 @@ export const translations: Record<Lang, TranslationSet> = {
     createAccount: 'Create account',
     useExistingAccount: 'Use existing',
     publish: 'Publish',
+    publishReviewTitle: 'Review changes before publishing',
+    publishReviewLoading: 'Loading changes...',
+    publishReviewLoadFailed: 'Could not load the comparison.',
+    publishReviewFirstPublishTitle: 'First published version',
+    publishReviewFirstPublishDescription:
+      'There is no production version to compare with yet. Publishing will create v1 from the current cloud draft.',
+    publishReviewNoChanges: 'No row-level changes were found.',
+    publishReviewSummary: 'Summary',
+    publishReviewRuleChanges: 'Rule changes',
+    publishReviewAddedRules: 'Added rules',
+    publishReviewChangedRules: 'Changed rules',
+    publishReviewRemovedRules: 'Removed rules',
+    publishReviewConditionCellChanges: 'Condition cell changes',
+    publishReviewResultCellChanges: 'Result cell changes',
+    publishReviewPriorityChanges: 'Order changes',
+    publishReviewRuleLabel: (tableName, rowId, rowNumber) =>
+      `${tableName} / ${rowNumber ? `Row ${rowNumber}` : rowId}`,
+    publishReviewAdded: 'Added',
+    publishReviewChanged: 'Changed',
+    publishReviewRemoved: 'Removed',
+    publishReviewConditions: 'Conditions',
+    publishReviewResults: 'Results',
+    publishReviewConditionChanges: 'Condition changes',
+    publishReviewResultChanges: 'Result changes',
+    publishReviewBefore: 'Before',
+    publishReviewAfter: 'After',
+    publishReviewPriorityChanged: (before, after) =>
+      `Order changed: row ${before} -> row ${after}`,
+    publishReviewBackToDraft: 'Back to draft',
+    publishReviewPublishAnyway: 'Publish anyway',
+    publishReviewPublishConfirm: 'Publish',
     settings: 'Settings',
     share: 'Share',
     shareRunner: 'Share Runner',
@@ -666,6 +729,37 @@ export const translations: Record<Lang, TranslationSet> = {
     createAccount: '新規登録',
     useExistingAccount: '既存アカウント',
     publish: '公開',
+    publishReviewTitle: '公開前に変更を確認',
+    publishReviewLoading: '変更を読み込み中...',
+    publishReviewLoadFailed: '比較を読み込めませんでした。',
+    publishReviewFirstPublishTitle: '最初の公開バージョン',
+    publishReviewFirstPublishDescription:
+      '比較対象の本番バージョンはまだありません。公開すると、現在のクラウド下書きから v1 を作成します。',
+    publishReviewNoChanges: '行単位の変更は見つかりませんでした。',
+    publishReviewSummary: '概要',
+    publishReviewRuleChanges: 'ルールの変更',
+    publishReviewAddedRules: '追加されたルール',
+    publishReviewChangedRules: '変更されたルール',
+    publishReviewRemovedRules: '削除されたルール',
+    publishReviewConditionCellChanges: '条件セルの変更箇所',
+    publishReviewResultCellChanges: '結果セルの変更箇所',
+    publishReviewPriorityChanges: '順序の変更',
+    publishReviewRuleLabel: (tableName, rowId, rowNumber) =>
+      `${tableName} / ${rowNumber ? `行${rowNumber}` : rowId}`,
+    publishReviewAdded: '追加',
+    publishReviewChanged: '変更',
+    publishReviewRemoved: '削除',
+    publishReviewConditions: '条件',
+    publishReviewResults: '結果',
+    publishReviewConditionChanges: '条件の変更',
+    publishReviewResultChanges: '結果の変更',
+    publishReviewBefore: '変更前',
+    publishReviewAfter: '変更後',
+    publishReviewPriorityChanged: (before, after) =>
+      `順序が変更されました: ${before}行目 -> ${after}行目`,
+    publishReviewBackToDraft: '下書きに戻る',
+    publishReviewPublishAnyway: 'このまま公開',
+    publishReviewPublishConfirm: '公開する',
     settings: '設定',
     share: '共有',
     shareRunner: 'Runnerを共有',

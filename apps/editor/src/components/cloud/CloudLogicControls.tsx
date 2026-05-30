@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { PublishDiffReviewDialog } from '@/components/cloud/PublishDiffReviewDialog';
 import { RunnerShareDialog } from '@/components/cloud/RunnerShareDialog';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useT } from '@/i18n/useT';
@@ -22,6 +23,7 @@ function canEdit(role: string | null) {
 
 export function CloudLogicControls() {
   const t = useT();
+  const logic = useLogicStore((s) => s.logic);
   const importLogic = useLogicStore((s) => s.importLogic);
   const mode = useCloudStore((s) => s.mode);
   const orgRole = useCloudStore((s) => s.orgRole);
@@ -33,6 +35,7 @@ export function CloudLogicControls() {
   const publishCloudLogic = useCloudStore((s) => s.publishCloudLogic);
   const switchCloudLogic = useCloudStore((s) => s.switchCloudLogic);
   const [shareOpen, setShareOpen] = useState(false);
+  const [publishReviewOpen, setPublishReviewOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [logics, setLogics] = useState<CloudLogic[]>([]);
   const [loadingLogics, setLoadingLogics] = useState(false);
@@ -148,7 +151,7 @@ export function CloudLogicControls() {
             <Tooltip content={t.publish}>
               <button
                 type="button"
-                onClick={publishCloudLogic}
+                onClick={() => setPublishReviewOpen(true)}
                 disabled={saveState === 'saving'}
                 className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
               >
@@ -175,8 +178,18 @@ export function CloudLogicControls() {
           logicId={logicId}
           latestVersion={latestVersion}
           productionVersion={productionVersion}
-          onPublish={publishCloudLogic}
+          onPublish={() => publishCloudLogic(logic)}
           onClose={() => setShareOpen(false)}
+        />
+      ) : null}
+
+      {publishReviewOpen ? (
+        <PublishDiffReviewDialog
+          logicId={logicId}
+          draftLogic={logic}
+          hasPreviousVersion={Boolean(productionVersion)}
+          onPublish={() => publishCloudLogic(logic)}
+          onClose={() => setPublishReviewOpen(false)}
         />
       ) : null}
     </>

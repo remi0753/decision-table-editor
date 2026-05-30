@@ -54,6 +54,30 @@ export type CloudVersion = {
   publishedAt: string;
 };
 
+export type CloudLogicDiffSource =
+  | {
+      type: 'draft';
+      label: 'draft';
+      data: Logic;
+      draftRevision: number;
+      updatedAt: string;
+    }
+  | {
+      type: 'version';
+      label: 'latest' | 'production' | `v${number}`;
+      data: Logic;
+      versionNumber: number;
+      versionId: string;
+      publishedAt: string;
+    };
+
+export type CloudJsonDiffChange = {
+  path: string[];
+  type: 'added' | 'removed' | 'changed';
+  before?: unknown;
+  after?: unknown;
+};
+
 export type CloudMember = {
   membershipId: string;
   role: CloudRole;
@@ -389,6 +413,20 @@ export async function publishLogic(logicId: string) {
       body: { pinProduction: true },
     },
   );
+}
+
+export async function getLogicDiff(
+  logicId: string,
+  from = 'production',
+  to = 'draft',
+) {
+  const params = new URLSearchParams({ from, to });
+  return api<{
+    from: CloudLogicDiffSource;
+    to: CloudLogicDiffSource;
+    equal: boolean;
+    changes: CloudJsonDiffChange[];
+  }>(`/api/logics/${logicId}/diff?${params.toString()}`);
 }
 
 export async function shareRunner(input: {
