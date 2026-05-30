@@ -2,7 +2,7 @@
   <img src="apps/editor/src/assets/logo.svg" alt="LEVERIE" height="56" />
   <h1 align="center">LEVERIE</h1>
   <p align="center">
-    A browser-based editor for building and evaluating <strong>decision logic</strong> as interconnected tables — no code required.
+    Build, verify, and ship <strong>decision logic</strong> — entirely in the browser, no code required. Then call it from your apps and from LLM agents over MCP.
   </p>
 </p>
 
@@ -20,7 +20,18 @@ The Japanese reading is a respectful nod to ZUN of [Team Shanghai Alice](https:/
 
 ## Concept
 
-Decision logic ("if X and Y then Z, else if …") is often expressed as flowcharts or nested if-statements. Both forms are hard to read, maintain, and verify for correctness. This tool lets you describe the same logic as **Excel-style tables** and automatically checks them for gaps and contradictions.
+Business rules — "if the customer is X and the amount is over Y, then Z" — usually end up buried in code, spreadsheets, or sprawling flowcharts. They become hard to read, risky to change, and impossible to verify without a developer. **LEVERIE turns those rules into Excel-style decision tables that anyone can author, review, and run.**
+
+### Three things LEVERIE does for you
+
+**1. Write logic in a GUI — not in code.**
+You build rules as tables of conditions and conclusions, point-and-click. There is no DSL to learn and no code to write or deploy. A logic is just a graph of tables that reads top-to-bottom, like a spreadsheet you can reason about.
+
+**2. Verify and review everything in the UI.**
+The editor continuously checks your tables for **duplicate, unreachable, and missing rules**, and visualizes coverage gaps as a flowchart. You can evaluate inputs interactively with a **step-by-step trace**, batch-test hundreds of cases from a CSV, and — before publishing — review a **side-by-side diff** of exactly what changed against the live version. No more guessing whether an edit broke something.
+
+**3. Expose your logic as a callable interface — for apps and for AI agents.**
+A published logic is more than a document: it becomes a live endpoint with a typed input/output schema. Call it from your own services over the **Evaluate API**, or let an LLM agent invoke it directly through the hosted **[Model Context Protocol](https://modelcontextprotocol.io/) (MCP)** endpoint — each logic shows up as a ready-to-use tool. Your decision rules become a single source of truth that humans and agents share.
 
 ### How it works
 
@@ -129,205 +140,17 @@ The app is a static SPA deployed to **Cloudflare Workers**. Configuration lives 
 
 ---
 
-## How to use
+## Documentation
 
-The UI is bilingual. Switch between **English** and **日本語** with the language selector in the top-right header. Labels below mention both versions where relevant.
+This README focuses on the **concept** and on **running the project locally**. The full user guide — defining fields, building tables, evaluating, batch testing, publishing, the JSON format, and the API / MCP reference — lives on the docs site:
 
-### Layout overview
+**👉 [leverie.dev/docs](https://leverie.dev/docs)**
 
-- **Header** (icon-only, with tooltips): language selector, **New** (新規作成), **Import** (インポート), **Export** (エクスポート).
-- **Left pane** (collapsible accordion sections):
-  1. **Logic Name** (ロジック名) — inline-editable.
-  2. **Table Graph** (テーブル関係図) — DAG of tables with Continue references.
-  3. **Tables** (テーブル一覧) — flat list with delete + add.
-  4. **Field Definitions** (フィールド定義) — shared field catalog with its own JSON import/export.
-- **Right pane**: the **table editor** for the selected table.
-- **Bottom drawer**: the **Evaluation Panel** (評価パネル) — collapse/expand by clicking the header. Tabs: Single (単一評価) and Batch (バッチ評価).
+The UI is fully bilingual (English / 日本語); switch with the language selector in the top-right header.
 
-The accordion open/close state and the drawer state are persisted to `localStorage`.
+### Quick taste: call a published logic from an agent
 
----
-
-### 1. Define fields
-
-Open the **Field Definitions** (フィールド定義) accordion in the left pane.
-
-1. Type a field name in the text box at the bottom of the section.
-2. Choose a type from the dropdown.
-3. Click the **＋** button (or press Enter).
-
-| Type (EN / 日本語) | Description |
-|---|---|
-| `Text` / `テキスト` (string) | Free-form text. Supports `=`, `!=`, `in`, `contains`, `starts_with`, `ends_with`. |
-| `Number` / `数値` (number) | Numeric. Supports `=`, `!=`, `<`, `<=`, `>`, `>=`, `between`. |
-| `Boolean` / `真偽値` (bool) | `true` / `false`. |
-| `Enum` / `選択肢` (enum) | A predefined list of values. Add choices inline using the tag editor inside each enum field. |
-| `Date` / `日付` (date) | ISO 8601 date. Supports relative operators like `before_today`, `after_today`. |
-| `Datetime` / `日時` (datetime) | ISO 8601 date-time. |
-
-**Changing a field's type** resets all condition cells that reference it (a confirmation dialog is shown if any cells exist).
-**Deleting a field** is blocked if any condition column still references it.
-
-#### Field-definition import / export
-
-The Field Definitions section header has its own ⬆ / ⬇ buttons that import and export **just** the field catalog as JSON (separate from the logic JSON). This is useful for reusing the same fields across multiple logics. The file format is:
-
-```json
-{
-  "version": "1",
-  "fields": [
-    { "name": "Customer Type", "type": "enum", "enumValues": ["Corp", "Individual"] },
-    { "name": "Amount",        "type": "number" }
-  ]
-}
-```
-
-Importing skips fields whose names already exist in the current logic.
-
----
-
-### 2. Build a table
-
-#### Add a condition column
-
-Click **＋ Add condition column** (＋ 条件列を追加) below the table. Then choose a field from the dropdown in the column header.
-
-#### Add a row
-
-Click **＋ Add row** (＋ 行を追加) below the table.
-
-#### Edit a condition cell
-
-Click any cell in the condition area to open a popup:
-
-1. Choose an **operator** from the dropdown (the list is filtered by the column's field type).
-2. Enter a **value** using the appropriate input (text, number, date picker, checkbox list, etc.).
-3. Click **Set** (設定) to save, or **No condition (wildcard)** (条件なし（ワイルドカード）) to make the cell match anything.
-
-The cell displays a compact summary (`>= 100`, `Corp, Individual`, `(no condition)`, etc.).
-
-#### Edit a conclusion
-
-Click the **Conclusion** (結論) cell to open a popup:
-
-- **Terminal** (終端結論) — fill in the output value for each output column.
-- **Continue** (継続参照) — pick the target table from the dropdown. Tables that would create a cycle are marked and disabled.
-
-#### Reorder rows
-
-Drag the grip handle (⠿) on the left of each row, or use the ▲ / ▼ arrow buttons.
-
-#### Manage output columns
-
-Click the ⚙ icon in the conclusion column header to add, rename, or delete output columns. A table must always have at least one output column.
-
-#### Switch between Table and Flowchart view
-
-Each table has a tab switcher in its header:
-
-- **Table** (テーブル) — the rows-and-cells editor.
-- **Flowchart** (フローチャート) — an automatically generated flowchart of the table's rules. Branches that have no matching rule are shown as **phantom nodes** (`No rule` / 未対応) so you can spot coverage gaps visually. Click a node to jump back to the corresponding row in the Table view. Available for tables built from `enum` / `bool` fields where coverage can be analysed exhaustively.
-
-When coverage gaps exist, a yellow banner appears below the table with a shortcut to the Flowchart view.
-
----
-
-### 3. Manage tables
-
-The **Table Graph** (テーブル関係図) accordion shows a DAG of how tables reference each other. The **Tables** (テーブル一覧) accordion shows them as a flat list.
-
-| Action | How |
-|--------|-----|
-| Add a table | Click **＋ Add table** (＋ テーブルを追加) at the bottom of the Tables list. |
-| Switch to a table | Click its name in the list, or click its node in the DAG graph. |
-| Rename a table | Click the table name in the editor header (inline edit). |
-| Set as entry table | Click **Set as entry** (入口に設定) next to the table name in the editor header. |
-| Delete a table | Hover the table name in the list and click 🗑. Blocked if other tables reference it or if it is the entry table. |
-
-The DAG graph shows:
-- **▶ Entry badge** — the current entry table.
-- Directed edges — *Continue* references between tables.
-- Tables not reachable from the entry table appear as orphans.
-
----
-
-### 4. Evaluate
-
-The **Evaluation Panel** (評価パネル) is a collapsible drawer at the bottom of the right pane. It has two tabs:
-
-#### Single (単一評価)
-
-1. Enter values for each field in the input form.
-2. Click **Evaluate** (評価実行).
-3. The result appears with a step-by-step **trace** showing which rows were checked, which were skipped, and why.
-
-Click **Reset** (リセット) to clear all inputs and the result.
-
-#### Batch (バッチ評価)
-
-Run many test cases in one shot from a CSV.
-
-1. Click **Download template** (テンプレートをダウンロード) to get a CSV pre-populated with the current logic's field names and `期待:<output>` columns.
-2. Fill the CSV in Excel / Google Sheets (UTF-8 BOM, RFC 4180 quoting).
-3. Click **Load CSV** (CSVを読み込む) to load the cases, then **Run all** (すべて評価実行).
-4. Each case is shown with its result and (if expected values were provided) a Pass / Fail badge. Click a row to expand its trace.
-
-CSV header conventions:
-
-| Column | Header value |
-|---|---|
-| Case name | `ケース名` (optional — auto-numbered if absent) |
-| Input value | exact field name from the logic |
-| Expected value | `期待:<output column name>` |
-
----
-
-### 5. Save, export, and import
-
-- **Auto-save** — the logic is saved to `localStorage` (key `decision-table-editor-v2`) on every change. It is restored automatically on next load.
-- **Export** — click the ⬇ button in the header to download the logic as `<logic name>.json`.
-- **Import** — click the ⬆ button to load a `.json` file. The file is validated with a Zod schema. Minor issues (broken Continue references, missing output columns, stale ID counters) are repaired automatically with a notification.
-
-#### JSON format (v2)
-
-```json
-{
-  "version": "2",
-  "name": "Loan Review",
-  "entryTableId": "t1",
-  "fieldDefs": {
-    "f1": { "id": "f1", "name": "Customer Type", "type": "enum", "enumValues": ["Corp", "Individual"] },
-    "f2": { "id": "f2", "name": "Amount", "type": "number" }
-  },
-  "tables": {
-    "t1": {
-      "id": "t1",
-      "name": "Initial Review",
-      "cols": [{ "id": "c1", "fieldId": "f1" }, { "id": "c2", "fieldId": "f2" }],
-      "outputCols": [{ "id": "oc1", "name": "Result" }],
-      "rows": [
-        {
-          "id": "r1",
-          "cells": { "c1": { "op": "=", "val": "Corp" }, "c2": { "op": ">=", "val": "1000000" } },
-          "conclusion": { "type": "terminal", "outputs": { "oc1": "Approve" } }
-        },
-        {
-          "id": "r2",
-          "cells": {},
-          "conclusion": { "type": "terminal", "outputs": { "oc1": "Reject" } }
-        }
-      ]
-    }
-  },
-  "nField": 3, "nTable": 2, "nCol": 3, "nOCol": 2, "nRow": 3
-}
-```
-
----
-
-### 6. Use your logic from an LLM (Hosted MCP)
-
-Once a logic is saved in LEVERIE Cloud and published to production, you can expose it to agents through the hosted [Model Context Protocol](https://modelcontextprotocol.io/) endpoint:
+Once a logic is published in LEVERIE Cloud, it is reachable over the hosted [Model Context Protocol](https://modelcontextprotocol.io/) endpoint, so an LLM agent can list and call it as a tool:
 
 ```bash
 curl https://leverie.dev/v1/mcp \
@@ -336,9 +159,9 @@ curl https://leverie.dev/v1/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-Hosted MCP uses the same API keys as the Evaluate API. Each published logic becomes one callable tool, with input and output schemas generated from `@leverie/schema`. See the docs site source in [apps/docs](apps/docs/) and the worker implementation in [apps/api/src/routes/mcp.ts](apps/api/src/routes/mcp.ts).
+Each published logic becomes one callable tool, with input/output schemas generated from `@leverie/schema`. Hosted MCP shares the same API keys as the Evaluate API. Three sample logics live in [examples/](examples/) — `loan_review`, `support_ticket_routing`, and `refund_eligibility` — for import, publishing, and MCP tool-call demos.
 
-Three sample logics live in [examples/](examples/) for import, publishing, and MCP tool-call demos: `loan_review`, `support_ticket_routing`, and `refund_eligibility`.
+See the full reference at **[leverie.dev/docs](https://leverie.dev/docs)**.
 
 ---
 
@@ -362,9 +185,9 @@ Three sample logics live in [examples/](examples/) for import, publishing, and M
 
 ---
 
-## Specification documents
+## Design & specification documents
 
-The full design specification lives in [doc/](doc/) (Japanese). Start at [doc/README.md](doc/README.md) for the table of contents.
+Contributor-facing design and behavioral specs live in [doc/](doc/) (Japanese): the data model, evaluation/quality-check contracts that `@leverie/*` implement, and the Cloud Foundation schema/infrastructure design. Start at [doc/README.md](doc/README.md). End-user usage is documented separately at [leverie.dev/docs](https://leverie.dev/docs).
 
 ---
 
