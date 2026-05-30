@@ -1,130 +1,129 @@
-# 4. フィールド型と条件演算子
+# 4. Field Types and Condition Operators
 
-## 4.1 フィールド型一覧
+## 4.1 Field type catalog
 
-| 型値         | 表示名 | 説明                                                             | 網羅性チェック                   |
-| ------------ | ------ | ---------------------------------------------------------------- | -------------------------------- |
-| `"number"`   | 数値   | 整数・小数・負数                                                 | 数値範囲の定義が必要（将来対応） |
-| `"string"`   | 文字列 | 自由記述文字列                                                   | 不可（無限の取りうる値）         |
-| `"bool"`     | 真偽値 | `true` / `false` の2値                                           | 可能（2値のみ）                  |
-| `"enum"`     | 選択肢 | 定義された選択肢から1つを選ぶ                                    | **可能**（enumValuesを利用）     |
-| `"date"`     | 日付   | カレンダー上の日付（時刻なし）。`YYYY-MM-DD` 形式で保存          | 不可                             |
-| `"datetime"` | 日時   | 日付＋時刻。秒まで必須、ミリ秒・タイムゾーンはオプション（後述） | 不可                             |
+| Type value   | Display name | Description                                                          | Coverage check                          |
+| ------------ | ------------ | ------------------------------------------------------------------- | --------------------------------------- |
+| `"number"`   | Number       | Integers, decimals, negatives                                       | Requires a numeric range definition (future) |
+| `"string"`   | Text         | Free-form text                                                      | Not possible (infinite value space)     |
+| `"bool"`     | Boolean      | The two values `true` / `false`                                     | Possible (only two values)              |
+| `"enum"`     | Enum         | Pick one of a predefined set of choices                             | **Possible** (uses enumValues)          |
+| `"date"`     | Date         | A calendar date (no time), stored as `YYYY-MM-DD`                   | Not possible                            |
+| `"datetime"` | Datetime     | Date + time. Seconds required; milliseconds and timezone optional (see below) | Not possible                  |
 
-## 4.2 型ごとのサポート演算子
+## 4.2 Operators supported per type
 
-演算子はUIでドロップダウンから選択する形式とし、FEELの生テキスト入力は使用しない。  
-非エンジニアが直感的に使えるサブセットに絞る。
+Operators are chosen from a dropdown in the UI; raw FEEL text input is not used. The set is limited to a subset that non-engineers can use intuitively.
 
-### 演算子固有のUI入力制約
+### Operator-specific UI input constraints
 
-| 演算子    | 制約                      | 違反時の挙動                                                                                                                                                 |
-| --------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `in`      | **1件以上**の値を入力必須 | 0件の状態ではセルを保存できない。「1つ以上の値を入力してください」とエラー表示                                                               |
-| `between` | **終了値 ≥ 開始値**必須   | 終了値が開始値より小さい場合、終了値フィールドをエラー状態にして「終了値は開始値より大きい値にしてください」と表示する。自動スワップはしない |
+| Operator  | Constraint                       | Behavior on violation                                                                                                                          |
+| --------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `in`      | At least **one** value required  | The cell cannot be saved with zero values. Show the error "Enter at least one value."                                                         |
+| `between` | **End ≥ start** required         | If the end value is smaller than the start, put the end field into an error state and show "The end value must be greater than the start value." Do not auto-swap. |
 
-### number型
+### number type
 
-| 演算子    | 表示                 | 値入力                 |
-| --------- | -------------------- | ---------------------- |
-| `=`       | 等しい               | 数値入力               |
-| `!=`      | 等しくない           | 数値入力               |
-| `<`       | より小さい（未満）   | 数値入力               |
-| `<=`      | 以下                 | 数値入力               |
-| `>`       | より大きい（超過）   | 数値入力               |
-| `>=`      | 以上                 | 数値入力               |
-| `between` | 範囲内（以上〜以下） | 数値入力×2（fromとto） |
-| `null`    | 値がない             | 値入力なし             |
+| Operator  | Display              | Value input                  |
+| --------- | -------------------- | ---------------------------- |
+| `=`       | equals               | Number input                 |
+| `!=`      | not equal            | Number input                 |
+| `<`       | less than            | Number input                 |
+| `<=`      | less than or equal   | Number input                 |
+| `>`       | greater than         | Number input                 |
+| `>=`      | greater than or equal| Number input                 |
+| `between` | within range (incl.) | Two number inputs (from, to) |
+| `null`    | has no value         | No value input               |
 
-### string型
+### string type
 
-| 演算子        | 表示           | 値入力                       |
-| ------------- | -------------- | ---------------------------- |
-| `=`           | 等しい         | テキスト入力                 |
-| `!=`          | 等しくない     | テキスト入力                 |
-| `in`          | いずれかに一致 | テキスト複数入力（タグ形式） |
-| `contains`    | 含む           | テキスト入力                 |
-| `starts_with` | から始まる     | テキスト入力                 |
-| `ends_with`   | で終わる       | テキスト入力                 |
-| `null`        | 値がない       | 値入力なし                   |
+| Operator      | Display       | Value input                       |
+| ------------- | ------------- | --------------------------------- |
+| `=`           | equals        | Text input                        |
+| `!=`          | not equal     | Text input                        |
+| `in`          | matches any of| Multiple text inputs (tag style)  |
+| `contains`    | contains      | Text input                        |
+| `starts_with` | starts with   | Text input                        |
+| `ends_with`   | ends with     | Text input                        |
+| `null`        | has no value  | No value input                    |
 
-### bool型
+### bool type
 
-| 演算子 | 表示     | 値入力                      |
-| ------ | -------- | --------------------------- |
-| `=`    | 等しい   | `true` / `false` のセレクト |
-| `null` | 値がない | 値入力なし                  |
+| Operator | Display      | Value input                  |
+| -------- | ------------ | ---------------------------- |
+| `=`      | equals       | `true` / `false` select      |
+| `null`   | has no value | No value input               |
 
-### enum型
+### enum type
 
-| 演算子 | 表示           | 値入力                               |
-| ------ | -------------- | ------------------------------------ |
-| `=`    | 等しい         | enumValuesのドロップダウン           |
-| `!=`   | 等しくない     | enumValuesのドロップダウン           |
-| `in`   | いずれかに一致 | enumValuesの複数選択チェックボックス |
-| `null` | 値がない       | 値入力なし                           |
+| Operator | Display        | Value input                            |
+| -------- | -------------- | -------------------------------------- |
+| `=`      | equals         | Dropdown of enumValues                 |
+| `!=`     | not equal      | Dropdown of enumValues                 |
+| `in`     | matches any of | Multi-select checkboxes of enumValues  |
+| `null`   | has no value   | No value input                         |
 
-### date型
+### date type
 
-| 演算子            | 表示                         | 値入力                                 |
-| ----------------- | ---------------------------- | -------------------------------------- |
-| `=`               | 等しい                       | 日付ピッカー                           |
-| `!=`              | 等しくない                   | 日付ピッカー                           |
-| `<`               | より前                       | 日付ピッカー                           |
-| `<=`              | 以前（その日を含む）         | 日付ピッカー                           |
-| `>`               | より後                       | 日付ピッカー                           |
-| `>=`              | 以降（その日を含む）         | 日付ピッカー                           |
-| `between`         | 期間内（開始日〜終了日）     | 日付ピッカー×2（fromとto、両端を含む） |
-| `before_today`    | 今日より前（評価時点で判定） | 値入力なし                             |
-| `today_or_before` | 今日以前（評価時点で判定）   | 値入力なし                             |
-| `after_today`     | 今日より後（評価時点で判定） | 値入力なし                             |
-| `today_or_after`  | 今日以降（評価時点で判定）   | 値入力なし                             |
-| `null`            | 値がない                     | 値入力なし                             |
+| Operator          | Display                              | Value input                              |
+| ----------------- | ------------------------------------ | ---------------------------------------- |
+| `=`               | equals                               | Date picker                              |
+| `!=`              | not equal                            | Date picker                              |
+| `<`               | before                               | Date picker                              |
+| `<=`              | on or before                         | Date picker                              |
+| `>`               | after                                | Date picker                              |
+| `>=`              | on or after                          | Date picker                              |
+| `between`         | within period (start–end)            | Two date pickers (from, to; inclusive)   |
+| `before_today`    | before today (evaluated at run time) | No value input                           |
+| `today_or_before` | today or before (evaluated at run time) | No value input                        |
+| `after_today`     | after today (evaluated at run time)  | No value input                           |
+| `today_or_after`  | today or after (evaluated at run time) | No value input                         |
+| `null`            | has no value                         | No value input                           |
 
-### datetime型
+### datetime type
 
-| 演算子    | 表示                         | 値入力                                 |
-| --------- | ---------------------------- | -------------------------------------- |
-| `=`       | 等しい                       | 日時ピッカー                           |
-| `!=`      | 等しくない                   | 日時ピッカー                           |
-| `<`       | より前                       | 日時ピッカー                           |
-| `<=`      | 以前（その時刻を含む）       | 日時ピッカー                           |
-| `>`       | より後                       | 日時ピッカー                           |
-| `>=`      | 以降（その時刻を含む）       | 日時ピッカー                           |
-| `between` | 期間内（開始日時〜終了日時） | 日時ピッカー×2（fromとto、両端を含む） |
-| `null`    | 値がない                     | 値入力なし                             |
+| Operator  | Display                          | Value input                                  |
+| --------- | -------------------------------- | -------------------------------------------- |
+| `=`       | equals                           | Datetime picker                              |
+| `!=`      | not equal                        | Datetime picker                              |
+| `<`       | before                           | Datetime picker                              |
+| `<=`      | at or before                     | Datetime picker                              |
+| `>`       | after                            | Datetime picker                              |
+| `>=`      | at or after                      | Datetime picker                              |
+| `between` | within period (start–end)        | Two datetime pickers (from, to; inclusive)   |
+| `null`    | has no value                     | No value input                               |
 
-> `before_today` / `today_or_before` / `after_today` / `today_or_after` は評価実行時の**現在日付**と比較する演算子。入力フィールドに固定値をセットするのではなく、評価エンジンが `Date.now()` を参照する。`date` 型のみで有効（`datetime` 型では分単位の比較が必要なため `now_before` / `now_after` を別途定義することを将来対応とする）。
+> `before_today` / `today_or_before` / `after_today` / `today_or_after` compare against the **current date** at evaluation time. Rather than storing a fixed value in the input field, the evaluation engine reads `Date.now()`. Valid only for the `date` type (for `datetime`, minute-level comparison is needed, so defining separate `now_before` / `now_after` operators is left as future work).
 
-## 4.3 Cellのval保存形式
+## 4.3 Storage format of a cell's `val`
 
-| 演算子                                                                     | `val` の型               | 例                                                 |
-| -------------------------------------------------------------------------- | ------------------------ | -------------------------------------------------- |
-| `=`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `starts_with`, `ends_with`    | `string`                 | `"法人"`, `"1000000"`                              |
-| `between`                                                                  | `string[]` （2要素固定） | `["1000", "5000"]`, `["2024-04-01", "2024-06-30"]` |
-| `in`                                                                       | `string[]`               | `["法人", "個人"]`                                 |
-| `null`, `before_today`, `today_or_before`, `after_today`, `today_or_after` | 不要（省略）             | —                                                  |
+| Operator                                                                   | Type of `val`                | Example                                            |
+| -------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------- |
+| `=`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `starts_with`, `ends_with`    | `string`                     | `"Corp"`, `"1000000"`                              |
+| `between`                                                                  | `string[]` (exactly 2)       | `["1000", "5000"]`, `["2024-04-01", "2024-06-30"]` |
+| `in`                                                                       | `string[]`                   | `["Corp", "Individual"]`                           |
+| `null`, `before_today`, `today_or_before`, `after_today`, `today_or_after` | not needed (omitted)         | —                                                  |
 
-### 日付・日時の保存形式
+### Date and datetime storage format
 
-| 型         | 保存形式                                                             | 例             |
-| ---------- | -------------------------------------------------------------------- | -------------- |
-| `date`     | ISO 8601 日付文字列                                                  | `"2024-04-01"` |
-| `datetime` | ISO 8601 日時文字列（秒まで必須、`.SSS` とタイムゾーンはオプション） | 後述           |
+| Type       | Storage format                                                              | Example        |
+| ---------- | -------------------------------------------------------------------------- | -------------- |
+| `date`     | ISO 8601 date string                                                        | `"2024-04-01"` |
+| `datetime` | ISO 8601 datetime string (seconds required; `.SSS` and timezone optional)  | see below      |
 
-**`datetime` の有効なフォーマット:**
+**Valid formats for `datetime`:**
 
 ```
-必須部分:   YYYY-MM-DDTHH:mm:ss
-オプション: [.SSS][Z | +HH:mm | -HH:mm]
+Required:  YYYY-MM-DDTHH:mm:ss
+Optional:  [.SSS][Z | +HH:mm | -HH:mm]
 ```
 
-| 例                                | 説明                                      |
-| --------------------------------- | ----------------------------------------- |
-| `"2024-04-01T10:30:00"`           | 秒まで（タイムゾーン省略 = ローカル時刻） |
-| `"2024-04-01T10:30:00.123"`       | ミリ秒あり                                |
-| `"2024-04-01T10:30:00Z"`          | UTC                                       |
-| `"2024-04-01T10:30:00+09:00"`     | JST                                       |
-| `"2024-04-01T10:30:00.123+09:00"` | ミリ秒あり・JST                           |
+| Example                           | Description                                  |
+| --------------------------------- | -------------------------------------------- |
+| `"2024-04-01T10:30:00"`           | Down to seconds (no timezone = local time)   |
+| `"2024-04-01T10:30:00.123"`       | With milliseconds                            |
+| `"2024-04-01T10:30:00Z"`          | UTC                                          |
+| `"2024-04-01T10:30:00+09:00"`     | JST                                          |
+| `"2024-04-01T10:30:00.123+09:00"` | With milliseconds, JST                       |
 
-タイムゾーンが省略された場合はローカル時刻として扱う。タイムゾーン付きの値は比較前にUTCへ統一して大小比較を行う（タイムゾーンが混在しても正しく比較できる）。UIの日時ピッカーはローカル時刻で入力させ、保存時にタイムゾーンなしの文字列（ローカル扱い）として格納するのを基本とする。
+When the timezone is omitted, the value is treated as local time. Values with a timezone are normalized to UTC before comparison so that mixed timezones still compare correctly. By default the UI datetime picker takes local-time input and stores it as a timezone-less string (treated as local).

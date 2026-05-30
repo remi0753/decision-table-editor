@@ -1,23 +1,23 @@
-# 5. 評価モデル（実行アルゴリズム）
+# 5. Evaluation Model (Execution Algorithm)
 
-## 5.1 評価の開始
+## 5.1 Starting evaluation
 
-1. ユーザーが入力コンテキスト `inputs`（フィールドIDをキー、入力値をバリューとするマップ）を指定する。
-2. `entryTableId` のテーブルから評価を開始する。
+1. The user provides an input context `inputs` (a map keyed by field ID, valued by the input value).
+2. Evaluation starts at the table identified by `entryTableId`.
 
-## 5.2 テーブルの評価
+## 5.2 Evaluating a table
 
-評価は `evaluateTable(tableId, inputs, previousTrace, depth)` を再帰的に呼び出すことで実行される。詳細な実装（トレース収集込み）は §5.3 に記載する。以下は概念的な概要：
+Evaluation runs by recursively calling `evaluateTable(tableId, inputs, previousTrace, depth)`. The detailed implementation (including trace collection) is in §5.3. Conceptual overview:
 
 ```
-MAX_DEPTH = 50  // 継続参照の最大ネスト深度。破損データによる無限ループの安全弁
+MAX_DEPTH = 50  // Max nesting depth of continue references. Safety valve against infinite loops from corrupted data.
 
 evaluateTable(tableId, inputs, previousTrace = [], depth = 0):
-  // 深度ガード: インポートした破損データに循環参照が残っていた場合のフェイルセーフ
+  // Depth guard: fail-safe in case imported corrupted data still contains a cycle
   if depth > MAX_DEPTH:
     return { status: "no_match", tableId: tableId, trace: previousTrace }
   table = tables[tableId]
-  for each row in table.rows (上から順):
+  for each row in table.rows (top to bottom):
     if rowMatches(row, table.cols, inputs):
       if row.conclusion.type == "terminal":
         return { status: "ok", outputs: row.conclusion.outputs, trace: [...previousTrace, stepTrace] }
@@ -26,39 +26,39 @@ evaluateTable(tableId, inputs, previousTrace = [], depth = 0):
   return { status: "no_match", tableId: tableId, trace: [...previousTrace, stepTrace] }
 ```
 
-> **関数シグネチャ**: `evaluateTable(tableId, inputs, previousTrace, depth)` の4引数。
+> **Function signature**: `evaluateTable(tableId, inputs, previousTrace, depth)` — four arguments.
 >
-> - `previousTrace` は評価開始時に空配列 `[]` を渡す
-> - `depth` は評価開始時に `0` を渡す（エントリーテーブル）。継続参照のたびに `depth + 1` で再帰する
-> - §5.1 からの呼び出し: `evaluateTable(entryTableId, inputs, [], 0)`
-> - 循環参照はデータ登録時に §6.1 で防止されるが、インポート破損データへの安全弁として `depth > MAX_DEPTH` で強制終了する。`MAX_DEPTH = 50` はロジックとして現実的に必要な継続参照の深さの上限値として設定している
+> - `previousTrace` is passed as an empty array `[]` at the start of evaluation
+> - `depth` is passed as `0` at the start (the entry table). Each continue reference recurses with `depth + 1`
+> - Call from §5.1: `evaluateTable(entryTableId, inputs, [], 0)`
+> - Cycles are prevented on data save in §6.1, but as a safety valve for corrupted imports, evaluation is forcibly terminated when `depth > MAX_DEPTH`. `MAX_DEPTH = 50` is set as an upper bound on the continue-reference depth that a realistic logic would need
 
-## 5.3 行のマッチ判定
+## 5.3 Row matching
 
 ```
 rowMatches(row, cols, inputs):
-  // 返却値: { matched: bool, failedColId: string | null }
-  // failedColId はトレース収集用。cols 配列を左から右（定義順）に評価し、
-  // 条件セルが存在し（ワイルドカードでなく）かつ fieldId が null でない列の中で、
-  // 最初にマッチしなかった列のIDを返す。すべてワイルドカードの場合は null。
-  // ※ failedColId が null となるのは matched: true の場合のみ。
-  //   matched: false のときは必ず失敗した列のID（string）が返る。
-  //   よって skippedRows に追加されるエントリの failedColId は常に非 null。
+  // Returns: { matched: bool, failedColId: string | null }
+  // failedColId is for trace collection. The cols array is evaluated left to right (definition order),
+  // and among columns whose condition cell exists (not a wildcard) and whose fieldId is not null,
+  // it returns the ID of the first column that did not match. If all are wildcards, null.
+  // Note: failedColId is null only when matched: true.
+  //   When matched: false, the ID (string) of the failing column is always returned.
+  //   Therefore the failedColId of an entry added to skippedRows is always non-null.
   for each col in cols:
     cell = row.cells[col.id]
-    if cell is undefined: continue  // ワイルドカード
-    if col.fieldId is null: continue  // フィールド未選択列はスキップ（下記注記参照）
+    if cell is undefined: continue  // wildcard
+    if col.fieldId is null: continue  // skip columns with no field selected (see note below)
     input = inputs[col.fieldId]
     if NOT cellMatches(cell, input, fieldDefs[col.fieldId]):
       return { matched: false, failedColId: col.id }
   return { matched: true, failedColId: null }
 ```
 
-> **`fieldId == null` 列の扱い（設計意図）**: `fieldId` が未設定の条件列は評価時に**ワイルドカードと等価**として扱い、その列の条件セルの内容に関わらずスキップする。これは「フィールドが未選択の列は条件として機能しない」という設計上の意図であり、仕様通りの挙動である。
+> **Handling `fieldId == null` columns (design intent)**: a condition column with `fieldId` unset is treated as **equivalent to a wildcard** at evaluation time and is skipped regardless of its condition cell content. This reflects the design intent that "a column with no field selected does not act as a condition," and is the specified behavior.
 >
-> **全列が `fieldId == null` の行**: 行のすべての条件列が未選択の場合、その行はどんな入力に対しても `matched: true` を返す（デフォルト行と等価になる）。これも意図した挙動であるが、ユーザーが気づかずにこの状態を作ってしまう恐れがある。UIでは、条件セルが設定されているにもかかわらず `fieldId == null` の列に属するセルがある場合、そのセルに「フィールド未選択のため無効」という警告表示を行い、ユーザーがフィールドを選択するよう促す。
+> **A row where all columns are `fieldId == null`**: if all of a row's condition columns are unselected, that row returns `matched: true` for any input (equivalent to a default row). This is also intended behavior, but a user might create this state without realizing it. In the UI, when a cell belongs to a `fieldId == null` column yet has a condition set, show a warning on that cell ("disabled because no field is selected") to prompt the user to select a field.
 
-`evaluateTable` は `rowMatches` の結果を以下のように使用する:
+`evaluateTable` uses the result of `rowMatches` as follows:
 
 ```
 evaluateTable(tableId, inputs, previousTrace, depth):
@@ -68,63 +68,63 @@ evaluateTable(tableId, inputs, previousTrace, depth):
   for each row in table.rows:
     result = rowMatches(row, table.cols, inputs)
     if result.matched:
-      // マッチした行は matchedRowId に記録する。skippedRows には含めない。
-      // continue 行も含め、「マッチした行」は必ず matchedRowId に設定する。
+      // A matched row is recorded in matchedRowId. It is not added to skippedRows.
+      // Including continue rows, the "matched row" is always set in matchedRowId.
       stepTrace.matchedRowId = row.id
       if row.conclusion.type == "terminal":
         return { status: "ok", outputs: row.conclusion.outputs,
                  trace: [...previousTrace, stepTrace] }
       if row.conclusion.type == "continue":
-        // このテーブルの stepTrace を previousTrace に追加し、次テーブルへ
+        // append this table's stepTrace to previousTrace and go to the next table
         return evaluateTable(row.conclusion.tableId, inputs,
                              [...previousTrace, stepTrace], depth + 1)
     else:
-      // マッチしなかった行のみ skippedRows に記録する
+      // only non-matching rows are recorded in skippedRows
       stepTrace.skippedRows.push({ rowId: row.id, failedColId: result.failedColId })
 
-  // このテーブルでどの行にもマッチしなかった
+  // no row matched in this table
   return { status: "no_match", tableId,
            trace: [...previousTrace, stepTrace] }
 ```
 
-## 5.4 セルのマッチ判定
+## 5.4 Cell matching
 
 ```
 cellMatches(cell, input, field):
   op  = cell.op
-  val = cell.val   // スカラーまたは string[]（between・in の場合）
+  val = cell.val   // scalar, or string[] for between / in
   a   = coerce(input, field.type)
 
-  // null 演算子は coerce 後の値が null かどうかで判定する（型に関わらず全型で有効）
+  // The null operator checks whether the coerced value is null (valid for all types)
   if op == "null":
     return a == null
 
-  // null 演算子以外は、入力値が null（未入力・型変換失敗）なら常に false
+  // For operators other than null, if the input is null (missing or coercion failed) it is always false
   if a == null:
     return false
 
-  // between・in は val が配列のため coerce を要素単位で適用する
+  // between / in have an array val, so coerce is applied per element
   if op == "between":
     lo = coerce(val[0], field.type)
     hi = coerce(val[1], field.type)
-    if lo == null or hi == null: return false   // 不正な範囲値
-    if cmp(lo) > cmp(hi): return false          // lo > hi は UI で防止するが、評価エンジン側でも防御的に false を返す
-    return cmp(lo) <= cmp(a) <= cmp(hi)   // cmp() は下記参照
+    if lo == null or hi == null: return false   // invalid range values
+    if cmp(lo) > cmp(hi): return false          // lo > hi is prevented in the UI, but the engine defensively returns false too
+    return cmp(lo) <= cmp(a) <= cmp(hi)   // see cmp() below
 
   if op == "in":
-    bs = val.map(v => coerce(v, field.type)).filter(b => b != null)  // coerce失敗値（破損データ）を除外
-    if bs is empty: return false   // 有効な比較値が0件（保存データが全て不正）
+    bs = val.map(v => coerce(v, field.type)).filter(b => b != null)  // drop coercion failures (corrupted data)
+    if bs is empty: return false   // zero valid comparison values (all stored data invalid)
     return bs.some(b => cmp(a) == cmp(b))
 
-  // 値を持たない日付比較演算子（val不要のためここで先に処理する。b の coerce は不要）
+  // valueless date-comparison operators (no val needed, handled first; no coerce of b needed)
   if op == "before_today":    return cmp(a) <  cmp(today())
   if op == "today_or_before": return cmp(a) <= cmp(today())
   if op == "after_today":     return cmp(a) >  cmp(today())
   if op == "today_or_after":  return cmp(a) >= cmp(today())
 
-  // スカラー演算子（val が必要。coerce 失敗時は false を返す）
+  // scalar operators (val required; return false on coercion failure)
   b = coerce(val, field.type)
-  if b == null: return false   // 保存値が不正（破損データなど）
+  if b == null: return false   // invalid stored value (e.g. corrupted data)
 
   switch op:
     "="              → cmp(a) == cmp(b)
@@ -136,97 +136,97 @@ cellMatches(cell, input, field):
     "contains"       → String(a).includes(String(b))
     "starts_with"    → String(a).startsWith(String(b))
     "ends_with"      → String(a).endsWith(String(b))
-    default          → false   // 未知の演算子（インポートデータの破損・将来の拡張版からの読み込みなど）
+    default          → false   // unknown operator (corrupted import data, or a file from a future extended version)
 ```
 
-> **`switch op` の `default` 挙動**: 仕様で定義されていない演算子文字列が `op` に入った場合は `false` を返す（クラッシュしない）。これによりインポートした破損データや将来バージョンで追加された演算子を含むファイルを読み込んでも、その条件セルは「マッチしない」として安全に処理される。
+> **`default` behavior of `switch op`**: if `op` contains an operator string not defined by this spec, return `false` (do not crash). This means that even when loading corrupted imported data or a file containing operators added by a future version, that condition cell is safely treated as "no match."
 >
-> **`null` 演算子の適用対象**: 全型（`string`・`number`・`bool`・`enum`・`date`・`datetime`）で利用可能。上記の擬似コードに示すとおり、`null` 演算子は他の演算子より先に評価し、`coerce` 後の値が `null` であれば `true` を返す。
-> `null` 演算子以外では、`coerce` が `null` を返した場合（未入力・型変換失敗）は早期リターンで **`false`** を返す。
+> **Scope of the `null` operator**: usable for all types (`string` / `number` / `bool` / `enum` / `date` / `datetime`). As shown in the pseudocode above, the `null` operator is evaluated before the others and returns `true` if the coerced value is `null`.
+> For operators other than `null`, if `coerce` returns `null` (missing input or coercion failure), the early return yields **`false`**.
 
-### `cmp(v)` — 比較可能な値への変換
+### `cmp(v)` — conversion to a comparable value
 
 ```
 cmp(v):
-  v が Date オブジェクト → v.getTime()   // date・datetime 型
-  それ以外               → v             // number・string・bool・enum はそのまま
+  v is a Date object → v.getTime()   // date / datetime types
+  otherwise          → v             // number / string / bool / enum as-is
 ```
 
-`date`・`datetime` 型は `coerce` が `Date` オブジェクトを返すため、`cmp()` で `.getTime()`（エポックミリ秒）に変換してから比較する。これによりタイムゾーン込みの値も正しく大小比較できる。
+For `date` / `datetime` types, `coerce` returns a `Date` object, so `cmp()` converts it to `.getTime()` (epoch milliseconds) before comparison. This makes values that include a timezone compare correctly.
 
-### `today()` — 現在日付の取得
+### `today()` — getting the current date
 
 ```
 today():
   d = new Date()
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  // 当日の 00:00:00.000（ローカル時刻）を返す Date オブジェクト
-  // cmp(today()) はその日の開始エポックミリ秒になる
+  // Returns a Date object at 00:00:00.000 of today (local time)
+  // cmp(today()) is the start-of-day epoch milliseconds
 ```
 
-`date` 型入力 `"2024-04-01"` は `parseDate` により `new Date("2024-04-01T00:00:00")`（ローカル 00:00:00）となる。`today_or_before` の境界条件: 当日の入力は `cmp(a) == cmp(today())` となり `<=` で真と判定される（当日を含む）。
+A `date` input `"2024-04-01"` becomes `new Date("2024-04-01T00:00:00")` (local 00:00:00) via `parseDate`. Boundary condition for `today_or_before`: an input of today yields `cmp(a) == cmp(today())` and is judged true by `<=` (today is included).
 
-## 5.5 型強制（coerce）
+## 5.5 Type coercion (coerce)
 
-**フィールドの型を最優先**して変換する。入力値の形式（数値文字列か否か）より型定義を優先することで、`string` 型フィールドの値 `"123"` が数値 `123` として誤評価されることを防ぐ。
+Conversion **prioritizes the field's type** above all. Preferring the type definition over the form of the input value (whether it looks numeric) prevents a `string`-type field value `"123"` from being mis-evaluated as the number `123`.
 
 ```
 coerce(s, fieldType):
-  // 第1段階: 空文字列・null チェックを他の型変換より優先する
-  s == null または s === ""  → null
-  // 第2段階: フィールド型に従って変換
-  fieldType == "number"      → Number(s)（NaN の場合は null）
+  // Stage 1: check for empty string / null before any other conversion
+  s == null or s === ""      → null
+  // Stage 2: convert according to the field type
+  fieldType == "number"      → Number(s) (null if NaN)
   fieldType == "bool"        → s === "true" ? true : s === "false" ? false : null
-  fieldType == "date"        → parseDate(s)（無効な日付文字列の場合は null）
-  fieldType == "datetime"    → parseDateTime(s)（無効な場合は null）
-  fieldType == "enum"        → s（文字列のまま）
-  fieldType == "string"      → s（文字列のまま）
-  それ以外（"any"等）        → s（文字列のまま）
+  fieldType == "date"        → parseDate(s) (null if the date string is invalid)
+  fieldType == "datetime"    → parseDateTime(s) (null if invalid)
+  fieldType == "enum"        → s (kept as string)
+  fieldType == "string"      → s (kept as string)
+  otherwise ("any", etc.)    → s (kept as string)
 
 parseDate(s):
-  new Date(s + "T00:00:00")（ローカルタイムゾーンとして扱う）
+  new Date(s + "T00:00:00") (treated as local timezone)
   Invalid Date → null
 
 parseDateTime(s):
-  // 必須: YYYY-MM-DDTHH:mm:ss、オプション: .SSS とタイムゾーン
-  // 正規表現: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})?$/
-  // ミリ秒部分は 1〜3桁（.S / .SS / .SSS）を受け入れる。4桁以上は不正とする。
+  // Required: YYYY-MM-DDTHH:mm:ss, optional: .SSS and timezone
+  // Regex: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})?$/
+  // The milliseconds part accepts 1-3 digits (.S / .SS / .SSS); 4+ digits is invalid.
   if s does not match the pattern → null
-  new Date(s)  // ブラウザの Date コンストラクタに委譲
+  new Date(s)  // delegated to the browser Date constructor
   Invalid Date → null
-  // タイムゾーンなしの場合はローカル時刻として解釈される
-  // タイムゾーンあり（Z / +HH:mm / -HH:mm）の場合はUTCに変換されて保持される
-  // 比較時は .getTime()（エポックミリ秒）で統一的に大小比較を行う
+  // Without a timezone, it is interpreted as local time
+  // With a timezone (Z / +HH:mm / -HH:mm), it is converted to and held as UTC
+  // Comparison is done uniformly via .getTime() (epoch milliseconds)
 ```
 
-## 5.6 評価の終了条件と返却値
+## 5.6 Termination conditions and return value
 
-評価は以下のいずれかで終了し、トレース情報を必ず返す。
+Evaluation terminates in one of the following ways, always returning trace information.
 
-| 終了条件                             | 返却値                                                                     |
-| ------------------------------------ | -------------------------------------------------------------------------- |
-| 終端結論（Terminal）の行にマッチした | `{ status: "ok", outputs: { [outputColId]: string }, trace: TraceStep[] }` |
-| どの行にもマッチしなかった           | `{ status: "no_match", tableId: string, trace: TraceStep[] }`              |
+| Termination condition                     | Return value                                                               |
+| ----------------------------------------- | -------------------------------------------------------------------------- |
+| Matched a row with a Terminal conclusion  | `{ status: "ok", outputs: { [outputColId]: string }, trace: TraceStep[] }` |
+| No row matched                            | `{ status: "no_match", tableId: string, trace: TraceStep[] }`              |
 
-`TraceStep` の構造:
+Structure of `TraceStep`:
 
 ```ts
 {
-  tableId: string,       // 評価したテーブルのID
-  tableName: string,     // テーブルの表示名
-  depth: number,         // 評価の深さ（0 = エントリーテーブル、1以上 = 継続参照先）
-  matchedRowId: string | null,  // マッチした行のID（null = NO_MATCH）
-  skippedRows: {         // マッチしなかった行とその理由
+  tableId: string,       // ID of the evaluated table
+  tableName: string,     // display name of the table
+  depth: number,         // evaluation depth (0 = entry table, >= 1 = continue target)
+  matchedRowId: string | null,  // ID of the matched row (null = NO_MATCH)
+  skippedRows: {         // rows that did not match, and why
     rowId: string,
-    failedColId: string  // 最初に一致しなかった列のID（cols配列の定義順）
-                         // ※ skippedRows に入るのは matched:false の行のみであり、
-                         //   その場合 failedColId は常に非 null の string
+    failedColId: string  // ID of the first column that did not match (cols definition order)
+                         // Note: only matched:false rows enter skippedRows,
+                         //   so failedColId is always a non-null string here
   }[]
 }
 ```
 
-`depth` フィールドはエントリーテーブル（`depth == 0`）か継続参照先（`depth >= 1`）かをUIが判定するために使用する。NO_MATCH メッセージ出し分けのための判定フラグである。
+The `depth` field is used by the UI to tell whether a step is the entry table (`depth == 0`) or a continue target (`depth >= 1`). It is the flag used to vary the NO_MATCH message.
 
-`NO_MATCH` 時もトレース情報を含めることで、どのテーブルのどの行で詰まったかを明示できる。
+Including trace information even on `NO_MATCH` makes it clear at which row of which table evaluation got stuck.
 
-循環参照はデータ登録時に防止されるため（[spec_quality_checks.md §6.1](spec_quality_checks.md) 参照）、評価中に無限ループが発生することはない。
+Because cycles are prevented on data save (see [spec_quality_checks.md §6.1](spec_quality_checks.md)), no infinite loop can occur during evaluation.
