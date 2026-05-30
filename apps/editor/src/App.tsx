@@ -1,126 +1,61 @@
-import { lazy, Suspense, useEffect } from 'react';
-import { toast } from 'sonner';
-import { AccessPage } from '@/components/access/AccessPage';
-import { AuthPage } from '@/components/auth/AuthPage';
-import { InvitePage } from '@/components/invite/InvitePage';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { RunnerPage } from '@/components/runner/RunnerPage';
-import { OrgSettingsPage } from '@/components/settings/OrgSettingsPage';
-import { WorkspaceSettingsPage } from '@/components/settings/WorkspaceSettingsPage';
-import { loadFromStorage } from '@/hooks/useLocalStorage';
-import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
-import { useT } from '@/i18n/useT';
-import { useCloudStore } from '@/store/cloudStore';
-import { clearHistory } from '@/store/historyStore';
-import { useLogicStore } from '@/store/logicStore';
-import { useUiStore } from '@/store/uiStore';
+import { lazy, Suspense } from 'react';
+
+// Every route is code-split so each page only ships its own JavaScript. The
+// marketing top page (`/`) therefore loads just the TopPage chunk plus the
+// shared React core, instead of the whole editor (table, graph, dnd-kit, …).
+const TopPage = lazy(() =>
+  import('@/components/top/TopPage').then((m) => ({ default: m.TopPage })),
+);
+const EditorApp = lazy(() => import('@/EditorApp'));
+const RunnerPage = lazy(() =>
+  import('@/components/runner/RunnerPage').then((m) => ({
+    default: m.RunnerPage,
+  })),
+);
+const InvitePage = lazy(() =>
+  import('@/components/invite/InvitePage').then((m) => ({
+    default: m.InvitePage,
+  })),
+);
+const OrgSettingsPage = lazy(() =>
+  import('@/components/settings/OrgSettingsPage').then((m) => ({
+    default: m.OrgSettingsPage,
+  })),
+);
+const WorkspaceSettingsPage = lazy(() =>
+  import('@/components/settings/WorkspaceSettingsPage').then((m) => ({
+    default: m.WorkspaceSettingsPage,
+  })),
+);
+const AuthPage = lazy(() =>
+  import('@/components/auth/AuthPage').then((m) => ({ default: m.AuthPage })),
+);
+const AccessPage = lazy(() =>
+  import('@/components/access/AccessPage').then((m) => ({
+    default: m.AccessPage,
+  })),
+);
 
 // The marketing top page only ships with the cloud (leverie.dev) build. In the
-// bundled flavor consumed by @leverie/server, `/` redirects straight to /edit
-// and the TopPage chunk is never loaded.
-const TopPage =
-  import.meta.env.VITE_FLAVOR === 'bundled'
-    ? null
-    : lazy(() =>
-        import('@/components/top/TopPage').then((m) => ({
-          default: m.TopPage,
-        })),
-      );
+// bundled flavor consumed by @leverie/server, `/` redirects straight to /edit.
+const hasTopPage = import.meta.env.VITE_FLAVOR !== 'bundled';
 
-function EditorApp() {
-  const importLogic = useLogicStore((s) => s.importLogic);
-  const logic = useLogicStore((s) => s.logic);
-  const initializeCloud = useCloudStore((s) => s.initializeCloud);
-  const setSelectedTable = useUiStore((s) => s.setSelectedTable);
-  const t = useT();
-
-  useUndoRedoShortcuts();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
-  useEffect(() => {
-    const isGuest = sessionStorage.getItem('leverie-editor-mode') === 'guest';
-    const shouldMigrateLocalDraft =
-      sessionStorage.getItem('leverie-migrate-local-draft') === '1';
-    if (isGuest) {
-      const saved = loadFromStorage();
-      if (saved) {
-        importLogic(saved);
-      } else {
-        toast.info(t.newLogicCreated);
-      }
-      useCloudStore.setState({
-        mode: 'local',
-        saveState: 'idle',
-        user: null,
-        workspace: null,
-        logicId: null,
-        draftRevision: null,
-        lastSavedAt: null,
-        error: null,
-      });
-      clearHistory();
-      return;
-    }
-
-    const localDraft = shouldMigrateLocalDraft ? loadFromStorage() : null;
-    if (localDraft) {
-      importLogic(localDraft);
-    }
-
-    toast.info(t.cloudChecking, { id: 'cloud-session-checking' });
-    void initializeCloud(localDraft ?? logic, importLogic, {
-      requireAuth: true,
-      migrateLocalDraft: Boolean(localDraft),
-    }).finally(() => {
-      const cloud = useCloudStore.getState();
-      if (
-        cloud.mode === 'cloud' &&
-        (cloud.orgRole === 'viewer' || cloud.orgRole === 'runner') &&
-        cloud.workspace &&
-        cloud.logicId
-      ) {
-        const version = cloud.productionVersion ?? cloud.latestVersion;
-        if (version) {
-          window.location.assign(
-            `/run/${cloud.workspace.id}/${cloud.logicId}@v${version.versionNumber}`,
-          );
-          return;
-        }
-        window.location.assign('/access');
-        return;
-      }
-      if (shouldMigrateLocalDraft) {
-        sessionStorage.removeItem('leverie-migrate-local-draft');
-      }
-      clearHistory();
-    });
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
-  useEffect(() => {
-    setSelectedTable(logic.entryTableId);
-  }, []);
-
-  return <AppLayout />;
-}
-
-export default function App() {
-  if (window.location.pathname.startsWith('/run/')) return <RunnerPage />;
-  if (window.location.pathname === '/invite') return <InvitePage />;
-  if (window.location.pathname === '/settings/org') return <OrgSettingsPage />;
-  if (window.location.pathname === '/settings/workspace') {
-    return <WorkspaceSettingsPage />;
-  }
-  if (window.location.pathname === '/edit') return <EditorApp />;
-  if (window.location.pathname === '/auth') return <AuthPage />;
-  if (window.location.pathname === '/access') return <AccessPage />;
-  if (TopPage === null) {
+function route() {
+  const path = window.location.pathname;
+  if (path.startsWith('/run/')) return <RunnerPage />;
+  if (path === '/invite') return <InvitePage />;
+  if (path === '/settings/org') return <OrgSettingsPage />;
+  if (path === '/settings/workspace') return <WorkspaceSettingsPage />;
+  if (path === '/edit') return <EditorApp />;
+  if (path === '/auth') return <AuthPage />;
+  if (path === '/access') return <AccessPage />;
+  if (!hasTopPage) {
     window.location.replace('/edit');
     return null;
   }
-  return (
-    <Suspense fallback={null}>
-      <TopPage />
-    </Suspense>
-  );
+  return <TopPage />;
+}
+
+export default function App() {
+  return <Suspense fallback={null}>{route()}</Suspense>;
 }
