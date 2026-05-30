@@ -82,7 +82,7 @@ type CloudStore = {
     importLogic: (logic: Logic) => void,
   ) => Promise<void>;
   saveCloudDraft: (logic: Logic) => Promise<void>;
-  publishCloudLogic: () => Promise<void>;
+  publishCloudLogic: (logic?: Logic) => Promise<void>;
   signIn: (
     email: string,
     password: string,
@@ -612,8 +612,6 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       set({
         saveState: 'saved',
         draftRevision: result.logic.draftRevision,
-        latestVersion: null,
-        productionVersion: null,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -629,12 +627,27 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
     }
   },
 
-  publishCloudLogic: async () => {
+  publishCloudLogic: async (currentLogic) => {
     const { logicId, mode, saveState } = get();
     if (mode !== 'cloud' || !logicId || saveState === 'saving') return;
 
     set({ saveState: 'saving', error: null });
     try {
+      if (currentLogic) {
+        const { draftRevision } = get();
+        if (draftRevision === null) {
+          throw new Error('Cloud draft revision is missing.');
+        }
+        const saved = await saveDraft({
+          logicId,
+          logic: currentLogic,
+          draftRevision,
+        });
+        set({
+          draftRevision: saved.logic.draftRevision,
+          lastSavedAt: new Date(),
+        });
+      }
       const result = await publishLogic(logicId);
       set({
         saveState: 'saved',
