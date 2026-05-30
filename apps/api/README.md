@@ -7,7 +7,7 @@ LEVERIE Cloud API — Hono on Cloudflare Workers, backed by Neon Postgres via Dr
 - `leverie.dev/api/*` — browser surface (cookie session via Better Auth, CSRF gate, credentialed CORS). Used by Editor and Runner UI.
 - `leverie.dev/v1/*` — external Bearer-authenticated API for LLM agents and customer integrations. Permissive CORS, no cookies. Two surfaces: the REST [Evaluate API](../../packages/server/README.md#evaluate-api-v1) (`POST /v1/logics/:id/evaluate`) and the [Hosted MCP](../../packages/server/README.md#hosted-mcp-v1mcp) (`POST /v1/mcp`, JSON-RPC 2.0).
 
-Both share the same Worker but diverge on middleware. See [doc/design_p3_infrastructure.md §3.2](../../doc/design_p3_infrastructure.md) for the origin rationale and [apps/api/src/index.ts](./src/index.ts) for the middleware stack.
+Both share the same Worker but diverge on middleware. See [doc/design_infrastructure.md → URL and Origin Policy](../../doc/design_infrastructure.md#url-and-origin-policy) for the origin rationale and [apps/api/src/index.ts](./src/index.ts) for the middleware stack.
 
 API specs (auth providers, `/v1/logics/:id/evaluate`, `/v1/mcp`) live in [packages/server/README.md](../../packages/server/README.md) since both the cloud Worker and the self-hosted `@leverie/server` expose the same surface.
 
@@ -121,7 +121,7 @@ diverges per prefix (`/api/*` = cookie + CSRF + credentialed CORS, `/v1/*` = Bea
 
 ## Migration CI
 
-[api-migrations.yml](../../.github/workflows/api-migrations.yml) owns the database migration workflow:
+`.github/workflows/api-migrations.yml` owns the database migration workflow:
 
 | Trigger                      | What runs                                                                           |
 | ---------------------------- | ----------------------------------------------------------------------------------- |
@@ -147,7 +147,4 @@ Required GitHub configuration:
 
 ## Notes on local Postgres
 
-This scaffold reuses the docker-compose setup verified in [`spikes/p3-foundation/`](../../spikes/p3-foundation/) — Postgres 18 (volume at `/var/lib/postgresql` for the PG18 layout) + [local-neon-http-proxy](https://github.com/TimoWilhelm/local-neon-http-proxy) on :4444 so `@neondatabase/serverless` exercises the same Workers → HTTP → Postgres path as production.
-
-When the API foundation is stable, the spike can be archived to
-`spikes/_archive/` or deleted.
+The local [`docker-compose.yml`](./docker-compose.yml) provides Postgres 18 (volume at `/var/lib/postgresql` for the PG18 layout) + [local-neon-http-proxy](https://github.com/TimoWilhelm/local-neon-http-proxy) on :4444 so `@neondatabase/serverless` exercises the same Workers → HTTP → Postgres path as production.
