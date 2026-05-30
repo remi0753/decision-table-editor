@@ -225,8 +225,8 @@ parseDateTime(s):
 }
 ```
 
-`depth` フィールドはエントリーテーブル（`depth == 0`）か継続参照先（`depth >= 1`）かをUIが判定するために使用する。NO_MATCH メッセージ出し分けのための判定フラグである（[09_debug_trace.md](09_debug_trace.md) 参照）。
+`depth` フィールドはエントリーテーブル（`depth == 0`）か継続参照先（`depth >= 1`）かをUIが判定するために使用する。NO_MATCH メッセージ出し分けのための判定フラグである。
 
 `NO_MATCH` 時もトレース情報を含めることで、どのテーブルのどの行で詰まったかを明示できる。
 
-循環参照はデータ登録時に防止されるため（[06_quality_checks.md §6.1](06_quality_checks.md) 参照）、評価中に無限ループが発生することはない。
+循環参照はデータ登録時に防止されるため（[spec_quality_checks.md §6.1](spec_quality_checks.md) 参照）、評価中に無限ループが発生することはない。

@@ -1,21 +1,30 @@
-# LEVERIE — 仕様ドキュメント
+# LEVERIE — 設計・仕様ドキュメント
 
-このディレクトリには **LEVERIE**（ディシジョンテーブル型ロジックエディタ）の仕様書が格納されています。
+このディレクトリは **コントリビュータ／保守者向け** の設計・仕様を格納します。実装やテストが拠り所とする「正の仕様」と、公開ドキュメントには載せない内部設計が対象です。
 
-ユーザー向けの利用ガイドはリポジトリルートの [README.md](../README.md) を参照してください。
+- **ツールの使い方（how to use）** は公開ドキュメント **[leverie.dev/docs](https://leverie.dev/docs)** を参照してください。
+- **コンセプトと開発者向けの概要** はリポジトリルートの [README.md](../README.md) を参照してください。
 
-## 目次
+## 振る舞いの仕様（`@leverie/*` パッケージの契約）
+
+評価エンジン・品質チェック・スキーマが実装すべき正の定義。挙動を変える際はこのドキュメントとテストを合わせて更新してください。
 
 | ファイル | 内容 |
 | --- | --- |
-| [01_concept.md](01_concept.md) | ツールのコンセプトと位置づけ |
-| [02_core_concepts.md](02_core_concepts.md) | 中心概念の定義（ロジック・テーブル・ルール行・セル・フィールド） |
-| [03_data_model.md](03_data_model.md) | データモデル（JSONスキーマ・各オブジェクトのフィールド仕様） |
-| [04_field_types.md](04_field_types.md) | フィールド型と条件演算子の一覧・保存形式 |
-| [05_evaluation.md](05_evaluation.md) | 評価モデル（実行アルゴリズム・型強制・返却値） |
-| [06_quality_checks.md](06_quality_checks.md) | 品質チェック・バリデーション（重複検出・到達不能行・カバレッジ等） |
-| [07_visualization.md](07_visualization.md) | 可視化（テーブル内フローチャート・テーブル間DAGグラフ） |
-| [08_ui_design.md](08_ui_design.md) | UI設計（レイアウト・操作仕様・保存・インポート） |
-| [09_debug_trace.md](09_debug_trace.md) | デバッグ・トレース（ステップ実行・NO_MATCHメッセージ） |
-| [10_batch_evaluation.md](10_batch_evaluation.md) | バッチ評価（CSVインポートによる複数ケース一括評価） |
-| [11_future.md](11_future.md) | 将来拡張（優先度低） |
+| [spec_data_model.md](spec_data_model.md) | データモデル（永続化するJSON形式・各オブジェクトのフィールド仕様） |
+| [spec_field_types.md](spec_field_types.md) | フィールド型と条件演算子の一覧・保存形式 |
+| [spec_evaluation.md](spec_evaluation.md) | 評価モデル（実行アルゴリズム・型強制・トレース・返却値） |
+| [spec_quality_checks.md](spec_quality_checks.md) | 品質チェック（重複検出・到達不能行・カバレッジ等）の定義 |
+
+## クラウド基盤の設計
+
+| ファイル | 内容 |
+| --- | --- |
+| [design_schema.md](design_schema.md) | Cloud Foundation のデータモデル／DBスキーマ設計（テナント分離・マイグレーション方針等） |
+| [design_infrastructure.md](design_infrastructure.md) | Cloud Foundation のインフラ設計（ホスティング・認証・ジョブ・シークレット・監視・CI/CD等） |
+
+## ロードマップ
+
+| ファイル | 内容 |
+| --- | --- |
+| [roadmap.md](roadmap.md) | 将来拡張（優先度低）の検討メモ |
