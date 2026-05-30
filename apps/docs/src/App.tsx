@@ -48,6 +48,62 @@ function App() {
   }, [query]);
 
   useEffect(() => {
+    const title = `${current.title} | LEVERIE Docs`;
+    const description = current.description;
+    const url = new URL(pageHref(current.slug), window.location.origin).href;
+
+    document.title = title;
+    setMeta('description', description);
+    setLink('canonical', url);
+    setMeta('og:title', title, 'property');
+    setMeta('og:description', description, 'property');
+    setMeta('og:url', url, 'property');
+    setMeta('twitter:title', title);
+    setMeta('twitter:description', description);
+    setStructuredData({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'TechArticle',
+          headline: title,
+          description,
+          url,
+          isPartOf: {
+            '@type': 'TechArticle',
+            name: 'LEVERIE Docs',
+            url: new URL(pageHref('introduction'), window.location.origin).href,
+          },
+          about: ['decision tables', 'business rules', 'AI agents'],
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            {
+              '@type': 'ListItem',
+              position: 1,
+              name: 'LEVERIE',
+              item: window.location.origin,
+            },
+            {
+              '@type': 'ListItem',
+              position: 2,
+              name: 'Docs',
+              item: new URL(pageHref('introduction'), window.location.origin)
+                .href,
+            },
+            {
+              '@type': 'ListItem',
+              position: 3,
+              name: current.title,
+              item: url,
+            },
+          ],
+        },
+      ],
+    });
+  }, [current]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
@@ -214,6 +270,46 @@ function App() {
       </div>
     </div>
   );
+}
+
+function setMeta(
+  name: string,
+  content: string,
+  attribute: 'name' | 'property' = 'name',
+) {
+  let element = document.head.querySelector<HTMLMetaElement>(
+    `meta[${attribute}="${name}"]`,
+  );
+  if (!element) {
+    element = document.createElement('meta');
+    element.setAttribute(attribute, name);
+    document.head.append(element);
+  }
+  element.content = content;
+}
+
+function setLink(rel: string, href: string) {
+  let element = document.head.querySelector<HTMLLinkElement>(
+    `link[rel="${rel}"]`,
+  );
+  if (!element) {
+    element = document.createElement('link');
+    element.rel = rel;
+    document.head.append(element);
+  }
+  element.href = href;
+}
+
+function setStructuredData(data: Record<string, unknown>) {
+  const id = 'leverie-docs-structured-data';
+  let element = document.getElementById(id) as HTMLScriptElement | null;
+  if (!element) {
+    element = document.createElement('script');
+    element.id = id;
+    element.type = 'application/ld+json';
+    document.head.append(element);
+  }
+  element.textContent = JSON.stringify(data);
 }
 
 export default App;

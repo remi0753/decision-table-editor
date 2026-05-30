@@ -12,10 +12,14 @@
   <meta name="theme-color" content="#111827" />
   <meta name="application-name" content="LEVERIE" />
   <meta name="apple-mobile-web-app-title" content="LEVERIE" />
+  <meta
+    name="robots"
+    content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+  />
   <title>LEVERIE | Decision tables for AI agents</title>
   <meta
     name="description"
-    content="Build deterministic decision tools for AI agents, in tables, not code."
+    content="LEVERIE is a decision table editor for building, testing, and publishing deterministic business rules for AI agents, APIs, and teams."
   />
   <link rel="canonical" href="https://leverie.dev/" />
 
@@ -24,7 +28,7 @@
   <meta property="og:title" content="LEVERIE | Decision tables for AI agents" />
   <meta
     property="og:description"
-    content="Build deterministic decision tools for AI agents, in tables, not code."
+    content="LEVERIE is a decision table editor for building, testing, and publishing deterministic business rules for AI agents, APIs, and teams."
   />
   <meta property="og:url" content="https://leverie.dev/" />
   <meta property="og:image" content="https://leverie.dev/og-image.png" />
@@ -40,17 +44,107 @@
   <meta name="twitter:title" content="LEVERIE | Decision tables for AI agents" />
   <meta
     name="twitter:description"
-    content="Build deterministic decision tools for AI agents, in tables, not code."
+    content="LEVERIE is a decision table editor for building, testing, and publishing deterministic business rules for AI agents, APIs, and teams."
   />
   <meta name="twitter:image" content="https://leverie.dev/og-image.png" />
   <meta
     name="twitter:image:alt"
     content="LEVERIE decision table editor preview"
   />
+  <style>
+    .seo-fallback {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
+      border: 0;
+    }
+  </style>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://leverie.dev/#organization",
+          "name": "LEVERIE",
+          "url": "https://leverie.dev/",
+          "logo": "https://leverie.dev/pwa-512x512.png",
+          "sameAs": ["https://github.com/remi0753/leverie"]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://leverie.dev/#website",
+          "name": "LEVERIE",
+          "url": "https://leverie.dev/",
+          "description": "Decision tables for AI agents, APIs, and business rules.",
+          "publisher": {
+            "@id": "https://leverie.dev/#organization"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://leverie.dev/#software",
+          "name": "LEVERIE",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Web",
+          "description": "A decision table editor for building, testing, and publishing deterministic business rules for AI agents, APIs, and teams.",
+          "url": "https://leverie.dev/",
+          "image": "https://leverie.dev/og-image.png",
+          "publisher": {
+            "@id": "https://leverie.dev/#organization"
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }
+      ]
+    }
+  </script>
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <main class="seo-fallback" aria-label="LEVERIE overview">
+      <section>
+        <p>Business rules, readable to humans and AI</p>
+        <h1>LEVERIE decision table editor for AI agents</h1>
+        <p>
+          LEVERIE helps teams build deterministic business rules as
+          spreadsheet-style decision tables instead of burying triage, review,
+          approval, routing, and refund logic in code or prompts.
+        </p>
+        <p>
+          Use the free editor to define typed inputs, write ordered conditions,
+          test real cases, inspect the matched row and trace, then publish
+          stable logic for APIs, workflows, and MCP-enabled AI agents.
+        </p>
+        <nav aria-label="Primary pages">
+          <a href="/edit">Open the free decision table editor</a>
+          <a href="/docs/introduction">Read the LEVERIE documentation</a>
+          <a href="/docs/hosted-mcp">Expose decision tables as MCP tools</a>
+          <a href="/docs/hosted-api">Call published rules with the Hosted API</a>
+          <a href="/docs/evaluation">Test business rules and traces</a>
+          <a href="https://github.com/remi0753/leverie">View LEVERIE on GitHub</a>
+        </nav>
+      </section>
+      <section>
+        <h2>What LEVERIE is for</h2>
+        <ul>
+          <li>Decision tables for business rules that need to stay readable.</li>
+          <li>Deterministic tools for AI agents that should not guess policy.</li>
+          <li>Hosted API and Hosted MCP access to published production logic.</li>
+          <li>Quality checks for coverage gaps, duplicates, and unreachable rows.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 
