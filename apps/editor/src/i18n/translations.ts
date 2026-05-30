@@ -46,19 +46,12 @@ export type TranslationSet = {
   publishReviewFirstPublishTitle: string;
   publishReviewFirstPublishDescription: string;
   publishReviewNoChanges: string;
-  publishReviewSummary: string;
   publishReviewRuleChanges: string;
-  publishReviewAddedRules: string;
-  publishReviewChangedRules: string;
-  publishReviewRemovedRules: string;
   publishReviewConditionCellChanges: string;
   publishReviewResultCellChanges: string;
   publishReviewPriorityChanges: string;
-  publishReviewRuleLabel: (
-    tableName: string,
-    rowId: string,
-    rowNumber?: number,
-  ) => string;
+  publishReviewAllRules: string;
+  publishReviewRuleLabel: (tableName: string, rowNumber?: number) => string;
   publishReviewAdded: string;
   publishReviewChanged: string;
   publishReviewRemoved: string;
@@ -383,16 +376,13 @@ export const translations: Record<Lang, TranslationSet> = {
     publishReviewFirstPublishDescription:
       'There is no production version to compare with yet. Publishing will create v1 from the current cloud draft.',
     publishReviewNoChanges: 'No row-level changes were found.',
-    publishReviewSummary: 'Summary',
     publishReviewRuleChanges: 'Rule changes',
-    publishReviewAddedRules: 'Added rules',
-    publishReviewChangedRules: 'Changed rules',
-    publishReviewRemovedRules: 'Removed rules',
     publishReviewConditionCellChanges: 'Condition cell changes',
     publishReviewResultCellChanges: 'Result cell changes',
     publishReviewPriorityChanges: 'Order changes',
-    publishReviewRuleLabel: (tableName, rowId, rowNumber) =>
-      `${tableName} / ${rowNumber ? `Row ${rowNumber}` : rowId}`,
+    publishReviewAllRules: 'All',
+    publishReviewRuleLabel: (tableName, rowNumber) =>
+      rowNumber ? `${tableName} / Row ${rowNumber}` : tableName,
     publishReviewAdded: 'Added',
     publishReviewChanged: 'Changed',
     publishReviewRemoved: 'Removed',
@@ -736,16 +726,13 @@ export const translations: Record<Lang, TranslationSet> = {
     publishReviewFirstPublishDescription:
       '比較対象の本番バージョンはまだありません。公開すると、現在のクラウド下書きから v1 を作成します。',
     publishReviewNoChanges: '行単位の変更は見つかりませんでした。',
-    publishReviewSummary: '概要',
     publishReviewRuleChanges: 'ルールの変更',
-    publishReviewAddedRules: '追加されたルール',
-    publishReviewChangedRules: '変更されたルール',
-    publishReviewRemovedRules: '削除されたルール',
     publishReviewConditionCellChanges: '条件セルの変更箇所',
     publishReviewResultCellChanges: '結果セルの変更箇所',
     publishReviewPriorityChanges: '順序の変更',
-    publishReviewRuleLabel: (tableName, rowId, rowNumber) =>
-      `${tableName} / ${rowNumber ? `行${rowNumber}` : rowId}`,
+    publishReviewAllRules: 'すべて',
+    publishReviewRuleLabel: (tableName, rowNumber) =>
+      rowNumber ? `${tableName} / 行${rowNumber}` : tableName,
     publishReviewAdded: '追加',
     publishReviewChanged: '変更',
     publishReviewRemoved: '削除',
