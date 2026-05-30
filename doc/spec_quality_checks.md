@@ -1,148 +1,148 @@
-# 6. 品質チェック・バリデーション
+# 6. Quality Checks & Validation
 
-## 6.0 バリデーションの実行タイミング
+## 6.0 When validations run
 
-| チェック種別                                | 実行タイミング                                | 備考                                                                    |
-| ------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
-| 重複ルール検出（§6.2）                      | **リアルタイム**（編集が止まってから300ms後） | 条件セルの編集・行の並び替えのたびに自動実行                            |
-| 到達不能行の検出（§6.3）                    | **リアルタイム**（編集が止まってから300ms後） | 条件セルの編集・行の並び替えのたびに自動実行                            |
-| デフォルト行なし警告（§6.4）                | **リアルタイム**（編集が止まってから300ms後） | 行の追加・削除・条件変更のたびに自動判定                                |
-| カバレッジチェック（§6.8）                  | **ボタン押下時のみ**                          | 組み合わせ爆発のリスクがあるため手動実行とする                          |
-| 循環参照の防止（§6.1）                      | **操作時リアルタイム**                        | 継続参照先の選択UIで即時判定し、循環する選択肢をdisabledで表示          |
-| テーブル削除バリデーション（§6.5）          | **操作時**                                    | 削除ボタンを押した瞬間に判定                                            |
-| フィールドの型変更確認（§3.2）              | **操作時**                                    | 型変更を確定した瞬間に確認ダイアログを表示（影響セル0件の場合は省略可） |
-| フィールド定義の削除バリデーション（§3.2）  | **操作時**                                    | 削除ボタンを押した瞬間に参照チェック。参照ありの場合は拒否して一覧表示  |
-| `enumValues` の値削除バリデーション（§3.2） | **操作時**                                    | 値削除ボタンを押した瞬間に使用セルを検索。使用中の場合は拒否            |
-| 出力列削除の必須制約（§6.7）                | **常時**                                      | 1件のみの場合は削除ボタンを常時 `disabled` で表示                       |
+| Check                                            | When it runs                                        | Notes                                                                    |
+| ------------------------------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------- |
+| Duplicate-rule detection (§6.2)                  | **Real time** (300ms after editing stops)           | Runs automatically on every condition-cell edit / row reorder           |
+| Unreachable-row detection (§6.3)                 | **Real time** (300ms after editing stops)           | Runs automatically on every condition-cell edit / row reorder           |
+| No-default-row warning (§6.4)                    | **Real time** (300ms after editing stops)           | Decided automatically on every row add/remove / condition change        |
+| Coverage check (§6.8)                            | **On button press only**                            | Run manually because of the risk of combinatorial explosion             |
+| Cycle prevention (§6.1)                          | **Real time, on action**                            | Decided immediately in the continue-target picker; cyclic options shown disabled |
+| Table-deletion validation (§6.5)                 | **On action**                                       | Decided the moment the delete button is pressed                         |
+| Field type-change confirmation (§3.2)            | **On action**                                       | Show a confirmation dialog the moment a type change is committed (may be skipped if zero affected cells) |
+| Field-deletion validation (§3.2)                 | **On action**                                       | Reference check the moment the delete button is pressed; if referenced, reject and list them |
+| `enumValues` value-deletion validation (§3.2)    | **On action**                                       | Search for cells using the value the moment its delete button is pressed; if in use, reject |
+| Output-column required constraint (§6.7)         | **Always**                                          | When only one remains, the delete button is always shown `disabled`     |
 
-重複・到達不能・デフォルト行なし警告はテーブルを眺めながら確認するものなので、常に最新状態が表示されていることに価値がある。カバレッジチェックのみ手動実行とする。
+Duplicate, unreachable, and no-default-row warnings are meant to be checked while looking at the table, so it is valuable to always show the latest state. Only the coverage check is run manually.
 
-## 6.1 循環参照の防止（ハードブロック）
+## 6.1 Cycle prevention (hard block)
 
-継続参照（`conclusion.type == "continue"`）をセルに設定しようとした際に、**リアルタイムでサイクル検出を行い、循環参照となる設定を操作レベルで拒否する**。
+When a continue reference (`conclusion.type == "continue"`) is about to be set on a cell, **detect cycles in real time and reject any setting that would create a cycle at the action level**.
 
-検出アルゴリズム（DFSによるサイクル検出）:
+Detection algorithm (cycle detection via DFS):
 
 ```
 canReference(fromTableId, toTableId):
-  // toTableId から fromTableId に到達できるか確認
+  // Check whether fromTableId is reachable from toTableId
   visited = {}
   stack = [toTableId]
   while stack is not empty:
     current = stack.pop()
-    if current == fromTableId: return false  // 循環が生じる
+    if current == fromTableId: return false  // would create a cycle
     if visited[current]: continue
-    if tables[current] is undefined: continue  // 削除済みテーブルへの参照は無視（防御的処理）
+    if tables[current] is undefined: continue  // ignore references to deleted tables (defensive)
     visited[current] = true
     for each row in tables[current].rows:
       if row.conclusion.type == "continue":
         stack.push(row.conclusion.tableId)
-  return true  // 循環しない
+  return true  // no cycle
 ```
 
-ユーザーが参照先テーブルを選択するUIで、循環を引き起こす選択肢は**選択不可（disabled）** として表示する。エラーアラートは出さず、選ばせない設計とする。
+In the UI where the user picks a target table, options that would create a cycle are shown as **unselectable (disabled)**. Rather than raising an error alert, the design simply does not let them be chosen.
 
-## 6.2 重複ルールの検出
+## 6.2 Duplicate-rule detection
 
-同一テーブル内に、**全条件セルが完全に一致する行が2行以上存在する**場合を重複ルールとして警告する。
+Within the same table, warn when **two or more rows have entirely identical condition cells** as a duplicate rule.
 
-- 重複している行を黄色の警告バッジ付きでハイライト表示する。
-- 保存・評価は可能だが（上の行が常に優先されるため機能はするが意図が不明瞭）、警告は常に表示し続ける。
+- Highlight the duplicate rows with a yellow warning badge.
+- Saving and evaluation are still possible (it functions, since the upper row always wins, but the intent is unclear), yet the warning is shown continuously.
 
-## 6.3 到達不能行の検出（冗長ルール警告）
+## 6.3 Unreachable-row detection (redundant-rule warning)
 
-ある行Bより上に存在する行Aが、行Bの条件を完全に包含する（行Aがマッチする入力では必ず行Aがマッチするため、行Bには絶対に到達できない）場合に警告する。
+Warn when a row A above row B fully subsumes row B's conditions (any input that matches A always matches A, so B can never be reached).
 
-- 赤色の警告バッジで表示する。
-- 到達不能行は評価に影響しないが、ロジックのバグである可能性が高い。
+- Shown with a red warning badge.
+- Unreachable rows do not affect evaluation, but are likely a logic bug.
 
-### 包含判定のスコープ（ヒューリスティック近似）
+### Scope of the subsumption check (heuristic approximation)
 
-完全な区間演算は実装コストが高いため、以下の範囲でのみ包含判定を行う近似実装とする。
+Because full interval arithmetic is costly to implement, the subsumption check is an approximation limited to the following cases.
 
-| ケース                                                            | 判定方法                                   |
-| ----------------------------------------------------------------- | ------------------------------------------ |
-| どちらの行も `=` または ワイルドカード のみ                       | 完全一致で包含を判定（確実）               |
-| 行Aがワイルドカード（`row.cells[colId]` が未定義）で行Bが条件あり | 行Aは行Bを包含（確実）                     |
-| `!=` を含む                                                       | 包含判定を**スキップ**（誤検知防止のため） |
-| `<`, `<=`, `>`, `>=` の数値比較を含む                             | 包含判定を**スキップ**（近似の限界）       |
-| `in`, `between` を含む                                            | 包含判定を**スキップ**                     |
+| Case                                                                  | Method                                       |
+| --------------------------------------------------------------------- | -------------------------------------------- |
+| Both rows have only `=` or wildcards                                   | Decide subsumption by exact match (reliable) |
+| Row A is a wildcard (`row.cells[colId]` undefined) and B has a condition | A subsumes B (reliable)                    |
+| Contains `!=`                                                         | **Skip** the subsumption check (to avoid false positives) |
+| Contains `<`, `<=`, `>`, `>=` numeric comparisons                     | **Skip** the subsumption check (limit of the approximation) |
+| Contains `in`, `between`                                              | **Skip** the subsumption check              |
 
-上記スコープ外のケースは警告を出さない（誤検知を避けることを優先する）。将来的な完全実装は [roadmap.md](roadmap.md) に委ねる。
+Cases outside the above scope produce no warning (prioritizing the avoidance of false positives). A future complete implementation is deferred to [roadmap.md](roadmap.md).
 
-> **§6.3 と §6.8 の前提の違いについて**: §6.3（到達不能行）は保守的な実装（誤検知回避優先）のため `!=` を含む条件はスキップするが、§6.8（カバレッジ計算）は `!=` を含む条件の網羅性を計算できる。これは設計上の意図的な違いであり、矛盾ではない。`enum`・`bool` 型のみで構成されたテーブルでは、§6.8 のカバレッジチェックを実行することで §6.3 が捕捉できない到達不能パターンを補完的に検出できる。
+> **On the different assumptions of §6.3 and §6.8**: §6.3 (unreachable rows) skips conditions containing `!=` because of its conservative implementation (false-positive avoidance first), whereas §6.8 (coverage computation) can compute coverage for conditions containing `!=`. This is an intentional design difference, not a contradiction. For tables composed solely of `enum` / `bool` types, running the §6.8 coverage check complements §6.3 by detecting unreachable patterns it cannot catch.
 
-## 6.4 デフォルト行の不在警告
+## 6.4 No-default-row warning
 
-テーブル内に**全条件セルがワイルドカード**の行（= どの入力にも必ずマッチするフォールバック行）が存在しない場合、網羅性が保証されない可能性として警告する。
+When a table has no row whose **condition cells are all wildcards** (i.e. a fallback row that matches any input), warn that coverage may not be guaranteed.
 
-- テーブルヘッダーまたはテーブル下部に警告バナーを表示する。
-- ただし以下の場合は警告を抑制する：
-  - `enum`・`bool` 型フィールドのみで構成されたテーブルで、カバレッジチェック（§6.8）が「全パターン網羅済み」と判定した場合（§6.8 のチェックはユーザー起動のため、未実行の場合は抑制しない）
-  - 継続参照先テーブルであり、かつ親テーブルの条件から到達可能な入力が明確に限定されている場合 → **この自動判定は将来対応**。現バージョンでは抑制はせず、常に警告を表示した上で「フォールバック行が不要な場合もあります」と補足メッセージを添える
+- Show a warning banner in the table header or at the bottom of the table.
+- However, suppress the warning when:
+  - The table is composed solely of `enum` / `bool` fields and the coverage check (§6.8) judged it "all patterns covered" (the §6.8 check is user-initiated, so do not suppress if it has not been run)
+  - The table is a continue target and the inputs reachable from the parent table's conditions are clearly limited → **this automatic judgment is future work**. In the current version do not suppress; always show the warning but add the note "a fallback row may be unnecessary"
 
-## 6.5 テーブル削除操作のバリデーション
+## 6.5 Table-deletion validation
 
-テーブルの削除は以下の制約に従う。
+Table deletion follows these constraints.
 
-| 状況                                       | 挙動                                                                         |
-| ------------------------------------------ | ---------------------------------------------------------------------------- |
-| 削除対象がエントリーテーブル               | **削除を拒否**。エントリーテーブルの変更先を先に設定するよう案内する         |
-| 削除対象が他テーブルから継続参照されている | **削除を拒否**。参照元テーブルの一覧を表示し、先に参照を解除するよう案内する |
-| ロジック内のテーブルが1つのみ              | **削除を拒否**。ロジックは最低1テーブルを持つ必要がある                      |
-| 上記以外（孤立テーブルを含む）             | 確認ダイアログを表示して削除を実行する                                       |
+| Situation                                          | Behavior                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------ |
+| The target is the entry table                      | **Reject deletion.** Prompt the user to first set a new entry table            |
+| The target is continue-referenced by other tables  | **Reject deletion.** List the referencing tables and prompt to remove references first |
+| There is only one table in the logic               | **Reject deletion.** A logic must have at least one table                       |
+| Otherwise (including orphan tables)                 | Show a confirmation dialog and delete                                          |
 
-**孤立テーブルの扱い:**  
-エントリーテーブルから到達できないテーブル（孤立テーブル）はDAGグラフ上で視覚的に区別（例: グレーアウト）し、「このテーブルはどこからも参照されていません」という警告を表示する。孤立テーブルは削除を推奨するが、強制はしない。
+**Handling orphan tables:**
+Tables unreachable from the entry table (orphans) are visually distinguished on the DAG graph (e.g. grayed out) and shown with the warning "this table is not referenced from anywhere." Deleting orphan tables is recommended but not forced.
 
-## 6.6 到達不能パスの検出（継続先のNO_MATCH）
+## 6.6 Unreachable-path detection (NO_MATCH at a continue target)
 
-継続参照によってテーブルBに進んだ際、テーブルBにマッチする行が存在しない可能性を静的に検出する。
+Statically detect the possibility that, after proceeding to table B via a continue reference, no row of table B matches.
 
-- テーブルAのある行が「継続参照 → テーブルB」であり、かつテーブルBに「デフォルト行が存在しない」場合に警告する。
-- UIには「特定の入力値によってはこの経路で結果が得られない可能性があります」という言葉で表示する（技術用語はユーザーに見せない）。
+- Warn when some row of table A is "continue → table B" and table B "has no default row."
+- In the UI, phrase it as "for some input values this path may yield no result" (do not show technical terms to the user).
 
-## 6.7 出力列の必須制約
+## 6.7 Output-column required constraint
 
-テーブルは最低1件以上の出力列（`outputCols`）を持つことが**ハードな制約**である。
+It is a **hard constraint** that a table has at least one output column (`outputCols`).
 
-| 操作                                       | 挙動                                                                                                   |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| 出力列が2件以上あり、1件を削除しようとする | 削除対象の行に値が設定されている場合はモーダルで確認してから削除。設定されていない場合は確認なしで削除 |
-| 出力列が1件のみで削除しようとする          | 削除ボタンを `disabled` にして「出力列は最低1つ必要です」というツールチップを表示し、削除を拒否する    |
+| Operation                                                | Behavior                                                                                              |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Two or more output columns exist; deleting one           | If the target column has values set on its rows, confirm via modal before deleting; otherwise delete without confirmation |
+| Only one output column; attempting to delete it          | Show the delete button as `disabled` with the tooltip "at least one output column is required," and reject deletion |
 
-モーダルダイアログの文言（値ありの場合）:
+Modal wording (when values exist):
 
-> 「この出力列を削除すると、X件の行の出力値も削除されます。この操作は元に戻せません。続けますか？」
+> "Deleting this output column will also delete the output values of X rows. This cannot be undone. Continue?"
 
-**`continue` 結論のみのテーブルについて:**
+**On tables with only `continue` conclusions:**
 
-すべての行が継続参照（`continue`）結論であるテーブルも、`outputCols` を1件以上持つことを必須とする（制約を緩和しない）。
+A table where every row has a continue (`continue`) conclusion is also required to have at least one `outputCols` (the constraint is not relaxed).
 
-理由: テーブルに終端行を追加するタイミングで出力列の設定を求めるより、テーブル作成時点から出力列が整っている状態の方がユーザーの混乱が少ない。また、データモデルの一貫性を保つことで実装が単純になる。
+Reason: it causes less user confusion to have output columns in place from table creation than to ask for them at the moment a terminal row is added. It also keeps the implementation simpler by maintaining data-model consistency.
 
-UIでは、すべての行が継続参照のテーブルに対して、出力列管理パネルの上部に以下のインフォメーションを表示する:
+In the UI, for a table where all rows are continue references, show the following info at the top of the output-column management panel:
 
-> 「このテーブルのすべての行は別のテーブルへ転送するため、出力列の値は現在使用されていません。終端となる行を追加すると、ここで設定した出力列が使われます。」
+> "All rows of this table forward to another table, so the output-column values are currently unused. Once you add a terminal row, the output columns set here will be used."
 
-## 6.8 カバレッジ可視化（enum型・bool型フィールドのみ）
+## 6.8 Coverage visualization (enum / bool fields only)
 
-`enum` 型または `bool` 型のフィールドを持つテーブルにおいて、**定義されたすべての値の組み合わせに対してルールが存在するか**を可視化する。
+For a table whose fields are of type `enum` or `bool`, visualize **whether a rule exists for every combination of defined values**.
 
-- 対象: `enum` 型および `bool` 型フィールドのみ（`string` 型・`number` 型は無限のため不可）
-- 表示方法: カバーされていない値の組み合わせを一覧表示する
-- このチェックは計算コストが高くなりうるため、ユーザーが明示的に「チェックを実行」するボタンを押したときのみ実行する
+- Target: only `enum` and `bool` fields (`string` / `number` are infinite, so not possible)
+- Display: list the uncovered value combinations
+- Because this check can be computationally expensive, run it only when the user explicitly presses a "run check" button
 
-### 組み合わせ爆発への対処
+### Handling combinatorial explosion
 
-全組み合わせ数（`enum` の選択肢数と `bool` の2の積）が **64 を超える場合**、全一覧表示を行わず「X通りの未定義パターンが存在します」というサマリー表示に切り替える。ユーザーが全一覧を必要とする場合はCSVダウンロードで提供する。
+When the total number of combinations (the product of the `enum` choice counts and 2 for each `bool`) **exceeds 64**, do not list them all; switch to a summary like "X undefined patterns exist." If the user needs the full list, provide it via CSV download.
 
-各演算子のカバレッジ計算ルール：
+Coverage computation rule per operator:
 
-| 演算子 / 状態              | カバーとみなす選択肢                                                      |
-| -------------------------- | ------------------------------------------------------------------------- |
-| ワイルドカード（条件なし） | 全選択肢（`enumValues` の全件 / `bool` は `true`・`false` 両方）          |
-| `=` （特定の値）           | その1件のみ                                                               |
-| `!=` （特定の値以外）      | その値を除く全選択肢                                                      |
-| `in ["A", "B"]`            | 「A」と「B」の2件                                                         |
-| `null` （値がない）        | カバレッジ計算には含めない（null は enumValues に含まれない値であるため） |
+| Operator / state              | Choices treated as covered                                               |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| Wildcard (no condition)       | All choices (all of `enumValues` / both `true` and `false` for `bool`)   |
+| `=` (a specific value)        | Only that one                                                            |
+| `!=` (other than a value)     | All choices except that value                                            |
+| `in ["A", "B"]`               | The two: "A" and "B"                                                     |
+| `null` (has no value)         | Not included in coverage computation (null is not a value in enumValues) |

@@ -1,12 +1,12 @@
-# 3. データモデル
+# 3. Data Model
 
-## 3.1 ロジック全体のルートオブジェクト
+## 3.1 Root object of a whole Logic
 
 ```json
 {
   "version": "2",
-  "name": "ローン審査ロジック",
-  "description": "個人・法人向けローン申請の承認判断フロー",
+  "name": "Loan Review",
+  "description": "Approval flow for individual and corporate loan applications",
   "entryTableId": "t1",
   "fieldDefs": {},
   "tables": {},
@@ -18,108 +18,108 @@
 }
 ```
 
-| キー           | 型                 | 説明                                                                                           |
+| Key            | Type               | Description                                                                                     |
 | -------------- | ------------------ | ---------------------------------------------------------------------------------------------- |
-| `version`      | `string`           | データフォーマットのバージョン。現行は `"2"`                                                   |
-| `name`         | `string`           | ロジックの表示名                                                                               |
-| `description`  | `string`（省略可） | ロジックの目的・説明                                                                           |
-| `entryTableId` | `string`           | 評価の起点となるテーブルのID                                                                   |
-| `fieldDefs`    | `object`           | フィールドIDをキーとするフィールド定義マップ                                                   |
-| `tables`       | `object`           | テーブルIDをキーとするテーブルマップ                                                           |
-| `nField`       | `number`           | 次のフィールドID採番用カウンター                                                               |
-| `nTable`       | `number`           | 次のテーブルID採番用カウンター                                                                 |
-| `nCol`         | `number`           | 次の条件列ID採番用カウンター（ロジック全体で一意）                                             |
-| `nOCol`        | `number`           | 次の出力列ID採番用カウンター（ロジック全体で一意）。値は「既存の出力列IDの最大値+1」に相当する |
-| `nRow`         | `number`           | 次のルール行ID採番用カウンター（ロジック全体で一意）                                           |
+| `version`      | `string`           | Data format version. Currently `"2"`                                                           |
+| `name`         | `string`           | Display name of the logic                                                                      |
+| `description`  | `string` (optional)| Purpose / description of the logic                                                             |
+| `entryTableId` | `string`           | ID of the table where evaluation starts                                                        |
+| `fieldDefs`    | `object`           | Map of field definitions keyed by field ID                                                     |
+| `tables`       | `object`           | Map of tables keyed by table ID                                                                |
+| `nField`       | `number`           | Counter for assigning the next field ID                                                        |
+| `nTable`       | `number`           | Counter for assigning the next table ID                                                        |
+| `nCol`         | `number`           | Counter for assigning the next condition-column ID (unique across the whole logic)             |
+| `nOCol`        | `number`           | Counter for assigning the next output-column ID (unique across the whole logic). Its value equals "the max existing output-column ID + 1" |
+| `nRow`         | `number`           | Counter for assigning the next rule-row ID (unique across the whole logic)                      |
 
-**IDのスコープについて**: フィールドID・テーブルID・列ID・行IDはすべて**ロジック全体で一意**とする。テーブルt1の列 `c1` とテーブルt2の列 `c2` が衝突しないよう、列IDはテーブルスコープではなくロジックスコープで採番する。これにより `row.cells[colId]` の参照が一意になる。
+**On ID scope**: field IDs, table IDs, column IDs, and row IDs are all **unique across the whole logic**. So that column `c1` of table t1 and column `c2` of table t2 do not collide, column IDs are assigned in logic scope rather than table scope. This makes a `row.cells[colId]` reference unambiguous.
 
-## 3.2 フィールド定義（FieldDef）
+## 3.2 Field definition (FieldDef)
 
 ```json
 {
   "f1": {
     "id": "f1",
-    "name": "顧客種別",
+    "name": "Customer Type",
     "type": "enum",
-    "enumValues": ["法人", "個人", "行政"]
+    "enumValues": ["Corp", "Individual", "Government"]
   },
   "f2": {
     "id": "f2",
-    "name": "申請金額",
+    "name": "Application Amount",
     "type": "number"
   }
 }
 ```
 
-| キー         | 型                       | 説明                                                                                                                                                          |
-| ------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`         | `string`                 | `"f"` + 連番（例: `"f1"`）                                                                                                                                    |
-| `name`       | `string`                 | ロジック内で**一意**な表示名（重複は登録時に拒否する）                                                                                                        |
-| `type`       | `string`                 | 型識別子（[spec_field_types.md](spec_field_types.md) 参照）                                                                                                       |
-| `enumValues` | `string[]`（enum型のみ） | 取りうる値の列挙。網羅性チェックに使用される。**1件以上必須**（0件の状態ではフィールドを保存できない。エラーメッセージ: 「選択肢を1つ以上入力してください」） |
+| Key          | Type                       | Description                                                                                                                                                  |
+| ------------ | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | `string`                   | `"f"` + sequence number (e.g. `"f1"`)                                                                                                                       |
+| `name`       | `string`                   | Display name, **unique** within the logic (duplicates are rejected on save)                                                                                  |
+| `type`       | `string`                   | Type identifier (see [spec_field_types.md](spec_field_types.md))                                                                                             |
+| `enumValues` | `string[]` (enum type only)| Enumeration of possible values, used by the coverage check. **At least one required** (a field cannot be saved with zero values; error message: "Enter at least one choice") |
 
-### `enumValues` の編集操作
+### Editing `enumValues`
 
-`enum` 型フィールドの `enumValues` に対する変更は以下のルールで処理する。
+Changes to an `enum` field's `enumValues` are handled by these rules.
 
-| 操作         | 挙動                                                                                                                                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 値の追加     | 既存の条件セルへの影響なし。追加した値は以後のセル編集から選択可能になる                                                                                                                                        |
-| 値の削除     | 削除対象の値を条件として使用しているセルが存在する場合、**削除を拒否**してその条件セルの一覧をユーザーに提示する                                                                                                |
-| 値の名称変更 | **ロジック全体のすべてのテーブル**にわたり、変更前の名称を条件として使用している全条件セルの `val` を新名称に自動更新する（フィールドはロジック全体共有のため、現在表示中のテーブルだけでなく全テーブルが対象） |
+| Operation     | Behavior                                                                                                                                                                                          |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add a value   | No effect on existing condition cells. The added value becomes selectable in subsequent cell editing                                                                                            |
+| Remove a value| If any cell uses the removed value as a condition, **reject the removal** and present the list of those condition cells to the user                                                              |
+| Rename a value| Automatically update the `val` of every condition cell using the old name **across all tables in the whole logic** (since fields are shared logic-wide, this applies to all tables, not just the one currently displayed) |
 
-### フィールドの型変更操作
+### Changing a field's type
 
-フィールド定義の `type` を変更する操作は許可するが、データ整合性のために以下のルールを適用する。
+Changing a field definition's `type` is allowed, but these rules apply for data integrity.
 
-- 型変更の実行前に確認ダイアログを表示する:
-  > 「「{フィールド名}」の型を変更すると、このフィールドを使用しているX件の条件がリセットされます。続けますか？」（X = 影響を受ける条件セルの件数）
-- ユーザーが確認した場合、そのフィールドを `fieldId` として参照しているすべての条件セルの `op` と `val` をクリアし、ワイルドカード状態（`row.cells` からそのキーを削除）に戻す
-- 変更後の型に合わせて演算子のドロップダウンが更新される
-- 影響を受ける条件セルが0件の場合は確認ダイアログを省略してよい
+- Before applying the type change, show a confirmation dialog:
+  > "Changing the type of \"{field name}\" will reset the X conditions that use this field. Continue?" (X = number of affected condition cells)
+- If the user confirms, clear the `op` and `val` of every condition cell that references the field as its `fieldId`, returning them to the wildcard state (remove that key from `row.cells`)
+- The operator dropdown updates to match the new type
+- If zero condition cells are affected, the confirmation dialog may be skipped
 
-### フィールド定義の削除操作
+### Deleting a field definition
 
-フィールド定義を削除しようとした場合、以下のルールを適用する。
+When a field definition is to be deleted, these rules apply.
 
-| 状況                                                          | 挙動                                                           |
-| ------------------------------------------------------------- | -------------------------------------------------------------- |
-| そのフィールドを参照している条件列（`col.fieldId`）が存在する | **削除を拒否**し、参照している条件列の一覧をユーザーに提示する |
-| 参照している条件列が0件                                       | 確認なしで削除を実行する                                       |
+| Situation                                                     | Behavior                                                       |
+| ------------------------------------------------------------- | ------------------------------------------------------------- |
+| A condition column (`col.fieldId`) references the field       | **Reject the deletion** and present the list of referencing columns to the user |
+| Zero condition columns reference it                           | Delete without confirmation                                   |
 
-拒否時のエラーメッセージ:
+Error message on rejection:
 
-> 「「{フィールド名}」は以下のテーブルの条件列で使用されています。先に参照を解除してください：{テーブルA - 列1}、{テーブルB - 列2}」
+> "\"{field name}\" is used by condition columns in the following tables. Remove those references first: {Table A - Column 1}, {Table B - Column 2}"
 
-参照の解除は、各条件列の `fieldId` を `null`（未選択状態）に変更するか、条件列ごと削除することで行う。
+To remove a reference, change the `fieldId` of each condition column to `null` (unselected), or delete the condition column entirely.
 
-## 3.3 テーブル（Table）
+## 3.3 Table
 
 ```json
 {
   "t1": {
     "id": "t1",
-    "name": "初期審査",
+    "name": "Initial Review",
     "cols": [
       { "id": "c1", "fieldId": "f1" },
       { "id": "c2", "fieldId": "f2" }
     ],
     "outputCols": [
-      { "id": "oc1", "name": "対応手順" },
-      { "id": "oc2", "name": "転送先電話番号" }
+      { "id": "oc1", "name": "Action" },
+      { "id": "oc2", "name": "Transfer Phone" }
     ],
     "rows": [
       {
         "id": "r1",
         "cells": {
-          "c1": { "op": "=", "val": "法人" },
+          "c1": { "op": "=", "val": "Corp" },
           "c2": { "op": ">=", "val": "1000000" }
         },
         "conclusion": {
           "type": "terminal",
           "outputs": {
-            "oc1": "契約内容を確認し、承認手続きを案内する",
+            "oc1": "Confirm the contract and guide them through approval",
             "oc2": "03-1234-5678"
           }
         }
@@ -127,7 +127,7 @@
       {
         "id": "r2",
         "cells": {
-          "c1": { "op": "=", "val": "法人" }
+          "c1": { "op": "=", "val": "Corp" }
         },
         "conclusion": { "type": "continue", "tableId": "t2" }
       },
@@ -137,7 +137,7 @@
         "conclusion": {
           "type": "terminal",
           "outputs": {
-            "oc1": "審査対象外である旨をお伝えし、お詫びする"
+            "oc1": "Inform them it is out of scope and apologize"
           }
         }
       }
@@ -146,80 +146,80 @@
 }
 ```
 
-**テーブル（Table）のフィールド:**
+**Fields of a Table:**
 
-| キー         | 型            | 説明                                                                                                                                                                                                                                                                     |
-| ------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`         | `string`      | `"t"` + 連番（例: `"t1"`）                                                                                                                                                                                                                                               |
-| `name`       | `string`      | テーブルの表示名。ロジック内で**一意**（重複はハードな制約）。継続参照先の選択UIでテーブルを名前で識別するため。**手動入力時**（インライン編集での変更）は重複を拒否する。**自動生成時**（テーブル追加操作による初期名）は末尾に番号を付けて自動で一意にする |
-| `cols`       | `Col[]`       | 条件列の定義リスト（左から右の順）                                                                                                                                                                                                                                       |
-| `outputCols` | `OutputCol[]` | 出力列の定義リスト。**1件以上必須**（0件のテーブルは保存・インポート時に自動修復される）                                                                                                                                                                                 |
-| `rows`       | `Row[]`       | ルール行のリスト（上から下の評価順）                                                                                                                                                                                                                                     |
+| Key          | Type          | Description                                                                                                                                                                                                                                         |
+| ------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | `string`      | `"t"` + sequence number (e.g. `"t1"`)                                                                                                                                                                                                              |
+| `name`       | `string`      | Display name of the table, **unique** within the logic (a hard constraint), because Continue-reference pickers identify a table by name. On **manual input** (inline edit) duplicates are rejected; on **auto-generation** (the initial name from an add-table action) uniqueness is ensured automatically by appending a number |
+| `cols`       | `Col[]`       | List of condition-column definitions (left-to-right order)                                                                                                                                                                                         |
+| `outputCols` | `OutputCol[]` | List of output-column definitions. **At least one required** (a table with zero is auto-repaired on save/import)                                                                                                                                    |
+| `rows`       | `Row[]`       | List of rule rows (top-to-bottom evaluation order)                                                                                                                                                                                                 |
 
-**条件列（Col）のフィールド:**
+**Fields of a condition column (Col):**
 
-| キー      | 型               | 説明                                              |
-| --------- | ---------------- | ------------------------------------------------- |
-| `id`      | `string`         | `"c"` + 連番（例: `"c1"`）                        |
-| `fieldId` | `string \| null` | 参照するフィールドのID。`null` の場合は未選択状態 |
+| Key       | Type             | Description                                              |
+| --------- | ---------------- | ------------------------------------------------------- |
+| `id`      | `string`         | `"c"` + sequence number (e.g. `"c1"`)                  |
+| `fieldId` | `string \| null` | ID of the referenced field. `null` means unselected     |
 
-**ルール行（Row）のフィールド:**
+**Fields of a rule row (Row):**
 
-| キー         | 型                  | 説明                                                             |
-| ------------ | ------------------- | ---------------------------------------------------------------- |
-| `id`         | `string`            | `"r"` + 連番（ロジック全体で一意）                               |
-| `cells`      | `{ [colId]: Cell }` | 列IDをキーとする条件セルのマップ。存在しないキーはワイルドカード |
-| `conclusion` | `Conclusion`        | この行がマッチしたときの結論（後述）                             |
+| Key          | Type                | Description                                                              |
+| ------------ | ------------------- | ----------------------------------------------------------------------- |
+| `id`         | `string`            | `"r"` + sequence number (unique across the whole logic)                 |
+| `cells`      | `{ [colId]: Cell }` | Map of condition cells keyed by column ID. A missing key is a wildcard  |
+| `conclusion` | `Conclusion`        | The conclusion when this row matches (see below)                        |
 
-**条件セル（Cell）のフィールド:**
+**Fields of a condition cell (Cell):**
 
-| キー  | 型                   | 説明                                           |
-| ----- | -------------------- | ---------------------------------------------- |
-| `op`  | `string`             | 演算子（[spec_field_types.md](spec_field_types.md) 参照） |
-| `val` | `string \| string[]` | 比較対象の値。保存は常に文字列または文字列配列 |
+| Key   | Type                 | Description                                          |
+| ----- | -------------------- | --------------------------------------------------- |
+| `op`  | `string`             | Operator (see [spec_field_types.md](spec_field_types.md)) |
+| `val` | `string \| string[]` | Value(s) to compare against. Always stored as a string or array of strings |
 
-**出力列（OutputCol）のフィールド:**
+**Fields of an output column (OutputCol):**
 
-テーブルは条件列（`cols`）に加えて、**出力列（`outputCols`）を1つ以上**持つ。出力列はテーブルレベルで定義し、各終端行がその列に対する値を提供する。
+In addition to condition columns (`cols`), a table has **one or more output columns** (`outputCols`). Output columns are defined at the table level, and each terminal row supplies a value for them.
 
 ```json
 "outputCols": [
-  { "id": "oc1", "name": "対応手順" },
-  { "id": "oc2", "name": "転送先電話番号" },
-  { "id": "oc3", "name": "備考" }
+  { "id": "oc1", "name": "Action" },
+  { "id": "oc2", "name": "Transfer Phone" },
+  { "id": "oc3", "name": "Note" }
 ]
 ```
 
-| キー   | 型       | 説明                                                                                                                                                                                     |
-| ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`   | `string` | `"oc"` + 連番（ロジック全体で一意）                                                                                                                                                      |
-| `name` | `string` | 出力列の表示名。**テーブル内でユニーク**（ロジック全体では重複を許可。異なるテーブルが同じ名前の出力列を持つことは可能）。評価結果の表示時は `id` ではなく `name` をラベルとして表示する |
+| Key    | Type     | Description                                                                                                                                                                  |
+| ------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`   | `string` | `"oc"` + sequence number (unique across the whole logic)                                                                                                                   |
+| `name` | `string` | Display name of the output column. **Unique within the table** (duplicates are allowed across the logic; different tables may have output columns with the same name). When showing evaluation results, the `name` (not the `id`) is used as the label |
 
-**結論（Conclusion）のフィールド:**
+**Fields of a Conclusion:**
 
-終端結論の場合:
+For a terminal conclusion:
 
 ```json
 {
   "type": "terminal",
   "outputs": {
-    "oc1": "解約金（¥XX,XXX）の案内をする。分割払い移行手続きを説明する。",
+    "oc1": "Explain the cancellation fee (¥XX,XXX) and the switch to installment payments.",
     "oc2": "03-1234-5678",
-    "oc3": "キャンペーン期間中は手数料免除"
+    "oc3": "Fee waived during the campaign period"
   }
 }
 ```
 
-継続参照の場合:
+For a continue reference:
 
 ```json
 { "type": "continue", "tableId": "t2" }
 ```
 
-| キー      | 型                                          | 説明                                                                                                                   |
-| --------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `type`    | `"terminal" \| "continue"`                  | 結論の種別                                                                                                             |
-| `outputs` | `{ [outputColId]: string }`（terminalのみ） | 出力列IDをキーとする出力値のマップ。値は**常に文字列**で保存する。定義されていない出力列IDのキーは省略可（空文字扱い） |
-| `tableId` | `string`（continueのみ）                    | 次に評価するテーブルのID                                                                                               |
+| Key       | Type                                          | Description                                                                                                                  |
+| --------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `type`    | `"terminal" \| "continue"`                    | Kind of conclusion                                                                                                         |
+| `outputs` | `{ [outputColId]: string }` (terminal only)   | Map of output values keyed by output-column ID. Values are **always stored as strings**. Keys for undefined output-column IDs may be omitted (treated as empty string) |
+| `tableId` | `string` (continue only)                      | ID of the table to evaluate next                                                                                          |
 
-**`nOCol` カウンター**: 出力列IDの採番用カウンターをルートオブジェクトに追加する（`nOCol`）。ロジック全体で一意。
+**The `nOCol` counter**: a counter for assigning output-column IDs is added to the root object (`nOCol`). Unique across the whole logic.
