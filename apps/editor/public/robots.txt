@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://leverie.dev/sitemap.xml

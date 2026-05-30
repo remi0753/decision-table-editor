@@ -31,6 +31,17 @@ export default {
     const response = await env.ASSETS.fetch(request);
 
     if (response.status === 404 && url.pathname.startsWith('/docs/')) {
+      const routeIndex = new URL(`${url.pathname}/index.html`, url.origin);
+      const routeResponse = await env.ASSETS.fetch(
+        new Request(routeIndex.toString(), request),
+      );
+      if (routeResponse.ok) {
+        return new Response(routeResponse.body, {
+          status: 200,
+          headers: routeResponse.headers,
+        });
+      }
+
       const fallbackUrl = new URL(SPA_FALLBACK_URL, url.origin);
       const fallback = await env.ASSETS.fetch(
         new Request(fallbackUrl.toString(), request),
