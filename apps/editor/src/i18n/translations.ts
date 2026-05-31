@@ -76,6 +76,7 @@ export type TranslationSet = {
   settings: string;
   share: string;
   shareRunner: string;
+  useViaApi: string;
   currentLogic: string;
   switchLogic: string;
   draftOnly: string;
@@ -417,6 +418,7 @@ export const translations: Record<Lang, TranslationSet> = {
     settings: 'Settings',
     share: 'Share',
     shareRunner: 'Share Runner',
+    useViaApi: 'Use via API',
     currentLogic: 'Current logic',
     switchLogic: 'Switch logic',
     draftOnly: 'Draft only',
@@ -775,6 +777,7 @@ export const translations: Record<Lang, TranslationSet> = {
     settings: '設定',
     share: '共有',
     shareRunner: 'Runnerを共有',
+    useViaApi: 'APIで呼び出す',
     currentLogic: '現在のロジック',
     switchLogic: 'ロジックを切り替え',
     draftOnly: '未公開',
