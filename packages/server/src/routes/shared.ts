@@ -331,6 +331,17 @@ export function canGrantRole(actorRole: Role, targetRole: Role) {
   return actorRole === 'admin' && targetRole !== 'owner';
 }
 
+// Guards which existing member an actor may modify (change role / remove),
+// based on the target's *current* role. canManageMembers lets admins touch the
+// member list, and canGrantRole limits which role they may assign — but neither
+// stops an admin from acting on an owner. Owners outrank admins (roleRank), so
+// only an owner may modify another owner; the last-owner lock in the route then
+// prevents removing the final one.
+export function canActOnMember(actorRole: Role, targetRole: Role) {
+  if (targetRole === 'owner') return actorRole === 'owner';
+  return true;
+}
+
 export async function writeAudit(
   db: Pick<Database, 'insert'>,
   input: {

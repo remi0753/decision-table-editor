@@ -70,11 +70,18 @@ function repairLogic(logic: Logic): { logic: Logic; messages: string[] } {
   return { logic, messages };
 }
 
+// Cells beginning with =, +, -, @, tab or CR are executed as formulas by Excel
+// / Google Sheets. Quoting alone does NOT prevent this, so prefix a single
+// quote to force literal text. Field / output names flow into the template
+// headers, so a name like "=cmd|…" would otherwise run on open.
+const CSV_FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
 function csvQuote(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
+  const safe = CSV_FORMULA_PREFIX.test(value) ? `'${value}` : value;
+  if (safe.includes(',') || safe.includes('"') || safe.includes('\n')) {
+    return `"${safe.replace(/"/g, '""')}"`;
   }
-  return value;
+  return safe;
 }
 
 export function downloadBatchTemplate(logic: Logic): void {
