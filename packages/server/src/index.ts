@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import { Hono, type MiddlewareHandler } from 'hono';
+import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { createAuth } from './auth.js';
@@ -18,6 +18,7 @@ import {
   createKvSecondaryStorage,
   createMemorySecondaryStorage,
   createRedisSecondaryStorage,
+  deferStorageWrites,
   type KvLikeNamespace,
   type RedisLikeClient,
   resolveSecondaryStorage,
@@ -151,6 +152,31 @@ function shouldServeEditorPath(pathname: string) {
   return DEFAULT_EDITOR_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
+}
+
+// Better Auth writes a session copy to secondaryStorage on every sign-in and
+// session refresh (an `active-sessions-<userId>` list plus a token entry). With
+// Postgres as the source of truth (storeSessionInDatabase), those are a cache
+// that can land just after the response — yet on Workers KV they cost ~hundreds
+// of ms each and dominated sign-in latency. Defer the session writes via
+// waitUntil while keeping rate-limit counters (Better Auth keys them
+// `${ip}|${path}`) awaited and exact. When no execution context exists (Node
+// adapter / tests) every write is awaited unchanged.
+// Phase 2 moves rate limiting off secondaryStorage and retires this split.
+function deferAuthSessionWrites(
+  c: Context<{ Bindings: Env; Variables: LeverieServerVariables }>,
+  base: SecondaryStorage,
+): SecondaryStorage {
+  let executionCtx: { waitUntil: (work: Promise<unknown>) => void };
+  try {
+    executionCtx = c.executionCtx;
+  } catch {
+    return base;
+  }
+  return deferStorageWrites(base, {
+    awaitImmediately: (key) => key.includes('|'),
+    deferWrite: (work) => executionCtx.waitUntil(work.catch(() => {})),
+  });
 }
 
 function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
@@ -307,9 +333,9 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
       googleClientSecret: c.env.GOOGLE_CLIENT_SECRET,
       resendApiKey: c.env.RESEND_API_KEY,
       emailFrom: c.env.EMAIL_FROM,
-      secondaryStorage: resolveSecondaryStorage(
-        c.env,
-        options.secondaryStorage,
+      secondaryStorage: deferAuthSessionWrites(
+        c,
+        resolveSecondaryStorage(c.env, options.secondaryStorage),
       ),
     });
     return auth.handler(c.req.raw);
