@@ -428,6 +428,21 @@ export function unmatchedTableName(logicData: Logic, tableId: string): string {
   return logicData.tables[tableId]?.name ?? tableId;
 }
 
+// A waitUntil-backed write deferral, or undefined when no execution context is
+// available (Node adapter / tests) so the rate-limit counter is awaited there.
+function deferToExecutionCtx(
+  c: AppContext,
+): ((work: Promise<unknown>) => void) | undefined {
+  try {
+    const ctx = c.executionCtx;
+    return (work) => {
+      ctx.waitUntil(work.catch(() => {}));
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 export async function enforceEvaluateRateLimit(
   c: AppContext,
   apiKeyId: string,
@@ -440,6 +455,8 @@ export async function enforceEvaluateRateLimit(
       max: rule.max,
       windowSeconds: rule.windowSeconds,
     })),
+    Date.now(),
+    deferToExecutionCtx(c),
   );
 }
 

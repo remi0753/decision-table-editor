@@ -37,12 +37,22 @@ export async function checkFixedWindowRateLimit(
   storage: SecondaryStorage,
   rules: FixedWindowRule[],
   nowMs = Date.now(),
+  // When provided, the counter increments are handed off instead of awaited.
+  // Backends like Workers KV have slow writes (~hundreds of ms each); on the
+  // hosted hot path the route passes a waitUntil-backed hook so the writes run
+  // after the response. Omit it (the default) to await — callers needing an
+  // accurate counter before returning, and the Node/test path, do this.
+  deferWrite?: (work: Promise<unknown>) => void,
 ): Promise<RateLimitResult> {
-  for (const rule of rules) {
-    const stored = parseCounter(await storage.get(rule.key));
+  // Read every window concurrently — sequential reads were the dominant cost.
+  const stored = await Promise.all(rules.map((rule) => storage.get(rule.key)));
+
+  const updates: Array<{ key: string; value: string; ttl: number }> = [];
+  for (const [i, rule] of rules.entries()) {
+    const existing = parseCounter(stored[i] ?? null);
     const resetAt = nowMs + rule.windowSeconds * 1000;
     const counter =
-      stored && stored.resetAt > nowMs ? stored : { count: 0, resetAt };
+      existing && existing.resetAt > nowMs ? existing : { count: 0, resetAt };
 
     if (counter.count >= rule.max) {
       return {
@@ -55,11 +65,25 @@ export async function checkFixedWindowRateLimit(
       };
     }
 
-    await storage.set(
-      rule.key,
-      JSON.stringify({ count: counter.count + 1, resetAt: counter.resetAt }),
-      Math.ceil((counter.resetAt - nowMs) / 1000),
-    );
+    updates.push({
+      key: rule.key,
+      value: JSON.stringify({
+        count: counter.count + 1,
+        resetAt: counter.resetAt,
+      }),
+      ttl: Math.ceil((counter.resetAt - nowMs) / 1000),
+    });
+  }
+
+  // Persist increments only once every window passed, so a denied request does
+  // not burn a slot in the windows that were still under budget.
+  const flush = Promise.all(
+    updates.map((u) => storage.set(u.key, u.value, u.ttl)),
+  );
+  if (deferWrite) {
+    deferWrite(flush);
+  } else {
+    await flush;
   }
 
   return { allowed: true };
