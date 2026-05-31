@@ -62,6 +62,35 @@ export function createKvSecondaryStorage(
   };
 }
 
+// Wraps a SecondaryStorage so set/delete for keys the predicate does NOT mark
+// "await immediately" are handed to `deferWrite` (e.g. Workers waitUntil)
+// instead of being awaited; reads always pass through. Used to keep Better
+// Auth's session-cache writes off the response path — sessions are also
+// persisted to Postgres (the source of truth), so the KV copy can land just
+// after the response — while still awaiting rate-limit counters, which must be
+// exact. `deferWrite` is responsible for swallowing its own rejections.
+export function deferStorageWrites(
+  base: SecondaryStorage,
+  opts: {
+    awaitImmediately: (key: string) => boolean;
+    deferWrite: (work: Promise<unknown>) => void;
+  },
+): SecondaryStorage {
+  return {
+    get: (key) => base.get(key),
+    set: (key, value, ttl) => {
+      if (opts.awaitImmediately(key)) return base.set(key, value, ttl);
+      opts.deferWrite(base.set(key, value, ttl));
+      return Promise.resolve();
+    },
+    delete: (key) => {
+      if (opts.awaitImmediately(key)) return base.delete(key);
+      opts.deferWrite(base.delete(key));
+      return Promise.resolve();
+    },
+  };
+}
+
 // ioredis-compatible surface. Lets a Node-side deployment drop in an
 // `import Redis from 'ioredis'; createRedisSecondaryStorage(new Redis(url))`
 // without depending on ioredis from this Workers bundle.

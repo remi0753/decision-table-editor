@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { checkFixedWindowRateLimit } from '../../../packages/server/src/rateLimit.js';
 import {
   createMemorySecondaryStorage,
+  deferStorageWrites,
   type KvLikeNamespace,
   type RedisLikeClient,
   resolveSecondaryStorage,
+  type SecondaryStorage,
 } from '../../../packages/server/src/secondaryStorage.js';
 
 describe('fixed-window rate limit', () => {
@@ -26,6 +28,47 @@ describe('fixed-window rate limit', () => {
       key: 'invite:test',
       retryAfterSeconds: 58,
     });
+  });
+});
+
+describe('deferStorageWrites', () => {
+  it('awaits immediate keys but hands the rest to deferWrite without awaiting', async () => {
+    // A base whose set() only resolves when we say so, to observe await vs defer.
+    const pending: Array<{ key: string; resolve: () => void }> = [];
+    const base: SecondaryStorage = {
+      get: async () => null,
+      set: (key) =>
+        new Promise<void>((resolve) => {
+          pending.push({ key, resolve });
+        }),
+      delete: async () => {},
+    };
+    const deferred: Promise<unknown>[] = [];
+    const storage = deferStorageWrites(base, {
+      // Mirrors the auth wiring: Better Auth rate-limit keys are `${ip}|${path}`.
+      awaitImmediately: (key) => key.includes('|'),
+      deferWrite: (work) => {
+        deferred.push(work);
+      },
+    });
+
+    // Immediate (rate-limit) key: set() must not resolve until base.set does.
+    let immediateDone = false;
+    const immediate = storage
+      .set('1.2.3.4|/sign-in/email', 'rl', 60)
+      .then(() => {
+        immediateDone = true;
+      });
+    await Promise.resolve();
+    expect(immediateDone).toBe(false);
+    expect(deferred).toHaveLength(0);
+    pending.find((p) => p.key === '1.2.3.4|/sign-in/email')?.resolve();
+    await immediate;
+    expect(immediateDone).toBe(true);
+
+    // Deferred (session) key: set() resolves now; the write is queued instead.
+    await storage.set('active-sessions-u1', 'sess', 60);
+    expect(deferred).toHaveLength(1);
   });
 });
 
