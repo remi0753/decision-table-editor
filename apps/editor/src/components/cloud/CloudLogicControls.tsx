@@ -2,6 +2,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   Check,
   ChevronDown,
+  Code2,
   FileText,
   Loader2,
   Rocket,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { ApiUsageDialog } from '@/components/cloud/ApiUsageDialog';
 import { PublishDiffReviewDialog } from '@/components/cloud/PublishDiffReviewDialog';
 import { RunnerShareDialog } from '@/components/cloud/RunnerShareDialog';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -29,12 +31,14 @@ export function CloudLogicControls() {
   const orgRole = useCloudStore((s) => s.orgRole);
   const workspace = useCloudStore((s) => s.workspace);
   const logicId = useCloudStore((s) => s.logicId);
+  const logicSlug = useCloudStore((s) => s.logicSlug);
   const latestVersion = useCloudStore((s) => s.latestVersion);
   const productionVersion = useCloudStore((s) => s.productionVersion);
   const saveState = useCloudStore((s) => s.saveState);
   const publishCloudLogic = useCloudStore((s) => s.publishCloudLogic);
   const switchCloudLogic = useCloudStore((s) => s.switchCloudLogic);
   const [shareOpen, setShareOpen] = useState(false);
+  const [apiOpen, setApiOpen] = useState(false);
   const [publishReviewOpen, setPublishReviewOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [logics, setLogics] = useState<CloudLogic[]>([]);
@@ -147,26 +151,38 @@ export function CloudLogicControls() {
         </DropdownMenu.Root>
 
         {editable ? (
-          <div className="grid grid-cols-2 gap-2">
-            <Tooltip content={t.publish}>
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Tooltip content={t.publish}>
+                <button
+                  type="button"
+                  onClick={() => setPublishReviewOpen(true)}
+                  disabled={saveState === 'saving'}
+                  className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                >
+                  <Rocket className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{t.publish}</span>
+                </button>
+              </Tooltip>
+              <Tooltip content={t.shareRunner}>
+                <button
+                  type="button"
+                  onClick={() => setShareOpen(true)}
+                  className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 bg-white px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  <Share2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{t.shareRunner}</span>
+                </button>
+              </Tooltip>
+            </div>
+            <Tooltip content={t.useViaApi}>
               <button
                 type="button"
-                onClick={() => setPublishReviewOpen(true)}
-                disabled={saveState === 'saving'}
-                className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                onClick={() => setApiOpen(true)}
+                className="inline-flex h-8 w-full min-w-0 items-center justify-center gap-1.5 rounded border border-dashed border-gray-200 bg-white px-2 text-xs font-medium text-gray-500 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800"
               >
-                <Rocket className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{t.publish}</span>
-              </button>
-            </Tooltip>
-            <Tooltip content={t.shareRunner}>
-              <button
-                type="button"
-                onClick={() => setShareOpen(true)}
-                className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 bg-white px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
-              >
-                <Share2 className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{t.shareRunner}</span>
+                <Code2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{t.useViaApi}</span>
               </button>
             </Tooltip>
           </div>
@@ -180,6 +196,18 @@ export function CloudLogicControls() {
           productionVersion={productionVersion}
           onPublish={() => publishCloudLogic(logic)}
           onClose={() => setShareOpen(false)}
+        />
+      ) : null}
+
+      {apiOpen ? (
+        <ApiUsageDialog
+          logic={logic}
+          logicId={logicId}
+          logicSlug={logicSlug}
+          latestVersion={latestVersion}
+          productionVersion={productionVersion}
+          onPublish={() => publishCloudLogic(logic)}
+          onClose={() => setApiOpen(false)}
         />
       ) : null}
 

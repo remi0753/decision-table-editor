@@ -42,6 +42,9 @@ type CloudStore = {
   workspace: CloudWorkspace | null;
   choices: CloudChoices | null;
   logicId: string | null;
+  // DB slug = the MCP tool name (unique per workspace). The REST evaluate route
+  // keys on logicId; only the MCP tools/call snippet needs this.
+  logicSlug: string | null;
   draftRevision: number | null;
   latestVersion: CloudVersion | null;
   productionVersion: CloudVersion | null;
@@ -156,6 +159,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   orgRole: null,
   workspace: null,
   logicId: null,
+  logicSlug: null,
   draftRevision: null,
   latestVersion: null,
   productionVersion: null,
@@ -269,6 +273,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
                 workspace: preferredWorkspace,
                 choices: null,
                 logicId: cloudLogic.id,
+                logicSlug: cloudLogic.slug,
                 draftRevision: cloudLogic.draftRevision,
                 latestVersion: cloudResult?.latestVersion ?? null,
                 productionVersion: cloudResult?.productionVersion ?? null,
@@ -402,6 +407,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           workspace,
           choices: null,
           logicId: cloudLogic.id,
+          logicSlug: cloudLogic.slug,
           draftRevision: cloudLogic.draftRevision,
           latestVersion: cloudResult?.latestVersion ?? null,
           productionVersion: cloudResult?.productionVersion ?? null,
@@ -427,6 +433,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             workspace: null,
             choices: null,
             logicId: null,
+            logicSlug: null,
             draftRevision: null,
             latestVersion: null,
             productionVersion: null,
@@ -511,6 +518,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         workspace,
         choices: null,
         logicId: (cloudResult?.logic ?? cloudLogic).id,
+        logicSlug: (cloudResult?.logic ?? cloudLogic).slug,
         draftRevision: (cloudResult?.logic ?? cloudLogic).draftRevision,
         latestVersion: cloudResult?.latestVersion ?? null,
         productionVersion: cloudResult?.productionVersion ?? null,
@@ -541,6 +549,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         mode: 'local',
         saveState: 'idle',
         logicId: null,
+        logicSlug: null,
         draftRevision: null,
         latestVersion: null,
         productionVersion: null,
@@ -566,6 +575,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         mode: 'cloud',
         saveState: 'saved',
         logicId: result.logic.id,
+        logicSlug: result.logic.slug,
         draftRevision: result.logic.draftRevision,
         latestVersion: null,
         productionVersion: null,
@@ -589,6 +599,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         mode: 'cloud',
         saveState: 'saved',
         logicId: cloudResult.logic.id,
+        logicSlug: cloudResult.logic.slug,
         draftRevision: cloudResult.logic.draftRevision,
         latestVersion: cloudResult.latestVersion,
         productionVersion: cloudResult.productionVersion,
