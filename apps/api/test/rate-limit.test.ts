@@ -58,8 +58,10 @@ describe('RateLimiter', () => {
   });
 
   it('falls back to the secondary-storage limiter when the factory yields undefined', async () => {
-    const limiter = resolveRateLimiter({}, createMemorySecondaryStorage(), () =>
-      undefined,
+    const limiter = resolveRateLimiter(
+      {},
+      createMemorySecondaryStorage(),
+      () => undefined,
     );
     expect(await limiter.limit('k', [{ max: 1, windowSeconds: 60 }])).toEqual({
       allowed: true,

@@ -22,6 +22,7 @@ import { evaluateRoutes } from './routes/evaluate.js';
 import { logicRoutes } from './routes/logics.js';
 import { mcpRoutes } from './routes/mcp.js';
 import { orgRoutes } from './routes/orgs.js';
+import { type AppContext, getRateLimiter } from './routes/shared.js';
 import { workspaceRoutes } from './routes/workspaces.js';
 import {
   createKvSecondaryStorage,
@@ -204,6 +205,27 @@ function deferAuthSessionWrites(
   });
 }
 
+// Per-path auth rate limits. These replace Better Auth's built-in limiter
+// (now disabled) with the injected RateLimiter; the windows are unchanged.
+// The high-cost path is sending email, so those endpoints stay strict (small
+// budget over 10 minutes); everything else shares a generous default.
+function authRateLimitRule(authPath: string): RateLimitRule {
+  switch (authPath) {
+    case '/sign-up/email':
+      return { max: 5, windowSeconds: 600 };
+    case '/sign-in/email':
+      return { max: 10, windowSeconds: 60 };
+    case '/sign-in/magic-link':
+      return { max: 5, windowSeconds: 600 };
+    case '/forget-password':
+      return { max: 3, windowSeconds: 600 };
+    case '/send-verification-email':
+      return { max: 3, windowSeconds: 600 };
+    default:
+      return { max: 100, windowSeconds: 60 };
+  }
+}
+
 function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
   const app = new Hono<{ Bindings: Env; Variables: LeverieServerVariables }>();
 
@@ -347,6 +369,35 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
       ),
     });
     return auth.handler(c.req.raw);
+  });
+
+  // Rate-limit auth endpoints (per client IP + path) before reaching Better
+  // Auth. Runs after the CSRF/CORS gate so cross-site requests are rejected
+  // first. OPTIONS preflights are answered by the cors() middleware above and
+  // never reach here.
+  app.use('/api/auth/*', async (c, next) => {
+    const ip = c.req.header('cf-connecting-ip') ?? 'unknown';
+    const authPath = c.req.path.slice('/api/auth'.length) || '/';
+    // The main app carries extra Hono Variables; getRateLimiter only reads
+    // `.env` and `.get`, so narrowing to AppContext here is safe.
+    const result = await getRateLimiter(c as unknown as AppContext).limit(
+      `auth:${ip}|${authPath}`,
+      [authRateLimitRule(authPath)],
+    );
+    if (!result.allowed) {
+      return c.json(
+        {
+          error: {
+            code: 'rate_limited',
+            message: 'Too many requests. Try again later.',
+            retryAfterSeconds: result.retryAfterSeconds,
+          },
+        },
+        429,
+        { 'Retry-After': String(result.retryAfterSeconds) },
+      );
+    }
+    await next();
   });
 
   // Better Auth router. Mounted at /api/auth/* by convention; Better Auth handles

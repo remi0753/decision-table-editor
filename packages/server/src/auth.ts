@@ -91,23 +91,14 @@ export function createAuth(db: Database, config: AuthConfig): Auth {
       // remains available for rate-limit counters and cache acceleration.
       storeSessionInDatabase: true,
     },
-    // Better Auth's default rate limiter ships disabled outside production and
-    // its in-memory storage is unusable on Workers (each isolate keeps its own
-    // map). We force-enable it here and pin the storage to `secondary-storage`
-    // so it always uses the KV/Redis backend wired above. Auth-sensitive
-    // endpoints get tighter custom rules — the high-cost path is sending email.
+    // Rate limiting is handled by our own `/api/auth/*` middleware on the
+    // injected RateLimiter (a Durable Object on the hosted Worker), so Better
+    // Auth's built-in limiter is disabled. Its only Workers-viable backend was
+    // `secondary-storage` (KV), whose slow writes and per-key write cap are the
+    // very things we moved off. The per-path windows now live in
+    // `authRateLimitRule` (see the server's auth middleware).
     rateLimit: {
-      enabled: true,
-      storage: 'secondary-storage',
-      window: 60,
-      max: 100,
-      customRules: {
-        '/sign-up/email': { window: 600, max: 5 },
-        '/sign-in/email': { window: 60, max: 10 },
-        '/sign-in/magic-link': { window: 600, max: 5 },
-        '/forget-password': { window: 600, max: 3 },
-        '/send-verification-email': { window: 600, max: 3 },
-      },
+      enabled: false,
     },
     socialProviders: googleProvider,
     plugins: [
