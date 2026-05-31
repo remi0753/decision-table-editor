@@ -56,6 +56,7 @@ import {
   outputsByName,
   recordErrorExecutionLog,
   recordExecutionLog,
+  runAfterResponse,
   touchApiKeyLastUsedAt,
   unmatchedTableName,
 } from './evaluate.js';
@@ -568,7 +569,7 @@ mcpRoutes.post('/v1/mcp', async (c) => {
         );
       }
     }
-    await touchApiKeyLastUsedAt(db, auth.apiKey.id);
+    await runAfterResponse(c, touchApiKeyLastUsedAt(db, auth.apiKey.id));
     if (responses.length === 0) {
       // Pure-notification batch: spec says return nothing. Workers does not
       // allow 204 with a body, so use an empty 204.
