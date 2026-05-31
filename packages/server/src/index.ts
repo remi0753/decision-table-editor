@@ -8,6 +8,15 @@ import { user as userTable } from './db/schema.js';
 import type { Env } from './env.js';
 import { buildOpenApiDocument } from './openapi.js';
 import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
+import {
+  createMemoryRateLimiter,
+  createSecondaryStorageRateLimiter,
+  type RateLimiter,
+  type RateLimiterConfig,
+  type RateLimitResult,
+  type RateLimitRule,
+  resolveRateLimiter,
+} from './rateLimiter.js';
 import { apiKeyRoutes } from './routes/apiKeys.js';
 import { evaluateRoutes } from './routes/evaluate.js';
 import { logicRoutes } from './routes/logics.js';
@@ -29,14 +38,21 @@ import {
 export type { Env } from './env.js';
 export type {
   KvLikeNamespace,
+  RateLimiter,
+  RateLimiterConfig,
+  RateLimitResult,
+  RateLimitRule,
   RedisLikeClient,
   SecondaryStorage,
   SecondaryStorageConfig,
 };
 export {
   createKvSecondaryStorage,
+  createMemoryRateLimiter,
   createMemorySecondaryStorage,
   createRedisSecondaryStorage,
+  createSecondaryStorageRateLimiter,
+  resolveRateLimiter,
   resolveSecondaryStorage,
 };
 
@@ -53,6 +69,7 @@ export type LeverieServerHooks = {
 
 type LeverieServerVariables = {
   secondaryStorageConfig?: SecondaryStorageConfig<Env>;
+  rateLimiterConfig?: RateLimiterConfig<Env>;
 };
 
 export type LeverieServerOptions = {
@@ -71,10 +88,18 @@ export type LeverieServerOptions = {
     assets?: EditorAssetHandler;
   };
   /**
-   * Storage for auth/rate-limit counters. Pass a Redis client, an explicit
-   * Workers KV namespace, a KV binding name, or a custom SecondaryStorage.
+   * Storage for auth session cache (and the default rate-limit backend). Pass a
+   * Redis client, an explicit Workers KV namespace, a KV binding name, or a
+   * custom SecondaryStorage.
    */
   secondaryStorage?: SecondaryStorageConfig<Env>;
+  /**
+   * Rate limiter for the evaluate/MCP and (later) auth surfaces. Pass a
+   * RateLimiter or a factory over the env bindings — e.g. a Durable
+   * Object-backed limiter on Workers. When omitted, a limiter backed by
+   * `secondaryStorage` is used, preserving existing self-host behavior.
+   */
+  rateLimiter?: RateLimiterConfig<Env>;
   hooks?: LeverieServerHooks;
 };
 
@@ -185,6 +210,9 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
   app.use('*', async (c, next) => {
     if (options.secondaryStorage) {
       c.set('secondaryStorageConfig', options.secondaryStorage);
+    }
+    if (options.rateLimiter) {
+      c.set('rateLimiterConfig', options.rateLimiter);
     }
     await next();
   });

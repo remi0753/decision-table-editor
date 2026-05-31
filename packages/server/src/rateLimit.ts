@@ -8,7 +8,9 @@ export type FixedWindowRule = {
 
 export type RateLimitResult =
   | { allowed: true }
-  | { allowed: false; key: string; retryAfterSeconds: number };
+  // `key` identifies the exceeded rule for the SecondaryStorage limiter; other
+  // backends (e.g. the Durable Object limiter) omit it, so it is optional.
+  | { allowed: false; key?: string; retryAfterSeconds: number };
 
 type Counter = {
   count: number;

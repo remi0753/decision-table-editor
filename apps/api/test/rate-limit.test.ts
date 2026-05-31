@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { checkFixedWindowRateLimit } from '../../../packages/server/src/rateLimit.js';
 import {
+  createMemoryRateLimiter,
+  resolveRateLimiter,
+} from '../../../packages/server/src/rateLimiter.js';
+import {
   createMemorySecondaryStorage,
   deferStorageWrites,
   type KvLikeNamespace,
@@ -28,6 +32,40 @@ describe('fixed-window rate limit', () => {
       key: 'invite:test',
       retryAfterSeconds: 58,
     });
+  });
+});
+
+describe('RateLimiter', () => {
+  it('enforces a window per identity and reports retryAfter on denial', async () => {
+    const limiter = createMemoryRateLimiter();
+    const rules = [{ max: 2, windowSeconds: 60 }];
+
+    expect(await limiter.limit('evaluate:k1', rules)).toEqual({
+      allowed: true,
+    });
+    expect(await limiter.limit('evaluate:k1', rules)).toEqual({
+      allowed: true,
+    });
+    const denied = await limiter.limit('evaluate:k1', rules);
+    expect(denied.allowed).toBe(false);
+    if (!denied.allowed) {
+      expect(denied.retryAfterSeconds).toBeGreaterThan(0);
+    }
+    // A different identity has its own budget.
+    expect(await limiter.limit('evaluate:k2', rules)).toEqual({
+      allowed: true,
+    });
+  });
+
+  it('falls back to the secondary-storage limiter when the factory yields undefined', async () => {
+    const limiter = resolveRateLimiter({}, createMemorySecondaryStorage(), () =>
+      undefined,
+    );
+    expect(await limiter.limit('k', [{ max: 1, windowSeconds: 60 }])).toEqual({
+      allowed: true,
+    });
+    const denied = await limiter.limit('k', [{ max: 1, windowSeconds: 60 }]);
+    expect(denied.allowed).toBe(false);
   });
 });
 

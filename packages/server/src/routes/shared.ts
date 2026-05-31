@@ -6,7 +6,12 @@ import type { Database } from '../db/client.js';
 import { auditEvent, membership } from '../db/schema.js';
 import type { Env } from '../env.js';
 import { getAllowedOrigins } from '../origins.js';
-import { checkFixedWindowRateLimit } from '../rateLimit.js';
+import {
+  type RateLimiter,
+  type RateLimiterConfig,
+  type RateLimitRule,
+  resolveRateLimiter,
+} from '../rateLimiter.js';
 import {
   resolveSecondaryStorage,
   type SecondaryStorage,
@@ -177,43 +182,50 @@ export function getSecondaryStorage(c: AppContext): SecondaryStorage {
   return resolveSecondaryStorage(c.env, config);
 }
 
+export function getRateLimiter(c: AppContext): RateLimiter {
+  const config = (
+    c as unknown as {
+      get(name: 'rateLimiterConfig'): RateLimiterConfig<Env> | undefined;
+    }
+  ).get('rateLimiterConfig');
+  return resolveRateLimiter(c.env, getSecondaryStorage(c), config);
+}
+
 export async function enforceInvitationEmailRateLimit(
   c: AppContext,
   input: { orgId: string; actorUserId: string; email: string },
 ) {
-  const storage = getSecondaryStorage(c);
+  const limiter = getRateLimiter(c);
   const emailDigest = await sha256Base64Url(input.email.toLowerCase());
-  const result = await checkFixedWindowRateLimit(storage, [
-    {
-      key: `invite-email:user:${input.actorUserId}:hour`,
-      max: 20,
-      windowSeconds: 60 * 60,
-    },
-    {
-      key: `invite-email:org:${input.orgId}:day`,
-      max: 100,
-      windowSeconds: 24 * 60 * 60,
-    },
-    {
-      key: `invite-email:email:${emailDigest}:day`,
-      max: 5,
-      windowSeconds: 24 * 60 * 60,
-    },
-  ]);
+  // Three independent identities (per-user/hour, per-org/day, per-email/day).
+  // Checked in order; the first exceeded one denies. Each is its own limiter
+  // bucket, so they are not atomic as a group — acceptable for an email guard.
+  const checks: Array<[string, RateLimitRule]> = [
+    [
+      `invite-email:user:${input.actorUserId}`,
+      { max: 20, windowSeconds: 3600 },
+    ],
+    [`invite-email:org:${input.orgId}`, { max: 100, windowSeconds: 86400 }],
+    [`invite-email:email:${emailDigest}`, { max: 5, windowSeconds: 86400 }],
+  ];
 
-  if (result.allowed) return null;
-
-  return c.json(
-    {
-      error: {
-        code: 'rate_limited',
-        message: 'Too many invitation emails. Try again later.',
-        retryAfterSeconds: result.retryAfterSeconds,
+  for (const [key, rule] of checks) {
+    const result = await limiter.limit(key, [rule]);
+    if (result.allowed) continue;
+    return c.json(
+      {
+        error: {
+          code: 'rate_limited',
+          message: 'Too many invitation emails. Try again later.',
+          retryAfterSeconds: result.retryAfterSeconds,
+        },
       },
-    },
-    429,
-    { 'Retry-After': String(result.retryAfterSeconds) },
-  );
+      429,
+      { 'Retry-After': String(result.retryAfterSeconds) },
+    );
+  }
+
+  return null;
 }
 
 export function assertSlug(c: AppContext, slug: string) {

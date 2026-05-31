@@ -59,8 +59,7 @@ import {
   workspace,
 } from '../db/schema.js';
 import type { Env } from '../env.js';
-import { checkFixedWindowRateLimit } from '../rateLimit.js';
-import { type AppContext, getSecondaryStorage } from './shared.js';
+import { type AppContext, getRateLimiter } from './shared.js';
 
 // 60 req / 10s smooths short bursts (a single chat-of-thought issuing several
 // tool calls in flight) while 600 / min caps sustained load so a runaway agent
@@ -430,35 +429,19 @@ export function unmatchedTableName(logicData: Logic, tableId: string): string {
   return logicData.tables[tableId]?.name ?? tableId;
 }
 
-// A waitUntil-backed write deferral, or undefined when no execution context is
-// available (Node adapter / tests) so the rate-limit counter is awaited there.
-function deferToExecutionCtx(
-  c: AppContext,
-): ((work: Promise<unknown>) => void) | undefined {
-  try {
-    const ctx = c.executionCtx;
-    return (work) => {
-      ctx.waitUntil(work.catch(() => {}));
-    };
-  } catch {
-    return undefined;
-  }
-}
-
 export async function enforceEvaluateRateLimit(
   c: AppContext,
   apiKeyId: string,
 ) {
-  const storage = getSecondaryStorage(c);
-  return checkFixedWindowRateLimit(
-    storage,
+  // One identity (the API key), several windows — checked atomically by the
+  // injected limiter (a Durable Object on the hosted Worker, else a
+  // SecondaryStorage fallback).
+  return getRateLimiter(c).limit(
+    `evaluate:api_key:${apiKeyId}`,
     EVALUATE_RATE_LIMITS.map((rule) => ({
-      key: `evaluate:api_key:${apiKeyId}:${rule.suffix}`,
       max: rule.max,
       windowSeconds: rule.windowSeconds,
     })),
-    Date.now(),
-    deferToExecutionCtx(c),
   );
 }
 

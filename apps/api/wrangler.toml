@@ -24,6 +24,20 @@ local_protocol = "http"
 BETTER_AUTH_URL = "http://localhost:5173"
 CORS_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
 
+# Durable Object: per-key fixed-window rate limiter (RateLimiterDurableObject).
+# Edge-native and atomic, with no Workers KV per-key write-rate cap, so it backs
+# the evaluate/MCP (and later auth) rate limits across every window size. The
+# binding is repeated per environment below (Wrangler does not inherit bindings
+# into named envs); this top-level copy serves `wrangler dev`. Migrations are
+# top-level and apply to every environment — keep them append-only.
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiterDurableObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiterDurableObject"]
+
 # ──────────────────────────────────────────────────────────────────────────
 # Preview environment (branch deploys + manual smoke testing)
 # ──────────────────────────────────────────────────────────────────────────
@@ -48,6 +62,10 @@ CORS_ALLOWED_ORIGINS = ""
 binding = "RATE_LIMIT_KV"
 id = "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID"
 
+[[env.preview.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiterDurableObject"
+
 # ──────────────────────────────────────────────────────────────────────────
 # Production environment
 # ──────────────────────────────────────────────────────────────────────────
@@ -66,6 +84,10 @@ EMAIL_FROM = "LEVERIE <auth@leverie.dev>"
 [[env.prod.kv_namespaces]]
 binding = "RATE_LIMIT_KV"
 id = "c00a51a75cb347ed8582d285d05b9f7e"
+
+[[env.prod.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiterDurableObject"
 
 # ──────────────────────────────────────────────────────────────────────────
 # Cron Triggers — see [design_p3_infrastructure.md §2.5] for the job list.
