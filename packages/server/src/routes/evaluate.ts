@@ -15,10 +15,12 @@
 // Auth model:
 //   * Authorization: Bearer lvr_<base64url>. We compute HMAC-SHA256 of the
 //     raw secret under each active version of HMAC_KEY_RING_JSON and search
-//     api_key by (lookup_secret_version, lookup_digest). The matched row's
-//     scrypt key_hash is then verified to defeat HMAC-only spoofing. Multiple
-//     ring versions are walked in order so server-secret rotation can roll
-//     forward without invalidating live keys (design v6 §6.8).
+//     api_key by (lookup_secret_version, lookup_digest). A match is itself the
+//     verifier: lookup_digest is a keyed HMAC of the secret, so matching a row
+//     proves the caller holds the exact 32-byte random key — no extra hash
+//     check is needed (the legacy scrypt key_hash is no longer verified per
+//     request). Multiple ring versions are walked in order so server-secret
+//     rotation can roll forward without invalidating live keys (design v6 §6.8).
 //
 // Version selection:
 //   * version=production (default) | latest | vN. draft is intentionally NOT
