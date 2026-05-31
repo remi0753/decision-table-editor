@@ -443,6 +443,85 @@ describe('org route behavior', () => {
     expect(currentDb.writes).toHaveLength(0);
   });
 
+  function ownerTarget() {
+    return {
+      id: 'owner-membership',
+      orgId: 'org-1',
+      userId: invitedUser.id,
+      role: 'owner',
+      invitedActorType: 'user',
+      invitedActorId: ownerUser.id,
+      invitedAt: new Date('2026-05-22T00:00:00.000Z'),
+      joinedAt: new Date('2026-05-22T00:00:00.000Z'),
+      removedAt: null,
+    };
+  }
+
+  it('forbids an admin from demoting an owner', async () => {
+    currentUser = editorUser; // membership role, not the user record, drives authz
+    currentDb = createFakeDb({
+      select: [[membership('admin')], [ownerTarget()]],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/orgs/org-1/members/owner-membership',
+        { role: 'admin' },
+        { method: 'PATCH' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(403);
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('forbids an admin from removing an owner', async () => {
+    currentUser = editorUser;
+    currentDb = createFakeDb({
+      select: [[membership('admin')], [ownerTarget()]],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/orgs/org-1/members/owner-membership', undefined, {
+        method: 'DELETE',
+      }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(403);
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('lets an admin change a non-owner member role', async () => {
+    currentUser = editorUser;
+    currentDb = createFakeDb({
+      select: [
+        [membership('admin')],
+        [{ ...ownerTarget(), id: 'editor-membership', role: 'editor' }],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/orgs/org-1/members/editor-membership',
+        { role: 'viewer' },
+        { method: 'PATCH' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      currentDb.writes.some(
+        (w) => (w.set as { role?: string } | undefined)?.role === 'viewer',
+      ),
+    ).toBe(true);
+  });
+
   it('previews an invitation for onboarding without requiring sign-in', async () => {
     currentUser = null;
     currentDb = createFakeDb({

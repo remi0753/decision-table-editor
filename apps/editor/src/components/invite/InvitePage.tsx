@@ -29,7 +29,11 @@ function errorMessage(error: unknown) {
 }
 
 function safeRedirectPath(value: string | null) {
-  if (!value?.startsWith('/') || value.startsWith('//')) return '/edit';
+  // Only allow same-origin absolute paths. The first char must be '/' and the
+  // second must be neither '/' nor '\\' — browsers normalise a backslash to a
+  // forward slash when resolving URLs, so a value like '/\\evil.com' would
+  // otherwise parse as the protocol-relative '//evil.com' and redirect off-site.
+  if (!value || !/^\/[^/\\]/.test(value)) return '/edit';
   return value;
 }
 

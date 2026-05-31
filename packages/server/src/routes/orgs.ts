@@ -14,6 +14,7 @@ import type { Env } from '../env.js';
 import {
   type AppContext,
   assertSlug,
+  canActOnMember,
   canGrantRole,
   canManageMembers,
   enforceInvitationEmailRateLimit,
@@ -419,6 +420,9 @@ orgRoutes.patch('/api/orgs/:orgId/members/:membershipId', async (c) => {
     )
     .limit(1);
   if (!target) return jsonError(c, 404, 'not_found', 'Member not found.');
+  if (!canActOnMember(access.member.role, target.role as Role)) {
+    return jsonError(c, 403, 'forbidden', 'Only owners can modify an owner.');
+  }
 
   let updated: typeof membership.$inferSelect | undefined;
   if (target.role === 'owner' && nextRole !== 'owner') {
@@ -497,6 +501,9 @@ orgRoutes.delete('/api/orgs/:orgId/members/:membershipId', async (c) => {
     )
     .limit(1);
   if (!target) return jsonError(c, 404, 'not_found', 'Member not found.');
+  if (!canActOnMember(access.member.role, target.role as Role)) {
+    return jsonError(c, 403, 'forbidden', 'Only owners can remove an owner.');
+  }
 
   let removed: typeof membership.$inferSelect | undefined;
   if (target.role === 'owner') {

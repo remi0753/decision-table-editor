@@ -93,14 +93,43 @@ function parseArgs(argv: string[]): CliOptions {
   return options;
 }
 
+// Public placeholder secret used only when serving a localhost origin. Booting
+// a non-local origin with this value would let anyone forge session cookies and
+// impersonate any user, so buildEnv() refuses to start in that case.
+const DEV_AUTH_SECRET = 'dev-secret-change-me';
+
+function isLocalHostUrl(value: string) {
+  try {
+    const { hostname } = new URL(value);
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
 function buildEnv(options: CliOptions): Env {
   const origin = `http://${options.host}:${options.port}`;
   const basePath = options.basePath === '/' ? '' : options.basePath;
+  const betterAuthUrl = process.env.BETTER_AUTH_URL ?? `${origin}${basePath}`;
+  const betterAuthSecret = process.env.BETTER_AUTH_SECRET ?? DEV_AUTH_SECRET;
+
+  // Fail closed: a non-localhost deployment must set a strong, unique signing
+  // secret. The dev default is public, so accepting it in production would
+  // allow session-cookie forgery and full account takeover.
+  if (
+    !isLocalHostUrl(betterAuthUrl) &&
+    (betterAuthSecret === DEV_AUTH_SECRET || betterAuthSecret.length < 16)
+  ) {
+    throw new Error(
+      'BETTER_AUTH_SECRET must be set to a strong, unique value (32+ bytes) when ' +
+        'BETTER_AUTH_URL is not localhost. Generate one with: openssl rand -base64 32',
+    );
+  }
+
   return {
     DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://localhost/leverie',
-    BETTER_AUTH_SECRET:
-      process.env.BETTER_AUTH_SECRET ?? 'dev-secret-change-me',
-    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? `${origin}${basePath}`,
+    BETTER_AUTH_SECRET: betterAuthSecret,
+    BETTER_AUTH_URL: betterAuthUrl,
     HMAC_KEY_RING_JSON: process.env.HMAC_KEY_RING_JSON,
     CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
