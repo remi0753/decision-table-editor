@@ -57,7 +57,6 @@ import {
   workspace,
 } from '../db/schema.js';
 import type { Env } from '../env.js';
-import { verifyPassword } from '../password.js';
 import { checkFixedWindowRateLimit } from '../rateLimit.js';
 import { type AppContext, getSecondaryStorage } from './shared.js';
 
@@ -241,21 +240,13 @@ export async function authenticateApiKey(
         },
       };
     }
-    const verified = await verifyPassword({
-      hash: row.apiKey.keyHash,
-      password: secret,
-    });
-    if (!verified) {
-      // HMAC collided but scrypt did not — should be statistically impossible
-      // with a 32-byte random secret, but if it ever happens, fail closed.
-      return {
-        error: {
-          code: 'invalid_api_key',
-          message: 'Invalid API key.',
-          status: 401,
-        },
-      };
-    }
+    // The keyed-HMAC lookup is itself the verifier: lookup_digest is
+    // HMAC(server_secret, presented_key), so matching a row already proves the
+    // caller holds the exact 32-byte random secret (an attacker cannot forge a
+    // digest without both the server key ring and the secret). The stored
+    // scrypt key_hash added no real protection for a high-entropy key, only
+    // per-request KDF latency, so we no longer verify against it. key_hash
+    // remains written at creation (NOT NULL) and is now vestigial.
     return { apiKey: row.apiKey, workspace: row.workspace };
   }
 
@@ -509,6 +500,24 @@ export async function touchApiKeyLastUsedAt(db: Database, apiKeyId: string) {
   }
 }
 
+// Run post-response side effects (execution-log write, last_used bump) off the
+// request's critical path. On Workers, executionCtx.waitUntil keeps the isolate
+// alive until `work` settles without blocking the response — these two DB
+// round trips otherwise add their latency to what the caller waits for. When no
+// execution context is available (Node adapter, tests), fall back to awaiting so
+// the work still completes before the handler returns. `work` is expected to
+// swallow its own errors; these effects are best-effort.
+export async function runAfterResponse(
+  c: AppContext,
+  work: Promise<unknown>,
+): Promise<void> {
+  try {
+    c.executionCtx.waitUntil(work);
+  } catch {
+    await work;
+  }
+}
+
 export async function recordErrorExecutionLog(
   db: Database,
   input: {
@@ -731,24 +740,34 @@ evaluateRoutes.post('/v1/logics/:logicId/evaluate', async (c) => {
   const formattedTrace = formatTrace(version.data, trace);
   const latencyMs = Date.now() - startedAt;
 
-  await recordExecutionLog(db, {
-    workspaceId: auth.workspace.id,
-    logicId: logicRow.id,
-    apiKeyId: auth.apiKey.id,
-    requestedVersionType,
-    requestedVersionNumber,
-    resolvedVersionNumber: version.versionNumber,
-    versionId: version.versionId,
-    inputs: normalised.inputs,
-    status: engineStatus,
-    outputs: outputsResponse,
-    unmatchedTableName: unmatchedTable,
-    formattedTrace,
-    latencyMs,
-    requestId,
-  });
-
-  await touchApiKeyLastUsedAt(db, auth.apiKey.id);
+  // Defer the execution-log write and last_used bump off the response path.
+  // Kept sequential so writes land in a stable order (log, then last_used).
+  await runAfterResponse(
+    c,
+    (async () => {
+      try {
+        await recordExecutionLog(db, {
+          workspaceId: auth.workspace.id,
+          logicId: logicRow.id,
+          apiKeyId: auth.apiKey.id,
+          requestedVersionType,
+          requestedVersionNumber,
+          resolvedVersionNumber: version.versionNumber,
+          versionId: version.versionId,
+          inputs: normalised.inputs,
+          status: engineStatus,
+          outputs: outputsResponse,
+          unmatchedTableName: unmatchedTable,
+          formattedTrace,
+          latencyMs,
+          requestId,
+        });
+        await touchApiKeyLastUsedAt(db, auth.apiKey.id);
+      } catch (err) {
+        console.error('evaluate post-response write failed', err);
+      }
+    })(),
+  );
 
   return c.json({
     logic: {
