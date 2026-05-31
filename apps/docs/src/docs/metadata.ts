@@ -149,6 +149,7 @@ export const pages: Page[] = [
     icon: TerminalSquare,
     sections: [
       'Endpoint',
+      'Copy a snippet from the editor',
       'Request body',
       'Response body',
       'Version selection',

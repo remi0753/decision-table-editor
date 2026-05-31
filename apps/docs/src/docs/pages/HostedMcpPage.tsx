@@ -1,6 +1,6 @@
-import { Bot, Cloud, TerminalSquare } from 'lucide-react';
+import { Bot, Cloud, Code2, TerminalSquare } from 'lucide-react';
 import { Callout, CodeBlock, DocSection } from '../components';
-import { asset } from '../metadata';
+import { asset, pageHref } from '../metadata';
 
 export function HostedMcpPage() {
   return (
@@ -100,6 +100,15 @@ export function HostedMcpPage() {
           results with <code>isError: true</code>. Protocol failures such as
           unknown methods or malformed JSON-RPC requests are JSON-RPC errors.
         </p>
+        <Callout icon={Code2} title="Use the exact tool name from tools/list">
+          A logic&apos;s tool name is its workspace-unique slug — it may differ
+          from the display name and can carry a suffix when names collide (for
+          example <code>loan-review-2</code>). Copy it from{' '}
+          <code>tools/list</code> rather than guessing it from the logic name.
+          The editor&apos;s <strong>Use via API</strong> dialog (see{' '}
+          <a href={pageHref('hosted-api')}>Hosted API</a>) fills in the correct
+          name and a sample <code>tools/call</code> automatically.
+        </Callout>
       </DocSection>
 
       <DocSection title="Client configuration">
