@@ -26,7 +26,7 @@ function TraceStepView({
     table.rows.findIndex((r) => r.id === rowId) + 1;
 
   return (
-    <div className="border rounded p-3 mb-2 bg-white">
+    <div className="border rounded p-3 mb-2 bg-surface">
       <div className="font-medium text-sm mb-1">
         {t.traceStepTitle(step.depth + 1, step.tableName)}
       </div>
@@ -37,7 +37,7 @@ function TraceStepView({
           ? logic.fieldDefs[failedCol.fieldId]
           : null;
         return (
-          <div key={sr.rowId} className="text-gray-500 text-xs pl-4 py-0.5">
+          <div key={sr.rowId} className="text-fg-subtle text-xs pl-4 py-0.5">
             {rowNum}:{' '}
             {failedField
               ? t.conditionNotMet(failedField.name)
@@ -46,12 +46,12 @@ function TraceStepView({
         );
       })}
       {step.matchedRowId && (
-        <div className="text-green-600 text-xs pl-4 py-0.5">
+        <div className="text-success-fg text-xs pl-4 py-0.5">
           {t.rowMatched(getRowNumber(step.matchedRowId))}
         </div>
       )}
       {!step.matchedRowId && step.skippedRows.length === table.rows.length && (
-        <div className="text-red-500 text-xs pl-4 py-0.5">
+        <div className="text-danger-fg text-xs pl-4 py-0.5">
           {t.noMatchInTable}
         </div>
       )}
@@ -74,8 +74,8 @@ export function TraceView({ result, logic, translations }: TraceViewProps) {
       ))}
 
       {result.status === 'ok' && (
-        <div className="bg-green-50 border border-green-200 rounded p-3">
-          <div className="text-green-700 font-medium text-sm mb-1">
+        <div className="bg-success-bg border border-success-border rounded p-3">
+          <div className="text-success-fg font-medium text-sm mb-1">
             {t.evalSuccess}
           </div>
           {Object.entries(result.outputs).map(([colId, val]) => {
@@ -85,7 +85,7 @@ export function TraceView({ result, logic, translations }: TraceViewProps) {
                 .find((oc) => oc.id === colId)?.name ?? colId;
             return (
               <div key={colId} className="text-sm">
-                <span className="text-gray-500">{colName}: </span>
+                <span className="text-fg-subtle">{colName}: </span>
                 <span className="font-medium">{val}</span>
               </div>
             );
@@ -98,11 +98,11 @@ export function TraceView({ result, logic, translations }: TraceViewProps) {
           const lastStep = result.trace[result.trace.length - 1];
           const isEntry = !lastStep || lastStep.depth === 0;
           return (
-            <div className="bg-red-50 border border-red-200 rounded p-3">
-              <div className="text-red-700 font-medium text-sm mb-1">
+            <div className="bg-danger-bg border border-danger-border rounded p-3">
+              <div className="text-danger-fg font-medium text-sm mb-1">
                 {t.evalNoMatch}
               </div>
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-danger-fg">
                 {isEntry
                   ? t.noMatchAny
                   : t.noMatchInRef(

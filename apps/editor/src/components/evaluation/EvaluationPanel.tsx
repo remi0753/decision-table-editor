@@ -37,7 +37,7 @@ export function EvaluationPanel() {
         onClick={toggleDrawer}
         data-tour-target="eval-open"
         aria-label={t.evaluationPanel}
-        className="w-11 shrink-0 border-l bg-white hover:bg-violet-50 transition-colors flex flex-col items-center py-3 gap-3 text-gray-500"
+        className="w-11 shrink-0 border-l bg-surface hover:bg-brand-subtle transition-colors flex flex-col items-center py-3 gap-3 text-fg-subtle"
       >
         <PanelRightOpen size={16} />
         <span
@@ -51,16 +51,16 @@ export function EvaluationPanel() {
   }
 
   return (
-    <aside className="w-[360px] shrink-0 border-l bg-white flex flex-col">
+    <aside className="w-[360px] shrink-0 border-l bg-surface flex flex-col">
       <div className="flex items-center justify-between px-4 h-10 border-b shrink-0">
-        <span className="font-medium text-sm text-gray-700">
+        <span className="font-medium text-sm text-fg-secondary">
           {t.evaluationPanel}
         </span>
         <button
           type="button"
           onClick={toggleDrawer}
           aria-label={t.evaluationPanel}
-          className="p-1 -mr-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+          className="p-1 -mr-1 rounded text-fg-faint hover:text-fg-muted hover:bg-surface-subtle"
         >
           <PanelRightClose size={16} />
         </button>
@@ -80,21 +80,21 @@ export function EvaluationPanel() {
             type="button"
             data-tour-target="eval-run"
             onClick={handleEvaluate}
-            className="flex items-center gap-1 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
+            className="flex items-center gap-1 bg-brand text-white text-sm px-3 py-1.5 rounded hover:bg-brand-strong"
           >
             <Play size={14} /> {t.runEval}
           </button>
           <button
             type="button"
             onClick={handleReset}
-            className="flex items-center gap-1 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
+            className="flex items-center gap-1 border text-sm px-3 py-1.5 rounded hover:bg-surface-muted text-fg-muted"
           >
             <RotateCcw size={14} /> {t.reset}
           </button>
         </div>
         {result && (
           <div className="border-t pt-4">
-            <div className="text-xs font-medium text-gray-500 mb-2">
+            <div className="text-xs font-medium text-fg-subtle mb-2">
               {t.traceLabel}
             </div>
             <TraceView result={result} logic={logic} translations={runtimeT} />

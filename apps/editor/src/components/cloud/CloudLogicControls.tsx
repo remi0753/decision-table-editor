@@ -68,9 +68,9 @@ export function CloudLogicControls() {
 
   if (mode !== 'cloud' || !logicId) {
     return (
-      <div className="flex min-w-0 items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
-        <FileText className="h-4 w-4 shrink-0 text-gray-400" />
-        <span className="min-w-0 truncate text-xs font-medium text-gray-500">
+      <div className="flex min-w-0 items-center gap-2 rounded border border-line-subtle bg-surface-muted px-2 py-1.5">
+        <FileText className="h-4 w-4 shrink-0 text-fg-faint" />
+        <span className="min-w-0 truncate text-xs font-medium text-fg-subtle">
           {t.localMode}
         </span>
       </div>
@@ -90,32 +90,32 @@ export function CloudLogicControls() {
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
-              className="inline-flex min-h-9 w-full min-w-0 items-center gap-2 rounded border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-left hover:border-violet-200 hover:bg-violet-50"
+              className="inline-flex min-h-9 w-full min-w-0 items-center gap-2 rounded border border-line bg-surface-muted px-2.5 py-1.5 text-left hover:border-brand-border hover:bg-brand-subtle"
               aria-label={t.switchLogic}
             >
-              <FileText className="h-4 w-4 shrink-0 text-violet-700" />
+              <FileText className="h-4 w-4 shrink-0 text-brand-fg" />
               <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                <span className="truncate text-xs font-semibold text-gray-700">
+                <span className="truncate text-xs font-semibold text-fg-secondary">
                   {t.switchLogic}
                 </span>
-                <span className="truncate text-[10px] font-normal text-gray-500">
+                <span className="truncate text-[10px] font-normal text-fg-subtle">
                   {workspace?.name ?? t.workspaceSection} · {versionLabel}
                 </span>
               </span>
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-fg-faint" />
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content
               align="start"
               sideOffset={6}
-              className="z-50 w-[min(360px,calc(100vw-1rem))] rounded-md border border-gray-200 bg-white p-1 shadow-lg"
+              className="z-50 w-[min(360px,calc(100vw-1rem))] rounded-md border border-line bg-surface p-1 shadow-lg"
             >
-              <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
                 {workspace?.name ?? t.workspaceSection}
               </DropdownMenu.Label>
               {loadingLogics ? (
-                <div className="flex items-center gap-2 px-2 py-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 px-2 py-2 text-sm text-fg-subtle">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {t.cloudChecking}
                 </div>
@@ -128,12 +128,12 @@ export function CloudLogicControls() {
                         void switchCloudLogic(cloudLogic.id, importLogic);
                       }
                     }}
-                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-2 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-2 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                   >
                     {cloudLogic.id === logicId ? (
-                      <Check className="h-4 w-4 shrink-0 text-emerald-700" />
+                      <Check className="h-4 w-4 shrink-0 text-success-fg" />
                     ) : (
-                      <FileText className="h-4 w-4 shrink-0 text-gray-400" />
+                      <FileText className="h-4 w-4 shrink-0 text-fg-faint" />
                     )}
                     <span className="min-w-0 flex-1 truncate">
                       {cloudLogic.name}
@@ -142,7 +142,7 @@ export function CloudLogicControls() {
                 ))
               )}
               {!loadingLogics && logics.length === 0 ? (
-                <div className="px-2 py-2 text-sm text-gray-500">
+                <div className="px-2 py-2 text-sm text-fg-subtle">
                   {t.draftOnly}
                 </div>
               ) : null}
@@ -158,7 +158,7 @@ export function CloudLogicControls() {
                   type="button"
                   onClick={() => setPublishReviewOpen(true)}
                   disabled={saveState === 'saving'}
-                  className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                  className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-success-border bg-success-bg px-2 text-xs font-medium text-success-fg hover:bg-success-bg disabled:opacity-50"
                 >
                   <Rocket className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{t.publish}</span>
@@ -168,7 +168,7 @@ export function CloudLogicControls() {
                 <button
                   type="button"
                   onClick={() => setShareOpen(true)}
-                  className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 bg-white px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                  className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-line bg-surface px-2 text-xs font-medium text-fg-muted hover:bg-surface-muted"
                 >
                   <Share2 className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{t.shareRunner}</span>
@@ -179,7 +179,7 @@ export function CloudLogicControls() {
               <button
                 type="button"
                 onClick={() => setApiOpen(true)}
-                className="inline-flex h-8 w-full min-w-0 items-center justify-center gap-1.5 rounded border border-dashed border-gray-200 bg-white px-2 text-xs font-medium text-gray-500 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800"
+                className="inline-flex h-8 w-full min-w-0 items-center justify-center gap-1.5 rounded border border-dashed border-line bg-surface px-2 text-xs font-medium text-fg-subtle hover:border-brand-border hover:bg-brand-subtle hover:text-brand-fg-strong"
               >
                 <Code2 className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{t.useViaApi}</span>

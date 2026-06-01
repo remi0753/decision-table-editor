@@ -18,6 +18,7 @@ import {
 } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import {
   CloudApiError,
   type CloudApiKey,
@@ -281,31 +282,34 @@ export function WorkspaceSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-surface-muted text-fg">
       <Toaster position="top-right" richColors />
-      <header className="flex h-14 items-center justify-between border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white px-4">
+      <header className="flex h-14 items-center justify-between border-b border-brand-border bg-gradient-to-r from-brand-subtle to-surface px-4">
         <a href="/edit" className="inline-flex items-center gap-3">
           <img src={logoUrl} alt="LEVERIE" className="h-9" />
         </a>
-        <a
-          href="/edit"
-          className="inline-flex h-8 items-center gap-2 rounded border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to editor
-        </a>
+        <div className="inline-flex items-center gap-3">
+          <ThemeToggle />
+          <a
+            href="/edit"
+            className="inline-flex h-8 items-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to editor
+          </a>
+        </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-5 py-8">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-indigo-200 bg-indigo-50 text-indigo-700">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-brand-border bg-brand-subtle text-brand-fg">
               <KeyRound className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl font-semibold text-gray-950">
+            <h1 className="text-2xl font-semibold text-fg">
               Workspace settings
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-muted">
               Manage API keys and logic access for a single workspace.
             </p>
           </div>
@@ -313,13 +317,13 @@ export function WorkspaceSettingsPage() {
           {orgs.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="min-w-56">
-                <span className="mb-1 block text-xs font-medium text-gray-600">
+                <span className="mb-1 block text-xs font-medium text-fg-muted">
                   Organization
                 </span>
                 <select
                   value={selectedOrgId}
                   onChange={(event) => void handleOrgChange(event.target.value)}
-                  className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                 >
                   {orgs.map((entry) => (
                     <option key={entry.org.id} value={entry.org.id}>
@@ -329,7 +333,7 @@ export function WorkspaceSettingsPage() {
                 </select>
               </label>
               <label className="min-w-56">
-                <span className="mb-1 block text-xs font-medium text-gray-600">
+                <span className="mb-1 block text-xs font-medium text-fg-muted">
                   Workspace
                 </span>
                 <select
@@ -337,7 +341,7 @@ export function WorkspaceSettingsPage() {
                   onChange={(event) =>
                     void handleWorkspaceChange(event.target.value)
                   }
-                  className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                 >
                   {workspaces.map((workspace) => (
                     <option key={workspace.id} value={workspace.id}>
@@ -351,39 +355,37 @@ export function WorkspaceSettingsPage() {
         </div>
 
         {loading ? (
-          <div className="flex min-h-72 items-center justify-center rounded border border-gray-200 bg-white">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          <div className="flex min-h-72 items-center justify-center rounded border border-line bg-surface">
+            <Loader2 className="h-5 w-5 animate-spin text-fg-faint" />
           </div>
         ) : orgs.length === 0 ? (
-          <section className="rounded border border-gray-200 bg-white p-8 text-center">
-            <Shield className="mx-auto h-8 w-8 text-gray-300" />
-            <h2 className="mt-3 text-base font-semibold text-gray-900">
+          <section className="rounded border border-line bg-surface p-8 text-center">
+            <Shield className="mx-auto h-8 w-8 text-fg-faint" />
+            <h2 className="mt-3 text-base font-semibold text-fg">
               Owner or admin access required
             </h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-fg-subtle">
               Ask an organization owner or admin to manage workspace API keys.
             </p>
           </section>
         ) : workspaces.length === 0 ? (
-          <section className="rounded border border-gray-200 bg-white p-8 text-center">
-            <KeyRound className="mx-auto h-8 w-8 text-gray-300" />
-            <h2 className="mt-3 text-base font-semibold text-gray-900">
+          <section className="rounded border border-line bg-surface p-8 text-center">
+            <KeyRound className="mx-auto h-8 w-8 text-fg-faint" />
+            <h2 className="mt-3 text-base font-semibold text-fg">
               No workspaces yet
             </h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-fg-subtle">
               Create a workspace before issuing API keys.
             </p>
           </section>
         ) : selectedOrg && selectedWorkspace ? (
-          <section className="rounded border border-gray-200 bg-white">
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <section className="rounded border border-line bg-surface">
+            <div className="flex flex-col gap-3 border-b border-line-subtle px-4 py-3 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-gray-400" />
+                <KeyRound className="h-4 w-4 text-fg-faint" />
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900">
-                    API keys
-                  </h2>
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <h2 className="text-sm font-semibold text-fg">API keys</h2>
+                  <p className="mt-0.5 text-xs text-fg-subtle">
                     Credentials for hosted API and MCP access in{' '}
                     {selectedWorkspace.name}.
                   </p>
@@ -391,9 +393,9 @@ export function WorkspaceSettingsPage() {
               </div>
               <div className="flex items-center gap-2">
                 {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  <Loader2 className="h-4 w-4 animate-spin text-fg-faint" />
                 ) : (
-                  <span className="rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                  <span className="rounded bg-success-bg px-2 py-0.5 text-xs font-medium text-success-fg">
                     {activeApiKeys.length} active
                   </span>
                 )}
@@ -404,7 +406,7 @@ export function WorkspaceSettingsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] border-collapse text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <tr className="border-b border-line-subtle bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                       <th className="px-4 py-2">Key</th>
                       <th className="px-4 py-2">Role</th>
                       <th className="px-4 py-2">Scope</th>
@@ -418,7 +420,7 @@ export function WorkspaceSettingsPage() {
                       <tr>
                         <td
                           colSpan={6}
-                          className="px-4 py-8 text-center text-sm text-gray-500"
+                          className="px-4 py-8 text-center text-sm text-fg-subtle"
                         >
                           No API keys for this workspace yet.
                         </td>
@@ -440,35 +442,35 @@ export function WorkspaceSettingsPage() {
                         return (
                           <tr
                             key={key.id}
-                            className="border-b border-gray-100 last:border-0"
+                            className="border-b border-line-subtle last:border-0"
                           >
                             <td className="px-4 py-3">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-fg">
                                 {key.name}
                               </div>
-                              <div className="mt-1 font-mono text-xs text-gray-500">
+                              <div className="mt-1 font-mono text-xs text-fg-subtle">
                                 {key.keyPrefix}...
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">
+                              <span className="rounded bg-surface-subtle px-2 py-1 text-xs font-medium text-fg-secondary">
                                 {roleLabel(key.role)}
                               </span>
                             </td>
-                            <td className="max-w-64 px-4 py-3 text-gray-600">
+                            <td className="max-w-64 px-4 py-3 text-fg-muted">
                               <div className="truncate" title={scopedNames}>
                                 {scopedNames || 'No logics selected'}
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-gray-500">
+                            <td className="px-4 py-3 text-fg-subtle">
                               {formatRelativeUse(key.lastUsedAt)}
                             </td>
                             <td className="px-4 py-3">
                               <span
                                 className={`rounded px-2 py-1 text-xs font-medium ${
                                   status === 'Active'
-                                    ? 'bg-emerald-50 text-emerald-700'
-                                    : 'bg-gray-100 text-gray-500'
+                                    ? 'bg-success-bg text-success-fg'
+                                    : 'bg-surface-subtle text-fg-subtle'
                                 }`}
                               >
                                 {status}
@@ -479,7 +481,7 @@ export function WorkspaceSettingsPage() {
                                 type="button"
                                 onClick={() => void handleRevokeApiKey(key)}
                                 disabled={status !== 'Active'}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded border border-gray-200 text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:border-danger-border hover:bg-danger-bg hover:text-danger-fg disabled:cursor-not-allowed disabled:opacity-40"
                                 aria-label={`Revoke API key ${key.name}`}
                               >
                                 <Ban className="h-4 w-4" />
@@ -495,17 +497,15 @@ export function WorkspaceSettingsPage() {
 
               <form
                 onSubmit={handleIssueApiKey}
-                className="border-t border-gray-100 p-4 lg:border-l lg:border-t-0"
+                className="border-t border-line-subtle p-4 lg:border-l lg:border-t-0"
               >
                 <div className="mb-4 flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    Issue key
-                  </h3>
+                  <SlidersHorizontal className="h-4 w-4 text-fg-faint" />
+                  <h3 className="text-sm font-semibold text-fg">Issue key</h3>
                 </div>
                 <div className="space-y-3">
                   <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       Name
                     </span>
                     <input
@@ -513,11 +513,11 @@ export function WorkspaceSettingsPage() {
                       onChange={(event) => setApiKeyName(event.target.value)}
                       placeholder="Production MCP"
                       required
-                      className="h-10 w-full rounded border border-gray-200 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                      className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       Role
                     </span>
                     <select
@@ -525,7 +525,7 @@ export function WorkspaceSettingsPage() {
                       onChange={(event) =>
                         setApiKeyRole(event.target.value as CloudApiKeyRole)
                       }
-                      className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                      className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     >
                       {apiKeyRoles.map((candidateRole) => (
                         <option key={candidateRole} value={candidateRole}>
@@ -536,10 +536,10 @@ export function WorkspaceSettingsPage() {
                   </label>
 
                   <div>
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       Scope
                     </span>
-                    <div className="grid grid-cols-2 overflow-hidden rounded border border-gray-200">
+                    <div className="grid grid-cols-2 overflow-hidden rounded border border-line">
                       {(['all', 'allowlist'] as const).map((mode) => (
                         <button
                           key={mode}
@@ -547,8 +547,8 @@ export function WorkspaceSettingsPage() {
                           onClick={() => setApiKeyScopeMode(mode)}
                           className={`h-9 text-xs font-medium ${
                             apiKeyScopeMode === mode
-                              ? 'bg-violet-600 text-white'
-                              : 'bg-white text-gray-600 hover:bg-gray-50'
+                              ? 'bg-brand text-white'
+                              : 'bg-surface text-fg-muted hover:bg-surface-muted'
                           }`}
                         >
                           {mode === 'all' ? 'All logics' : 'Pick logics'}
@@ -559,12 +559,12 @@ export function WorkspaceSettingsPage() {
 
                   {apiKeyScopeMode === 'allowlist' ? (
                     <div>
-                      <span className="mb-1 block text-xs font-medium text-gray-600">
+                      <span className="mb-1 block text-xs font-medium text-fg-muted">
                         Allowed logics
                       </span>
-                      <div className="max-h-40 overflow-auto rounded border border-gray-200">
+                      <div className="max-h-40 overflow-auto rounded border border-line">
                         {workspaceLogics.length === 0 ? (
-                          <div className="px-3 py-4 text-sm text-gray-500">
+                          <div className="px-3 py-4 text-sm text-fg-subtle">
                             Publish or create a logic in this workspace before
                             using an allow-list.
                           </div>
@@ -572,7 +572,7 @@ export function WorkspaceSettingsPage() {
                           workspaceLogics.map((logic) => (
                             <label
                               key={logic.id}
-                              className="flex items-start gap-2 border-b border-gray-100 px-3 py-2 text-sm last:border-0"
+                              className="flex items-start gap-2 border-b border-line-subtle px-3 py-2 text-sm last:border-0"
                             >
                               <input
                                 type="checkbox"
@@ -586,10 +586,10 @@ export function WorkspaceSettingsPage() {
                                 className="mt-1"
                               />
                               <span className="min-w-0">
-                                <span className="block truncate font-medium text-gray-800">
+                                <span className="block truncate font-medium text-fg-secondary">
                                   {logic.name}
                                 </span>
-                                <span className="block truncate text-xs text-gray-500">
+                                <span className="block truncate text-xs text-fg-subtle">
                                   {logic.slug}
                                 </span>
                               </span>
@@ -603,7 +603,7 @@ export function WorkspaceSettingsPage() {
                   <button
                     type="submit"
                     disabled={issuingApiKey || !selectedWorkspace}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-gray-950 px-3 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-ink px-3 text-sm font-medium text-white hover:bg-ink disabled:opacity-50"
                   >
                     {issuingApiKey ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -620,31 +620,31 @@ export function WorkspaceSettingsPage() {
       </main>
 
       {oneTimeSecret ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/50 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4">
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="api-key-secret-title"
-            className="w-full max-w-lg rounded border border-gray-200 bg-white shadow-xl"
+            className="w-full max-w-lg rounded border border-line bg-surface shadow-xl"
           >
-            <div className="border-b border-gray-100 px-5 py-4">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-amber-200 bg-amber-50 text-amber-700">
+            <div className="border-b border-line-subtle px-5 py-4">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-warning-border bg-warning-bg text-warning-fg">
                 <Clipboard className="h-5 w-5" />
               </div>
               <h2
                 id="api-key-secret-title"
-                className="text-lg font-semibold text-gray-950"
+                className="text-lg font-semibold text-fg"
               >
                 Save this API key now
               </h2>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
+              <p className="mt-2 text-sm leading-6 text-fg-muted">
                 This is the only time the full key for {oneTimeSecret.name} will
                 be shown.
               </p>
             </div>
             <div className="space-y-4 px-5 py-4">
-              <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                <div className="break-all font-mono text-sm leading-6 text-gray-900">
+              <div className="rounded border border-line bg-surface-muted p-3">
+                <div className="break-all font-mono text-sm leading-6 text-fg">
                   {oneTimeSecret.secret}
                 </div>
               </div>
@@ -652,14 +652,14 @@ export function WorkspaceSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setOneTimeSecret(null)}
-                  className="inline-flex h-10 items-center justify-center rounded border border-gray-200 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="inline-flex h-10 items-center justify-center rounded border border-line px-4 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
                 >
                   Done
                 </button>
                 <button
                   type="button"
                   onClick={() => void handleCopySecret()}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded bg-violet-600 px-4 text-sm font-medium text-white hover:bg-violet-700"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded bg-brand px-4 text-sm font-medium text-white hover:bg-brand-strong"
                 >
                   {copiedSecret ? (
                     <Check className="h-4 w-4" />

@@ -41,8 +41,8 @@ export function ColumnHeader({ tableId, colId, fieldId }: Props) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        'border-b border-r border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium min-w-40',
-        isDragging && 'bg-violet-50',
+        'border-b border-r border-line bg-surface-subtle px-2 py-1 text-xs font-medium min-w-40',
+        isDragging && 'bg-brand-subtle',
       )}
     >
       <div className="flex items-center gap-1">
@@ -61,7 +61,7 @@ export function ColumnHeader({ tableId, colId, fieldId }: Props) {
           data-tour-target="condition-field-select"
           value={fieldId ?? ''}
           onChange={(e) => setColField(tableId, colId, e.target.value || null)}
-          className="flex-1 min-w-0 text-xs border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-400 bg-white"
+          className="flex-1 min-w-0 text-xs border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-brand-ring bg-surface"
         >
           <option value="">{t.noFieldSelected}</option>
           {fields.map((f) => (

@@ -9,6 +9,7 @@ import {
 import { type FormEvent, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import {
   loadFromStorage,
   stashDraftForMigration,
@@ -126,25 +127,28 @@ export function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-surface-muted text-fg">
       <Toaster position="top-right" richColors />
-      <header className="flex h-14 items-center justify-between border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white px-4">
+      <header className="flex h-14 items-center justify-between border-b border-brand-border bg-gradient-to-r from-brand-subtle to-surface px-4">
         <img src={logoUrl} alt="LEVERIE" className="h-9" />
-        <div className="inline-flex items-center gap-2 text-xs font-medium text-gray-500">
-          <LockKeyhole className="h-4 w-4" />
-          Cloud workspace
+        <div className="inline-flex items-center gap-3">
+          <div className="inline-flex items-center gap-2 text-xs font-medium text-fg-subtle">
+            <LockKeyhole className="h-4 w-4" />
+            Cloud workspace
+          </div>
+          <ThemeToggle />
         </div>
       </header>
 
       <main className="mx-auto grid min-h-[calc(100vh-3.5rem)] max-w-5xl grid-cols-1 items-center gap-8 px-5 py-10 md:grid-cols-[1fr_360px]">
         <section>
-          <div className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-emerald-700">
+          <div className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded border border-brand-border bg-brand-subtle text-brand-fg">
             <Cloud className="h-5 w-5" />
           </div>
-          <h1 className="max-w-2xl text-4xl font-semibold tracking-normal text-gray-950">
+          <h1 className="max-w-2xl text-4xl font-semibold tracking-normal text-fg">
             Sign in to edit decision logic in LEVERIE.
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-7 text-gray-600">
+          <p className="mt-4 max-w-xl text-base leading-7 text-fg-muted">
             Drafts, versions, and production publishes now live in your cloud
             workspace. You can also continue without signing in for a local
             browser-only session.
@@ -157,41 +161,41 @@ export function AuthPage() {
             ].map(([title, body]) => (
               <div
                 key={title}
-                className="rounded border border-gray-200 bg-white p-3"
+                className="rounded border border-line bg-surface p-3"
               >
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <Table2 className="h-4 w-4 text-violet-600" />
+                <div className="flex items-center gap-2 text-sm font-semibold text-fg-secondary">
+                  <Table2 className="h-4 w-4 text-brand-fg" />
                   {title}
                 </div>
-                <p className="mt-2 text-xs leading-5 text-gray-500">{body}</p>
+                <p className="mt-2 text-xs leading-5 text-fg-subtle">{body}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="rounded border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded border border-line bg-surface p-5 shadow-sm">
           {pendingVerification ? (
             <div>
-              <div className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-emerald-700">
+              <div className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded border border-success-border bg-success-bg text-success-fg">
                 <MailCheck className="h-5 w-5" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-fg">
                 {pendingVerification.reason === 'sign-up'
                   ? 'Confirm your email'
                   : 'Email not verified yet'}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
+              <p className="mt-2 text-sm leading-6 text-fg-muted">
                 {pendingVerification.reason === 'sign-up'
                   ? 'We sent a verification link to '
                   : 'You need to verify your email before signing in. We can resend the link to '}
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-fg">
                   {pendingVerification.email}
                 </span>
                 {pendingVerification.reason === 'sign-up'
                   ? '. Click it to finish creating your account.'
                   : '.'}
               </p>
-              <p className="mt-2 text-xs leading-5 text-gray-500">
+              <p className="mt-2 text-xs leading-5 text-fg-subtle">
                 Can't find it? Check your spam folder, or resend below. The link
                 expires in 1 hour.
               </p>
@@ -199,14 +203,14 @@ export function AuthPage() {
                 type="button"
                 onClick={handleResend}
                 disabled={resending}
-                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
               >
                 {resending ? 'Sending…' : 'Resend verification email'}
               </button>
               <button
                 type="button"
                 onClick={handleUseDifferentAccount}
-                className="mt-2 h-9 w-full rounded border border-gray-200 px-3 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                className="mt-2 h-9 w-full rounded border border-line px-3 text-sm font-medium text-fg-muted hover:bg-surface-muted"
               >
                 Use a different email
               </button>
@@ -214,10 +218,10 @@ export function AuthPage() {
           ) : (
             <>
               <div className="mb-5">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-fg">
                   {isSignUp ? 'Create account' : 'Sign in'}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-fg-subtle">
                   Use email and password to continue.
                 </p>
               </div>
@@ -225,18 +229,18 @@ export function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-3">
                 {isSignUp ? (
                   <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       Name
                     </span>
                     <input
                       value={name}
                       onChange={(event) => setName(event.target.value)}
-                      className="h-10 w-full rounded border border-gray-200 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                      className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     />
                   </label>
                 ) : null}
                 <label className="block">
-                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                  <span className="mb-1 block text-xs font-medium text-fg-muted">
                     Email
                   </span>
                   <input
@@ -244,11 +248,11 @@ export function AuthPage() {
                     onChange={(event) => setEmail(event.target.value)}
                     type="email"
                     required
-                    className="h-10 w-full rounded border border-gray-200 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                  <span className="mb-1 block text-xs font-medium text-fg-muted">
                     Password
                   </span>
                   <input
@@ -256,14 +260,14 @@ export function AuthPage() {
                     onChange={(event) => setPassword(event.target.value)}
                     type="password"
                     required
-                    className="h-10 w-full rounded border border-gray-200 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                   />
                 </label>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
                 >
                   {isSignUp ? 'Create account' : 'Sign in'}
                   <ArrowRight className="h-4 w-4" />
@@ -273,25 +277,25 @@ export function AuthPage() {
               <button
                 type="button"
                 onClick={() => setIsSignUp((value) => !value)}
-                className="mt-4 h-9 w-full rounded border border-gray-200 px-3 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                className="mt-4 h-9 w-full rounded border border-line px-3 text-sm font-medium text-fg-muted hover:bg-surface-muted"
               >
                 {isSignUp ? 'Use an existing account' : 'Create a new account'}
               </button>
 
               <div className="my-4 flex items-center gap-3">
-                <div className="h-px flex-1 bg-gray-200" />
-                <span className="text-xs font-medium text-gray-400">or</span>
-                <div className="h-px flex-1 bg-gray-200" />
+                <div className="h-px flex-1 bg-surface-strong" />
+                <span className="text-xs font-medium text-fg-faint">or</span>
+                <div className="h-px flex-1 bg-surface-strong" />
               </div>
 
               <a
                 href="/local"
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
               >
                 <Monitor className="h-4 w-4" />
                 Use without signing in
               </a>
-              <p className="mt-2 text-xs leading-5 text-gray-500">
+              <p className="mt-2 text-xs leading-5 text-fg-subtle">
                 Local mode saves only in this browser and cannot publish cloud
                 versions.
               </p>

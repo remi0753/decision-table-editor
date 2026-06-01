@@ -10,6 +10,24 @@
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#111827" />
+  <script>
+    // Theme bootstrap — runs before first paint to avoid a flash of the wrong
+    // theme. Reads the saved preference ('light' | 'dark' | 'system'); when it
+    // is 'system' or unset, follows the OS color scheme. Toggles the `dark`
+    // class on <html> (Tailwind's class strategy) and primes the background.
+    (() => {
+      try {
+        const pref = localStorage.getItem('leverie-theme') || 'system';
+        const dark =
+          pref === 'dark' ||
+          (pref !== 'light' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        const root = document.documentElement;
+        if (dark) root.classList.add('dark');
+        root.style.backgroundColor = dark ? '#1a1822' : '#ffffff';
+      } catch {}
+    })();
+  </script>
   <meta name="application-name" content="LEVERIE" />
   <meta name="apple-mobile-web-app-title" content="LEVERIE" />
   <meta

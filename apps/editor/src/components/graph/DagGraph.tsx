@@ -64,10 +64,10 @@ function TableNode({ data }: TableNodeProps) {
         className={cn(
           'px-3 py-2 rounded border-2 text-sm font-medium cursor-pointer select-none w-40 text-center',
           data.isEntry
-            ? 'border-violet-500 bg-violet-50 text-violet-800'
-            : 'border-gray-300 bg-white text-gray-700',
+            ? 'border-brand-border-strong bg-brand-subtle text-brand-fg-strong'
+            : 'border-line-strong bg-surface text-fg-secondary',
           data.isOrphan ? 'opacity-50' : '',
-          data.isSelected ? 'ring-2 ring-violet-400 ring-offset-1' : '',
+          data.isSelected ? 'ring-2 ring-brand-ring ring-offset-1' : '',
         )}
       >
         {data.isEntry && <span className="text-xs mr-1">▶</span>}

@@ -132,20 +132,18 @@ export function RunnerShareDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/30 p-4">
-      <div className="w-full max-w-lg rounded-md border border-gray-200 bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/30 p-4">
+      <div className="w-full max-w-lg rounded-md border border-line bg-surface shadow-xl">
+        <div className="flex items-center justify-between border-b border-line-subtle px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">
-              Share Runner
-            </h2>
-            <p className="mt-0.5 text-xs text-gray-500">{versionLabel}</p>
+            <h2 className="text-sm font-semibold text-fg">Share Runner</h2>
+            <p className="mt-0.5 text-xs text-fg-subtle">{versionLabel}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close share dialog"
-            className="inline-flex h-8 w-8 items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50"
+            className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:bg-surface-muted"
           >
             <X className="h-4 w-4" />
           </button>
@@ -154,7 +152,7 @@ export function RunnerShareDialog({
         <div className="space-y-4 p-4">
           {!version ? (
             <div className="space-y-3">
-              <p className="text-sm leading-6 text-gray-600">
+              <p className="text-sm leading-6 text-fg-muted">
                 Publish this logic to create a fixed Runner URL for viewers and
                 runners.
               </p>
@@ -162,7 +160,7 @@ export function RunnerShareDialog({
                 type="button"
                 onClick={() => void handlePublish()}
                 disabled={publishing}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded bg-success px-3 text-sm font-medium text-white hover:bg-success disabled:opacity-50"
               >
                 {publishing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -175,26 +173,26 @@ export function RunnerShareDialog({
           ) : (
             <>
               <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <div className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
                   Runner URL
                 </div>
                 <div className="flex gap-2">
                   <input
                     value={runnerUrl || 'Generate a URL for this version'}
                     readOnly
-                    className="h-9 min-w-0 flex-1 rounded border border-gray-200 bg-gray-50 px-3 text-sm text-gray-600"
+                    className="h-9 min-w-0 flex-1 rounded border border-line bg-surface-muted px-3 text-sm text-fg-muted"
                   />
                   <button
                     type="button"
                     onClick={() => void copyRunnerUrl()}
                     disabled={loadingUrl}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded border border-line text-fg-muted hover:bg-surface-muted disabled:opacity-50"
                     aria-label="Copy Runner URL"
                   >
                     {loadingUrl ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : copied === 'runner' ? (
-                      <Check className="h-4 w-4 text-emerald-700" />
+                      <Check className="h-4 w-4 text-success-fg" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
@@ -205,7 +203,7 @@ export function RunnerShareDialog({
               <form onSubmit={handleInvite} className="space-y-3">
                 <div className="grid gap-2 sm:grid-cols-[1fr_128px]">
                   <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       Email
                     </span>
                     <input
@@ -213,11 +211,11 @@ export function RunnerShareDialog({
                       onChange={(event) => setEmail(event.target.value)}
                       type="email"
                       required
-                      className="h-9 w-full rounded border border-gray-200 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                      className="h-9 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       Role
                     </span>
                     <select
@@ -225,7 +223,7 @@ export function RunnerShareDialog({
                       onChange={(event) =>
                         setRole(event.target.value as RunnerShareRole)
                       }
-                      className="h-9 w-full rounded border border-gray-200 bg-white px-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                      className="h-9 w-full rounded border border-line bg-surface px-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     >
                       <option value="runner">Runner</option>
                       <option value="viewer">Viewer</option>
@@ -235,7 +233,7 @@ export function RunnerShareDialog({
                 <button
                   type="submit"
                   disabled={sending}
-                  className="inline-flex h-9 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+                  className="inline-flex h-9 w-full items-center justify-center gap-2 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
                 >
                   {sending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -247,15 +245,15 @@ export function RunnerShareDialog({
               </form>
 
               {acceptUrl ? (
-                <div className="flex items-center gap-2 rounded border border-emerald-200 bg-emerald-50 p-2">
-                  <Mail className="h-4 w-4 shrink-0 text-emerald-700" />
-                  <div className="min-w-0 flex-1 truncate text-xs text-emerald-900">
+                <div className="flex items-center gap-2 rounded border border-success-border bg-success-bg p-2">
+                  <Mail className="h-4 w-4 shrink-0 text-success-fg" />
+                  <div className="min-w-0 flex-1 truncate text-xs text-success-fg">
                     {acceptUrl}
                   </div>
                   <button
                     type="button"
                     onClick={() => void copyInviteUrl()}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded border border-success-border bg-surface text-success-fg hover:bg-success-bg"
                     aria-label="Copy invitation link"
                   >
                     {copied === 'invite' ? (

@@ -44,24 +44,24 @@ export function TableHeaderMenu({ tableId }: Props) {
           <DropdownMenu.Content
             align="end"
             sideOffset={4}
-            className="min-w-[180px] bg-white border border-gray-200 rounded-md shadow-lg p-1 z-50"
+            className="min-w-[180px] bg-surface border border-line rounded-md shadow-lg p-1 z-50"
           >
             <DropdownMenu.Item
               disabled={isEntry}
               onSelect={() => setEntryTable(tableId)}
-              className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 rounded cursor-pointer outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800 data-[disabled]:text-gray-300 data-[disabled]:cursor-not-allowed data-[disabled]:data-[highlighted]:bg-transparent"
+              className="flex items-center gap-2 px-2 py-1.5 text-sm text-fg-secondary rounded cursor-pointer outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong data-[disabled]:text-fg-faint data-[disabled]:cursor-not-allowed data-[disabled]:data-[highlighted]:bg-transparent"
             >
               <LogIn size={14} />
               <span>{t.setEntry}</span>
             </DropdownMenu.Item>
-            <DropdownMenu.Separator className="my-1 h-px bg-gray-100" />
+            <DropdownMenu.Separator className="my-1 h-px bg-surface-subtle" />
             <DropdownMenu.Item
               disabled={!canDeleteAllRows}
               onSelect={(e) => {
                 e.preventDefault();
                 setConfirmOpen(true);
               }}
-              className="flex items-center gap-2 px-2 py-1.5 text-sm text-red-600 rounded cursor-pointer outline-none data-[highlighted]:bg-red-50 data-[disabled]:text-gray-300 data-[disabled]:cursor-not-allowed data-[disabled]:data-[highlighted]:bg-transparent"
+              className="flex items-center gap-2 px-2 py-1.5 text-sm text-danger-fg rounded cursor-pointer outline-none data-[highlighted]:bg-danger-bg data-[disabled]:text-fg-faint data-[disabled]:cursor-not-allowed data-[disabled]:data-[highlighted]:bg-transparent"
             >
               <Trash2 size={14} />
               <span>{t.deleteAllRows}</span>

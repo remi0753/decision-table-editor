@@ -85,14 +85,14 @@ export function ApiUsageDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/30 p-4">
-      <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-xl flex-col rounded-md border border-gray-200 bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/30 p-4">
+      <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-xl flex-col rounded-md border border-line bg-surface shadow-xl">
+        <div className="flex items-center justify-between border-b border-line-subtle px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">
+            <h2 className="text-sm font-semibold text-fg">
               Use this logic via API
             </h2>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="mt-0.5 text-xs text-fg-subtle">
               Call <span className="font-medium">{logic.name}</span> from your
               backend, automation, or agent.
             </p>
@@ -101,7 +101,7 @@ export function ApiUsageDialog({
             type="button"
             onClick={onClose}
             aria-label="Close API dialog"
-            className="inline-flex h-8 w-8 items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50"
+            className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:bg-surface-muted"
           >
             <X className="h-4 w-4" />
           </button>
@@ -109,7 +109,7 @@ export function ApiUsageDialog({
 
         {!hasVersion ? (
           <div className="space-y-3 p-4">
-            <p className="text-sm leading-6 text-gray-600">
+            <p className="text-sm leading-6 text-fg-muted">
               Publish this logic to call it via the API. Only published versions
               can be evaluated.
             </p>
@@ -117,7 +117,7 @@ export function ApiUsageDialog({
               type="button"
               onClick={() => void handlePublish()}
               disabled={publishing}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded bg-success px-3 text-sm font-medium text-white hover:bg-success disabled:opacity-50"
             >
               {publishing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -129,14 +129,14 @@ export function ApiUsageDialog({
           </div>
         ) : (
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-            <div className="flex items-center gap-2 rounded border border-amber-200 bg-amber-50 px-3 py-2">
-              <KeyRound className="h-4 w-4 shrink-0 text-amber-700" />
-              <p className="min-w-0 flex-1 text-xs leading-5 text-amber-900">
+            <div className="flex items-center gap-2 rounded border border-warning-border bg-warning-bg px-3 py-2">
+              <KeyRound className="h-4 w-4 shrink-0 text-warning-fg" />
+              <p className="min-w-0 flex-1 text-xs leading-5 text-warning-fg">
                 Replace <code className="font-mono">$LEVERIE_API_KEY</code> with
                 a key for this workspace.{' '}
                 <a
                   href="/settings/workspace"
-                  className="font-medium underline hover:text-amber-950"
+                  className="font-medium underline hover:text-warning-fg"
                 >
                   Create a key in Workspace settings
                 </a>
@@ -146,21 +146,21 @@ export function ApiUsageDialog({
 
             {fields.length > 0 ? (
               <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <div className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
                   Input fields
                 </div>
-                <div className="overflow-hidden rounded border border-gray-200">
+                <div className="overflow-hidden rounded border border-line">
                   {fields.map((field, i) => (
                     <div
                       key={field.name}
                       className={`flex items-baseline gap-3 px-3 py-1.5 text-xs ${
-                        i % 2 === 1 ? 'bg-gray-50' : 'bg-white'
+                        i % 2 === 1 ? 'bg-surface-muted' : 'bg-surface'
                       }`}
                     >
-                      <span className="font-mono font-medium text-gray-800">
+                      <span className="font-mono font-medium text-fg-secondary">
                         {field.name}
                       </span>
-                      <span className="min-w-0 truncate text-gray-500">
+                      <span className="min-w-0 truncate text-fg-subtle">
                         {field.typeLabel}
                       </span>
                     </div>
@@ -168,7 +168,7 @@ export function ApiUsageDialog({
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-fg-subtle">
                 This logic has no input fields. Send an empty{' '}
                 <code className="font-mono">inputs</code> object.
               </p>
@@ -184,8 +184,8 @@ export function ApiUsageDialog({
                       onClick={() => setLang(option.id)}
                       className={`h-7 rounded px-2.5 text-xs font-medium ${
                         lang === option.id
-                          ? 'bg-violet-600 text-white'
-                          : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                          ? 'bg-brand text-white'
+                          : 'border border-line bg-surface text-fg-muted hover:bg-surface-muted'
                       }`}
                     >
                       {option.label}
@@ -199,7 +199,7 @@ export function ApiUsageDialog({
                       setVersion(event.target.value as VersionTarget)
                     }
                     aria-label="Version"
-                    className="h-7 rounded border border-gray-200 bg-white px-1.5 text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    className="h-7 rounded border border-line bg-surface px-1.5 text-xs text-fg-muted focus:outline-none focus:ring-1 focus:ring-brand-ring"
                   >
                     {productionVersion ? (
                       <option value="production">
@@ -216,17 +216,17 @@ export function ApiUsageDialog({
               </div>
 
               <div className="relative">
-                <pre className="max-h-72 overflow-auto rounded border border-gray-200 bg-gray-900 p-3 pr-12 text-xs leading-5 text-gray-100">
+                <pre className="max-h-72 overflow-auto rounded border border-line bg-ink p-3 pr-12 text-xs leading-5 text-fg-faint">
                   <code>{snippet}</code>
                 </pre>
                 <button
                   type="button"
                   onClick={() => void copySnippet()}
                   aria-label="Copy snippet"
-                  className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded border border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700"
+                  className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded border border-line-strong bg-ink text-fg-faint hover:bg-ink"
                 >
                   {copied ? (
-                    <Check className="h-4 w-4 text-emerald-400" />
+                    <Check className="h-4 w-4 text-success" />
                   ) : (
                     <Copy className="h-4 w-4" />
                   )}
@@ -234,7 +234,7 @@ export function ApiUsageDialog({
               </div>
 
               {lang === 'mcp' ? (
-                <p className="text-xs leading-5 text-gray-500">
+                <p className="text-xs leading-5 text-fg-subtle">
                   MCP <code className="font-mono">tools/call</code> always
                   evaluates the production snapshot.
                 </p>

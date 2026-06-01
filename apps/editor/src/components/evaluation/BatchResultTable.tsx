@@ -48,20 +48,20 @@ export function BatchResultTable({ results, logic, onInspect }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-        <span className="text-gray-600">{t.totalCases(totalCount)}</span>
-        <span className="text-green-600">{t.matchedCases(matchCount)}</span>
+        <span className="text-fg-muted">{t.totalCases(totalCount)}</span>
+        <span className="text-success-fg">{t.matchedCases(matchCount)}</span>
         {noMatchCount > 0 && (
-          <span className="text-red-500">{t.noMatchCases(noMatchCount)}</span>
+          <span className="text-danger-fg">{t.noMatchCases(noMatchCount)}</span>
         )}
         {withExpected.length > 0 && (
           <>
-            <span className="text-gray-400">|</span>
-            <span className="text-gray-600">
+            <span className="text-fg-faint">|</span>
+            <span className="text-fg-muted">
               {t.withExpected(withExpected.length)}
             </span>
-            <span className="text-green-600">Pass {passCount}</span>
+            <span className="text-success-fg">Pass {passCount}</span>
             {failCount > 0 && (
-              <span className="text-red-500">Fail {failCount}</span>
+              <span className="text-danger-fg">Fail {failCount}</span>
             )}
           </>
         )}
@@ -70,7 +70,7 @@ export function BatchResultTable({ results, logic, onInspect }: Props) {
       <div className="border rounded overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 text-gray-500 text-xs">
+            <tr className="bg-surface-muted text-fg-subtle text-xs">
               <th className="px-2 py-1.5 text-left w-6"></th>
               <th className="px-2 py-1.5 text-left w-8">#</th>
               <th className="px-2 py-1.5 text-left">{t.caseName}</th>
@@ -86,37 +86,39 @@ export function BatchResultTable({ results, logic, onInspect }: Props) {
                 <Fragment key={r.batchCase.name}>
                   <tr
                     onClick={() => toggle(i)}
-                    className={`cursor-pointer hover:bg-gray-50 border-t ${
-                      isFail ? 'bg-red-50/40' : ''
+                    className={`cursor-pointer hover:bg-surface-muted border-t ${
+                      isFail ? 'bg-danger-bg/40' : ''
                     }`}
                   >
-                    <td className="px-2 py-1.5 text-gray-400">
+                    <td className="px-2 py-1.5 text-fg-faint">
                       {expandedIndex === i ? (
                         <ChevronDown size={12} />
                       ) : (
                         <ChevronRight size={12} />
                       )}
                     </td>
-                    <td className="px-2 py-1.5 text-gray-400">{i + 1}</td>
-                    <td className="px-2 py-1.5 text-gray-800">
+                    <td className="px-2 py-1.5 text-fg-faint">{i + 1}</td>
+                    <td className="px-2 py-1.5 text-fg-secondary">
                       {r.batchCase.name}
                     </td>
                     <td className="px-2 py-1.5">
                       {r.result.status === 'ok' ? (
-                        <span className="text-green-600">
+                        <span className="text-success-fg">
                           {t.matchedResult}
                         </span>
                       ) : (
-                        <span className="text-red-500">{t.noMatchResult}</span>
+                        <span className="text-danger-fg">
+                          {t.noMatchResult}
+                        </span>
                       )}
                     </td>
                     <td className="px-2 py-1.5">
                       {r.pass === null ? (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-fg-faint">-</span>
                       ) : r.pass ? (
-                        <span className="text-green-600">✓ Pass</span>
+                        <span className="text-success-fg">✓ Pass</span>
                       ) : (
-                        <span className="text-red-500">✗ Fail</span>
+                        <span className="text-danger-fg">✗ Fail</span>
                       )}
                     </td>
                     <td className="px-2 py-1.5 text-right">
@@ -129,8 +131,8 @@ export function BatchResultTable({ results, logic, onInspect }: Props) {
                           }}
                           className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border transition-colors ${
                             isFail
-                              ? 'border-red-200 text-red-600 hover:bg-red-100'
-                              : 'border-gray-200 text-gray-500 hover:bg-gray-100'
+                              ? 'border-danger-border text-danger-fg hover:bg-danger-bg'
+                              : 'border-line text-fg-subtle hover:bg-surface-subtle'
                           }`}
                           aria-label={t.inspectInEditor}
                         >
@@ -142,8 +144,11 @@ export function BatchResultTable({ results, logic, onInspect }: Props) {
                   </tr>
                   {expandedIndex === i && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-3 bg-gray-50 border-t">
-                        <div className="text-xs text-gray-500 mb-2">
+                      <td
+                        colSpan={6}
+                        className="px-4 py-3 bg-surface-muted border-t"
+                      >
+                        <div className="text-xs text-fg-subtle mb-2">
                           {isFail
                             ? r.result.status === 'no_match'
                               ? t.inspectInEditorFailHint
@@ -164,7 +169,7 @@ export function BatchResultTable({ results, logic, onInspect }: Props) {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-gray-400">{t.clickForTrace}</p>
+      <p className="text-xs text-fg-faint">{t.clickForTrace}</p>
     </div>
   );
 }

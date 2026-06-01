@@ -53,7 +53,7 @@ export function LogicRunner({
         <button
           type="button"
           onClick={handleRun}
-          className="flex items-center gap-1 rounded bg-violet-600 px-3 py-1.5 text-sm text-white hover:bg-violet-700"
+          className="flex items-center gap-1 rounded bg-brand px-3 py-1.5 text-sm text-white hover:bg-brand-strong"
         >
           <PlayIcon />
           {runLabel ?? 'Evaluate'}
@@ -61,7 +61,7 @@ export function LogicRunner({
         <button
           type="button"
           onClick={handleReset}
-          className="flex items-center gap-1 rounded border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+          className="flex items-center gap-1 rounded border px-3 py-1.5 text-sm text-fg-muted hover:bg-surface-muted"
         >
           <RotateCcwIcon />
           {resetLabel ?? 'Reset'}
@@ -69,7 +69,7 @@ export function LogicRunner({
       </div>
       {result && (
         <div className="border-t pt-4">
-          <div className="text-xs font-medium text-gray-500 mb-2">
+          <div className="text-xs font-medium text-fg-subtle mb-2">
             {t.traceLabel}
           </div>
           <TraceView result={result} logic={logic} translations={t} />

@@ -39,7 +39,7 @@ export function LogicDescriptionField() {
       <div className="mb-1 flex items-center justify-between gap-2">
         <label
           htmlFor="logic-description"
-          className="text-xs font-medium tracking-wide text-gray-400"
+          className="text-xs font-medium tracking-wide text-fg-faint"
         >
           {t.logicDescriptionLabel}
         </label>
@@ -47,7 +47,7 @@ export function LogicDescriptionField() {
           <span
             className={cn(
               'text-[10px] tabular-nums',
-              remaining <= 40 ? 'text-amber-600' : 'text-gray-400',
+              remaining <= 40 ? 'text-warning-fg' : 'text-fg-faint',
             )}
           >
             {draft.length}/{MAX_DESCRIPTION_LENGTH}
@@ -80,7 +80,7 @@ export function LogicDescriptionField() {
         }}
         placeholder={t.logicDescriptionPlaceholder}
         className={cn(
-          'block max-h-36 min-h-[3.25rem] w-full resize-none rounded border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs leading-5 text-gray-700 placeholder:text-gray-400 hover:border-violet-200 hover:bg-white focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-violet-300',
+          'block max-h-36 min-h-[3.25rem] w-full resize-none rounded border border-line bg-surface-muted px-2 py-1.5 text-xs leading-5 text-fg-secondary placeholder:text-fg-faint hover:border-brand-border hover:bg-surface focus:border-brand-border-strong focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand-ring',
           focused ? 'overflow-y-auto' : 'overflow-hidden',
         )}
       />

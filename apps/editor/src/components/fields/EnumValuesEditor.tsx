@@ -47,7 +47,7 @@ export function EnumValuesEditor({ fieldId, enumValues }: Props) {
       {enumValues.map((v) => (
         <span
           key={v}
-          className="inline-flex items-center gap-0.5 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5 text-xs"
+          className="inline-flex items-center gap-0.5 bg-brand-subtle border border-brand-border rounded px-1.5 py-0.5 text-xs"
         >
           {/* biome-ignore lint/a11y/useSemanticElements: contentEditable span is intentional for inline tag editing */}
           <span
@@ -70,7 +70,7 @@ export function EnumValuesEditor({ fieldId, enumValues }: Props) {
           <button
             type="button"
             onClick={() => handleDelete(v)}
-            className="text-gray-400 hover:text-red-500 ml-0.5"
+            className="text-fg-faint hover:text-danger-fg ml-0.5"
           >
             <X size={10} />
           </button>
@@ -84,12 +84,12 @@ export function EnumValuesEditor({ fieldId, enumValues }: Props) {
           if (e.key === 'Enter') handleAdd();
         }}
         placeholder={t.enumAddPlaceholder}
-        className="border rounded px-1.5 py-0.5 text-xs w-20 focus:outline-none focus:ring-1 focus:ring-violet-400"
+        className="border rounded px-1.5 py-0.5 text-xs w-20 focus:outline-none focus:ring-1 focus:ring-brand-ring"
       />
       <button
         type="button"
         onClick={handleAdd}
-        className="text-xs text-violet-600 hover:underline"
+        className="text-xs text-brand-fg hover:underline"
       >
         ＋
       </button>

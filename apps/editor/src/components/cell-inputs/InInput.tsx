@@ -23,13 +23,13 @@ export function TagInput({ values, onChange }: TagInputProps) {
       {values.map((v) => (
         <span
           key={v}
-          className="inline-flex items-center gap-0.5 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5 text-xs"
+          className="inline-flex items-center gap-0.5 bg-brand-subtle border border-brand-border rounded px-1.5 py-0.5 text-xs"
         >
           {v}
           <button
             type="button"
             onClick={() => onChange(values.filter((x) => x !== v))}
-            className="text-gray-400 hover:text-red-500"
+            className="text-fg-faint hover:text-danger-fg"
           >
             <X size={10} />
           </button>

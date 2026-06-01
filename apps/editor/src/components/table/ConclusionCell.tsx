@@ -98,10 +98,10 @@ export function ConclusionCell({
             }
           }}
           className={cn(
-            'w-full h-full px-2 py-1 text-left text-xs hover:bg-gray-50 transition-colors',
+            'w-full h-full px-2 py-1 text-left text-xs hover:bg-surface-muted transition-colors',
             conclusion.type === 'continue'
-              ? 'text-purple-700'
-              : 'text-gray-700',
+              ? 'text-brand-fg'
+              : 'text-fg-secondary',
           )}
         >
           {summaryText()}
@@ -109,7 +109,7 @@ export function ConclusionCell({
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          className="bg-white border rounded-lg shadow-lg p-4 w-80 z-50"
+          className="bg-surface border rounded-lg shadow-lg p-4 w-80 z-50"
           sideOffset={4}
         >
           <div className="space-y-3">
@@ -138,7 +138,7 @@ export function ConclusionCell({
                   <div key={oc.id}>
                     <label
                       htmlFor={oc.id}
-                      className="text-xs text-gray-500 block mb-0.5"
+                      className="text-xs text-fg-subtle block mb-0.5"
                     >
                       {oc.name}
                     </label>
@@ -148,7 +148,7 @@ export function ConclusionCell({
                       onChange={(e) =>
                         setOutputs((p) => ({ ...p, [oc.id]: e.target.value }))
                       }
-                      className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+                      className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                       placeholder={t.outputPlaceholder}
                     />
                   </div>
@@ -160,7 +160,7 @@ export function ConclusionCell({
               <div>
                 <label
                   htmlFor="conclusion-ref-table"
-                  className="text-xs text-gray-500 block mb-0.5"
+                  className="text-xs text-fg-subtle block mb-0.5"
                 >
                   {t.refTable}
                 </label>
@@ -168,7 +168,7 @@ export function ConclusionCell({
                   id="conclusion-ref-table"
                   value={targetTableId}
                   onChange={(e) => setTargetTableId(e.target.value)}
-                  className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+                  className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                 >
                   <option value="">{t.pleaseSelect}</option>
                   {tables.map((tb) => {
@@ -187,12 +187,12 @@ export function ConclusionCell({
               type="button"
               onClick={handleSave}
               disabled={type === 'continue' && !targetTableId}
-              className="w-full bg-violet-600 text-white text-xs rounded px-3 py-1.5 hover:bg-violet-700 disabled:opacity-50"
+              className="w-full bg-brand text-white text-xs rounded px-3 py-1.5 hover:bg-brand-strong disabled:opacity-50"
             >
               {t.setCell}
             </button>
           </div>
-          <Popover.Arrow className="fill-white stroke-gray-200" />
+          <Popover.Arrow className="fill-white stroke-line" />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

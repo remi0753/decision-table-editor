@@ -105,35 +105,35 @@ export function FieldsSection() {
   return (
     <div className="py-1">
       {fieldDefs.length === 0 && (
-        <div className="px-3 py-2 text-xs text-gray-400">{t.noFields}</div>
+        <div className="px-3 py-2 text-xs text-fg-faint">{t.noFields}</div>
       )}
       {fieldDefs.map((field) => {
         const isOpen = expanded.has(field.id);
         return (
           <div
             key={field.id}
-            className="border-b border-gray-100 last:border-b-0"
+            className="border-b border-line-subtle last:border-b-0"
           >
-            <div className="flex items-center gap-1 pl-3 pr-3 py-1 group hover:bg-gray-50">
+            <div className="flex items-center gap-1 pl-3 pr-3 py-1 group hover:bg-surface-muted">
               <button
                 type="button"
                 onClick={() => toggleExpanded(field.id)}
                 className="flex items-center gap-1 flex-1 min-w-0 text-left"
               >
                 {isOpen ? (
-                  <ChevronDown size={11} className="shrink-0 text-gray-400" />
+                  <ChevronDown size={11} className="shrink-0 text-fg-faint" />
                 ) : (
-                  <ChevronRight size={11} className="shrink-0 text-gray-400" />
+                  <ChevronRight size={11} className="shrink-0 text-fg-faint" />
                 )}
-                <span className="flex-1 min-w-0 text-sm text-gray-800 truncate">
+                <span className="flex-1 min-w-0 text-sm text-fg-secondary truncate">
                   {field.name}
                 </span>
                 <span
                   className={cn(
                     'shrink-0 w-16 text-center text-[10px] px-1 py-px rounded truncate',
                     field.type === 'enum'
-                      ? 'bg-violet-50 text-violet-600 border border-violet-100'
-                      : 'bg-gray-100 text-gray-500',
+                      ? 'bg-brand-subtle text-brand-fg border border-brand-border-subtle'
+                      : 'bg-surface-subtle text-fg-subtle',
                   )}
                 >
                   {typeLabel(field.type)}
@@ -152,7 +152,7 @@ export function FieldsSection() {
               </IconButton>
             </div>
             {isOpen && (
-              <div className="px-3 pb-2 pt-1 bg-gray-50/50 space-y-1.5">
+              <div className="px-3 pb-2 pt-1 bg-surface-muted/50 space-y-1.5">
                 <InlineEdit
                   value={field.name}
                   onSave={(name) => handleRename(field.id, name)}
@@ -165,7 +165,7 @@ export function FieldsSection() {
                   onChange={(e) =>
                     handleTypeChange(field.id, e.target.value as FieldType)
                   }
-                  className="text-xs border rounded px-1 py-0.5 w-full focus:outline-none focus:ring-1 focus:ring-violet-400"
+                  className="text-xs border rounded px-1 py-0.5 w-full focus:outline-none focus:ring-1 focus:ring-brand-ring"
                 >
                   {fieldTypes.map((ft) => (
                     <option key={ft.value} value={ft.value}>
@@ -187,7 +187,7 @@ export function FieldsSection() {
 
       <div
         data-tour-target="field-add"
-        className="flex items-center gap-1 pl-3 pr-3 py-1.5 border-t bg-gray-50/50"
+        className="flex items-center gap-1 pl-3 pr-3 py-1.5 border-t bg-surface-muted/50"
       >
         <input
           data-tour-target="field-name-input"
@@ -198,13 +198,13 @@ export function FieldsSection() {
             if (e.key === 'Enter') handleAdd();
           }}
           placeholder={t.fieldNamePlaceholder}
-          className="text-xs border rounded px-1.5 py-1 flex-1 min-w-0 focus:outline-none focus:ring-1 focus:ring-violet-400"
+          className="text-xs border rounded px-1.5 py-1 flex-1 min-w-0 focus:outline-none focus:ring-1 focus:ring-brand-ring"
         />
         <select
           data-tour-target="field-type-select"
           value={newType}
           onChange={(e) => setNewType(e.target.value as FieldType)}
-          className="text-xs border rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
+          className="text-xs border rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-brand-ring"
         >
           {fieldTypes.map((ft) => (
             <option key={ft.value} value={ft.value}>
@@ -216,7 +216,7 @@ export function FieldsSection() {
           type="button"
           data-tour-target="field-submit"
           onClick={handleAdd}
-          className="flex items-center text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-1.5 py-1"
+          className="flex items-center text-brand-fg hover:text-brand-fg-strong border border-brand-border-strong rounded px-1.5 py-1"
           title={t.add}
         >
           <Plus size={12} />

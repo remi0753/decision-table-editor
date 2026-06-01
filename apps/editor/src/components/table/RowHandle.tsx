@@ -105,15 +105,15 @@ export function SortableRow({
 
   const bandColor =
     severity === 'error'
-      ? 'bg-red-500'
+      ? 'bg-danger'
       : severity === 'warning'
-        ? 'bg-amber-500'
+        ? 'bg-warning'
         : null;
 
   const stickyBg = cn(
-    'bg-white group-hover:bg-gray-50',
-    isDragging && 'bg-violet-50',
-    highlighted && 'bg-yellow-50',
+    'bg-surface group-hover:bg-surface-muted',
+    isDragging && 'bg-brand-subtle',
+    highlighted && 'bg-warning-bg',
   );
 
   return (
@@ -122,9 +122,9 @@ export function SortableRow({
       data-row-id={row.id}
       style={style}
       className={cn(
-        'group hover:bg-gray-50',
-        isDragging && 'bg-violet-50',
-        highlighted && 'bg-yellow-50',
+        'group hover:bg-surface-muted',
+        isDragging && 'bg-brand-subtle',
+        highlighted && 'bg-warning-bg',
       )}
     >
       <td
@@ -165,13 +165,13 @@ export function SortableRow({
             onClick={handleInsertBelow}
             title={t.insertRowBelow}
             aria-label={t.insertRowBelow}
-            className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-20 opacity-0 group-hover:opacity-100 focus:opacity-100 bg-white border border-violet-300 text-violet-600 rounded-full hover:bg-violet-50 flex items-center justify-center w-4 h-4"
+            className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-20 opacity-0 group-hover:opacity-100 focus:opacity-100 bg-surface border border-brand-border-strong text-brand-fg rounded-full hover:bg-brand-subtle flex items-center justify-center w-4 h-4"
           >
             <Plus size={10} strokeWidth={2.5} />
           </button>
         )}
       </td>
-      <td className="border-b border-r px-2 py-0.5 text-xs text-gray-400 text-center w-10">
+      <td className="border-b border-r px-2 py-0.5 text-xs text-fg-faint text-center w-10">
         {rowIndex + 1}
       </td>
       {table.cols.map((col) => {
@@ -182,7 +182,7 @@ export function SortableRow({
             key={col.id}
             className={cn(
               'border-b border-r p-0 h-8',
-              cellContradicts && 'ring-1 ring-inset ring-red-400 bg-red-50',
+              cellContradicts && 'ring-1 ring-inset ring-danger bg-danger-bg',
             )}
             style={{ width: 160 }}
           >
@@ -259,7 +259,8 @@ function RowWarningIndicator({
 }: RowWarningIndicatorProps) {
   const t = useT();
   const Icon = severity === 'error' ? OctagonAlert : AlertTriangle;
-  const colorClass = severity === 'error' ? 'text-red-500' : 'text-amber-500';
+  const colorClass =
+    severity === 'error' ? 'text-danger-fg' : 'text-warning-fg';
   const label = severity === 'error' ? t.rowErrorLabel : t.rowWarningLabel;
 
   return (
@@ -279,7 +280,7 @@ function RowWarningIndicator({
                 return (
                   <div
                     key={`${pair.fieldId}:${pair.colIdA}:${pair.colIdB}`}
-                    className="text-red-200 mt-0.5"
+                    className="text-danger-fg mt-0.5"
                   >
                     {t.contradictoryRowCellHint(
                       fieldName,

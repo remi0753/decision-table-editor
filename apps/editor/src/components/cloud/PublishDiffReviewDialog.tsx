@@ -25,9 +25,10 @@ type ViewMode = 'map' | 'detail';
 
 function changeTone(kind: RuleDiff['kind']) {
   if (kind === 'added')
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (kind === 'removed') return 'border-red-200 bg-red-50 text-red-700';
-  return 'border-gray-200 bg-gray-50 text-gray-600';
+    return 'border-success-border bg-success-bg text-success-fg';
+  if (kind === 'removed')
+    return 'border-danger-border bg-danger-bg text-danger-fg';
+  return 'border-line bg-surface-muted text-fg-muted';
 }
 
 function ChangeRows({
@@ -40,23 +41,23 @@ function ChangeRows({
   afterLabel: string;
 }) {
   return (
-    <div className="divide-y divide-gray-100 rounded border border-gray-200 bg-white">
+    <div className="divide-y divide-line-subtle rounded border border-line bg-surface">
       {rows.map((row) => (
         <div
           key={`${row.label}:${row.before}:${row.after}`}
           className="grid gap-2 px-3 py-2.5 text-xs sm:grid-cols-[140px_1fr]"
         >
-          <div className="font-medium text-gray-700">{row.label}</div>
+          <div className="font-medium text-fg-secondary">{row.label}</div>
           <div className="grid min-w-0 gap-1.5 sm:grid-cols-[1fr_auto_1fr] sm:items-start">
-            <div className="min-w-0 rounded border border-red-100 bg-red-50 px-2 py-1 text-gray-700">
-              <span className="mr-1 text-[10px] font-medium uppercase text-red-500">
+            <div className="min-w-0 rounded border border-danger-border bg-danger-bg px-2 py-1 text-fg-secondary">
+              <span className="mr-1 text-[10px] font-medium uppercase text-danger-fg">
                 {beforeLabel}
               </span>
               <span className="break-words">{row.before}</span>
             </div>
-            <div className="hidden px-1 pt-1 text-gray-400 sm:block">→</div>
-            <div className="min-w-0 rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-gray-900">
-              <span className="mr-1 text-[10px] font-medium uppercase text-emerald-600">
+            <div className="hidden px-1 pt-1 text-fg-faint sm:block">→</div>
+            <div className="min-w-0 rounded border border-success-border bg-success-bg px-2 py-1 text-fg">
+              <span className="mr-1 text-[10px] font-medium uppercase text-success-fg">
                 {afterLabel}
               </span>
               <span className="break-words font-medium">{row.after}</span>
@@ -80,10 +81,10 @@ function ChangeSection({
   afterLabel: string;
 }) {
   return (
-    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+    <div className="rounded border border-line bg-surface-muted p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-xs font-semibold text-gray-700">{title}</div>
-        <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+        <div className="text-xs font-semibold text-fg-secondary">{title}</div>
+        <span className="rounded bg-surface px-1.5 py-0.5 text-[10px] font-medium text-fg-subtle">
           {rows.length}
         </span>
       </div>
@@ -98,14 +99,14 @@ function ChangeSection({
 
 function StaticRows({ rows }: { rows: CellDiff[] }) {
   return (
-    <div className="divide-y divide-gray-100 rounded border border-gray-200">
+    <div className="divide-y divide-line-subtle rounded border border-line">
       {rows.map((row) => (
         <div
           key={`${row.label}:${row.after}`}
           className="grid gap-2 px-3 py-2 text-xs sm:grid-cols-[150px_1fr]"
         >
-          <div className="font-medium text-gray-700">{row.label}</div>
-          <div className="min-w-0 break-words text-gray-900">{row.after}</div>
+          <div className="font-medium text-fg-secondary">{row.label}</div>
+          <div className="min-w-0 break-words text-fg">{row.after}</div>
         </div>
       ))}
     </div>
@@ -125,11 +126,11 @@ function RuleDiffCard({ diff }: { diff: RuleDiff }) {
   return (
     <section
       id={`rule-${diff.id}`}
-      className="rounded border border-gray-200 bg-white"
+      className="rounded border border-line bg-surface"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 border-b border-line-subtle px-4 py-2.5">
         <div className="min-w-0">
-          <h3 className="truncate text-xs font-medium text-gray-600">
+          <h3 className="truncate text-xs font-medium text-fg-muted">
             {t.publishReviewRuleLabel(diff.tableName, rowNumber)}
           </h3>
         </div>
@@ -144,13 +145,13 @@ function RuleDiffCard({ diff }: { diff: RuleDiff }) {
         {diff.kind === 'added' ? (
           <>
             <div>
-              <div className="mb-2 text-xs font-semibold text-gray-500">
+              <div className="mb-2 text-xs font-semibold text-fg-subtle">
                 {t.publishReviewConditions}
               </div>
               <StaticRows rows={diff.afterConditions} />
             </div>
             <div>
-              <div className="mb-2 text-xs font-semibold text-gray-500">
+              <div className="mb-2 text-xs font-semibold text-fg-subtle">
                 {t.publishReviewResults}
               </div>
               <StaticRows rows={diff.afterResults} />
@@ -161,7 +162,7 @@ function RuleDiffCard({ diff }: { diff: RuleDiff }) {
         {diff.kind === 'removed' ? (
           <>
             <div>
-              <div className="mb-2 text-xs font-semibold text-gray-500">
+              <div className="mb-2 text-xs font-semibold text-fg-subtle">
                 {t.publishReviewConditions}
               </div>
               <StaticRows
@@ -172,7 +173,7 @@ function RuleDiffCard({ diff }: { diff: RuleDiff }) {
               />
             </div>
             <div>
-              <div className="mb-2 text-xs font-semibold text-gray-500">
+              <div className="mb-2 text-xs font-semibold text-fg-subtle">
                 {t.publishReviewResults}
               </div>
               <StaticRows
@@ -188,7 +189,7 @@ function RuleDiffCard({ diff }: { diff: RuleDiff }) {
         {diff.kind === 'changed' ? (
           <>
             {diff.priorityChange ? (
-              <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+              <div className="rounded border border-warning-border bg-warning-bg px-3 py-2 text-xs font-medium text-warning-fg">
                 {t.publishReviewPriorityChanged(
                   diff.priorityChange.before,
                   diff.priorityChange.after,
@@ -240,7 +241,7 @@ function filteredRuleDiffs(summary: LogicDiffSummary, tab: RuleDiffTab) {
 function ChangedTabMeta({ summary }: { summary: LogicDiffSummary }) {
   const t = useT();
   return (
-    <div className="flex flex-wrap gap-2 border-b border-gray-100 bg-gray-50 px-4 py-2">
+    <div className="flex flex-wrap gap-2 border-b border-line-subtle bg-surface-muted px-4 py-2">
       {[
         [t.publishReviewConditionCellChanges, summary.conditionCellChanges],
         [t.publishReviewResultCellChanges, summary.resultCellChanges],
@@ -248,10 +249,10 @@ function ChangedTabMeta({ summary }: { summary: LogicDiffSummary }) {
       ].map(([label, count]) => (
         <span
           key={label}
-          className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-600"
+          className="inline-flex items-center gap-1 rounded border border-line bg-surface px-2 py-1 text-[11px] text-fg-muted"
         >
           <span>{label}</span>
-          <span className="font-semibold text-gray-900">{count}</span>
+          <span className="font-semibold text-fg">{count}</span>
         </span>
       ))}
     </div>
@@ -345,9 +346,9 @@ export function PublishDiffReviewDialog({
     const node = document.getElementById(`rule-${focusRuleId}`);
     if (!node) return;
     node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    node.classList.add('ring-2', 'ring-violet-400');
+    node.classList.add('ring-2', 'ring-brand-ring');
     const timer = window.setTimeout(() => {
-      node.classList.remove('ring-2', 'ring-violet-400');
+      node.classList.remove('ring-2', 'ring-brand-ring');
       setFocusRuleId(null);
     }, 1600);
     return () => window.clearTimeout(timer);
@@ -366,11 +367,11 @@ export function PublishDiffReviewDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/30 p-4">
-      <div className="flex h-[min(760px,calc(100vh-2rem))] w-full max-w-3xl flex-col rounded-md border border-gray-200 bg-white shadow-xl">
-        <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-4 py-3">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/30 p-4">
+      <div className="flex h-[min(760px,calc(100vh-2rem))] w-full max-w-3xl flex-col rounded-md border border-line bg-surface shadow-xl">
+        <div className="flex items-start justify-between gap-4 border-b border-line-subtle px-4 py-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-gray-900">
+            <h2 className="text-sm font-semibold text-fg">
               {t.publishReviewTitle}
             </h2>
           </div>
@@ -378,40 +379,40 @@ export function PublishDiffReviewDialog({
             type="button"
             onClick={onClose}
             aria-label={t.close}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-line text-fg-subtle hover:bg-surface-muted"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden bg-gray-50 p-4">
+        <div className="min-h-0 flex-1 overflow-hidden bg-surface-muted p-4">
           {!hasPreviousVersion ? (
-            <div className="rounded border border-gray-200 bg-white p-4">
-              <h3 className="text-sm font-semibold text-gray-900">
+            <div className="rounded border border-line bg-surface p-4">
+              <h3 className="text-sm font-semibold text-fg">
                 {t.publishReviewFirstPublishTitle}
               </h3>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
+              <p className="mt-2 text-sm leading-6 text-fg-muted">
                 {t.publishReviewFirstPublishDescription}
               </p>
             </div>
           ) : loading ? (
-            <div className="flex items-center gap-2 rounded border border-gray-200 bg-white p-4 text-sm text-gray-600">
+            <div className="flex items-center gap-2 rounded border border-line bg-surface p-4 text-sm text-fg-muted">
               <Loader2 className="h-4 w-4 animate-spin" />
               {t.publishReviewLoading}
             </div>
           ) : error ? (
-            <div className="flex items-start gap-2 rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="flex items-start gap-2 rounded border border-danger-border bg-danger-bg p-4 text-sm text-danger-fg">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           ) : summary ? (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex min-h-0 flex-1 flex-col rounded border border-gray-200 bg-white">
-                <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-2.5">
-                  <h3 className="text-sm font-semibold text-gray-900">
+              <div className="flex min-h-0 flex-1 flex-col rounded border border-line bg-surface">
+                <div className="flex items-center justify-between gap-3 border-b border-line-subtle px-4 py-2.5">
+                  <h3 className="text-sm font-semibold text-fg">
                     {t.publishReviewRuleChanges}
                   </h3>
-                  <div className="inline-flex shrink-0 rounded border border-gray-200 p-0.5">
+                  <div className="inline-flex shrink-0 rounded border border-line p-0.5">
                     {(['map', 'detail'] satisfies ViewMode[]).map((mode) => {
                       const selected = viewMode === mode;
                       return (
@@ -421,8 +422,8 @@ export function PublishDiffReviewDialog({
                           onClick={() => setViewMode(mode)}
                           className={`inline-flex h-7 items-center rounded px-3 text-xs font-medium ${
                             selected
-                              ? 'bg-violet-600 text-white'
-                              : 'text-gray-600 hover:text-gray-900'
+                              ? 'bg-brand text-white'
+                              : 'text-fg-muted hover:text-fg'
                           }`}
                         >
                           {mode === 'map'
@@ -441,7 +442,7 @@ export function PublishDiffReviewDialog({
                   />
                 ) : (
                   <>
-                    <div className="flex gap-1 overflow-x-auto border-b border-gray-100 px-4">
+                    <div className="flex gap-1 overflow-x-auto border-b border-line-subtle px-4">
                       {(
                         [
                           'changed',
@@ -459,12 +460,12 @@ export function PublishDiffReviewDialog({
                             onClick={() => setActiveTab(tab)}
                             className={`inline-flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-3 text-xs font-medium ${
                               selected
-                                ? 'border-violet-600 text-violet-700'
-                                : 'border-transparent text-gray-500 hover:border-gray-200 hover:text-gray-800'
+                                ? 'border-brand-border-strong text-brand-fg'
+                                : 'border-transparent text-fg-subtle hover:border-line hover:text-fg-secondary'
                             }`}
                           >
                             <span>{ruleTabLabel(tab, t)}</span>
-                            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">
+                            <span className="rounded bg-surface-subtle px-1.5 py-0.5 text-[10px] text-fg-muted">
                               {count}
                             </span>
                           </button>
@@ -484,14 +485,14 @@ export function PublishDiffReviewDialog({
                             ))}
                           </div>
                         ) : (
-                          <div className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                          <div className="rounded border border-line bg-surface-muted p-4 text-sm text-fg-muted">
                             {t.publishReviewNoChanges}
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="p-3">
-                        <div className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                        <div className="rounded border border-line bg-surface-muted p-4 text-sm text-fg-muted">
                           {t.publishReviewNoChanges}
                         </div>
                       </div>
@@ -503,11 +504,11 @@ export function PublishDiffReviewDialog({
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-gray-100 px-4 py-3">
+        <div className="flex justify-end gap-2 border-t border-line-subtle px-4 py-3">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-9 items-center justify-center rounded border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex h-9 items-center justify-center rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
           >
             {t.publishReviewBackToDraft}
           </button>
@@ -515,7 +516,7 @@ export function PublishDiffReviewDialog({
             type="button"
             onClick={() => void handlePublish()}
             disabled={loading || publishing}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded bg-success px-3 text-sm font-medium text-white hover:bg-success disabled:opacity-50"
           >
             {publishing ? (
               <Loader2 className="h-4 w-4 animate-spin" />

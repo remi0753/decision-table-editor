@@ -47,7 +47,7 @@ export function InlineEdit({
           }
         }}
         className={cn(
-          'border rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400',
+          'border rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring',
           inputClassName,
         )}
         placeholder={placeholder}
@@ -65,12 +65,12 @@ export function InlineEdit({
       type="button"
       onClick={startEditing}
       className={cn(
-        'cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 text-left',
+        'cursor-pointer hover:bg-surface-subtle rounded px-1 py-0.5 text-left',
         className,
       )}
       title="クリックして編集"
     >
-      {value || <span className="text-gray-400">{placeholder}</span>}
+      {value || <span className="text-fg-faint">{placeholder}</span>}
     </button>
   );
 }

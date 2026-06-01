@@ -17,6 +17,7 @@ import {
 } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import {
   CloudApiError,
   type CloudInvitation,
@@ -208,44 +209,47 @@ export function OrgSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-surface-muted text-fg">
       <Toaster position="top-right" richColors />
-      <header className="flex h-14 items-center justify-between border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white px-4">
+      <header className="flex h-14 items-center justify-between border-b border-brand-border bg-gradient-to-r from-brand-subtle to-surface px-4">
         <a href="/edit" className="inline-flex items-center gap-3">
           <img src={logoUrl} alt="LEVERIE" className="h-9" />
         </a>
-        <a
-          href="/edit"
-          className="inline-flex h-8 items-center gap-2 rounded border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to editor
-        </a>
+        <div className="inline-flex items-center gap-3">
+          <ThemeToggle />
+          <a
+            href="/edit"
+            className="inline-flex h-8 items-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to editor
+          </a>
+        </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-5 py-8">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-emerald-700">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-success-border bg-success-bg text-success-fg">
               <Building2 className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl font-semibold text-gray-950">
+            <h1 className="text-2xl font-semibold text-fg">
               Organization settings
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-muted">
               Manage organization members, roles, and pending invitations.
             </p>
           </div>
 
           {orgs.length > 0 ? (
             <label className="min-w-64">
-              <span className="mb-1 block text-xs font-medium text-gray-600">
+              <span className="mb-1 block text-xs font-medium text-fg-muted">
                 Organization
               </span>
               <select
                 value={selectedOrgId}
                 onChange={(event) => void handleOrgChange(event.target.value)}
-                className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
               >
                 {orgs.map((entry) => (
                   <option key={entry.org.id} value={entry.org.id}>
@@ -258,39 +262,37 @@ export function OrgSettingsPage() {
         </div>
 
         {loading ? (
-          <div className="flex min-h-72 items-center justify-center rounded border border-gray-200 bg-white">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          <div className="flex min-h-72 items-center justify-center rounded border border-line bg-surface">
+            <Loader2 className="h-5 w-5 animate-spin text-fg-faint" />
           </div>
         ) : orgs.length === 0 ? (
-          <section className="rounded border border-gray-200 bg-white p-8 text-center">
-            <Shield className="mx-auto h-8 w-8 text-gray-300" />
-            <h2 className="mt-3 text-base font-semibold text-gray-900">
+          <section className="rounded border border-line bg-surface p-8 text-center">
+            <Shield className="mx-auto h-8 w-8 text-fg-faint" />
+            <h2 className="mt-3 text-base font-semibold text-fg">
               Owner or admin access required
             </h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-fg-subtle">
               Ask an organization owner or admin to manage members for this
               organization.
             </p>
           </section>
         ) : selectedOrg ? (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <section className="rounded border border-gray-200 bg-white">
-              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+            <section className="rounded border border-line bg-surface">
+              <div className="flex items-center justify-between border-b border-line-subtle px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-900">
-                    Members
-                  </h2>
+                  <Users className="h-4 w-4 text-fg-faint" />
+                  <h2 className="text-sm font-semibold text-fg">Members</h2>
                 </div>
                 {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  <Loader2 className="h-4 w-4 animate-spin text-fg-faint" />
                 ) : null}
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[680px] border-collapse text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <tr className="border-b border-line-subtle bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                       <th className="px-4 py-2">Member</th>
                       <th className="px-4 py-2">Role</th>
                       <th className="px-4 py-2">Joined</th>
@@ -301,14 +303,14 @@ export function OrgSettingsPage() {
                     {members.map((member) => (
                       <tr
                         key={member.membershipId}
-                        className="border-b border-gray-100 last:border-0"
+                        className="border-b border-line-subtle last:border-0"
                       >
                         <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-fg">
                             {member.name || member.email}
                           </div>
                           {member.name ? (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-fg-subtle">
                               {member.email}
                             </div>
                           ) : null}
@@ -322,7 +324,7 @@ export function OrgSettingsPage() {
                                 event.target.value as CloudRole,
                               )
                             }
-                            className="h-8 rounded border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-violet-300"
+                            className="h-8 rounded border border-line bg-surface px-2 text-xs font-medium text-fg-secondary focus:outline-none focus:ring-1 focus:ring-brand-ring"
                           >
                             {memberRoles
                               .filter((candidateRole) =>
@@ -338,14 +340,14 @@ export function OrgSettingsPage() {
                               ))}
                           </select>
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-4 py-3 text-fg-subtle">
                           {formatDate(member.joinedAt)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
                             type="button"
                             onClick={() => void handleRemoveMember(member)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded border border-gray-200 text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:border-danger-border hover:bg-danger-bg hover:text-danger-fg"
                             aria-label={`Remove ${member.email}`}
                           >
                             <UserMinus className="h-4 w-4" />
@@ -359,16 +361,16 @@ export function OrgSettingsPage() {
             </section>
 
             <aside className="space-y-5">
-              <section className="rounded border border-gray-200 bg-white p-4">
+              <section className="rounded border border-line bg-surface p-4">
                 <div className="mb-4 flex items-center gap-2">
-                  <MailPlus className="h-4 w-4 text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-900">
+                  <MailPlus className="h-4 w-4 text-fg-faint" />
+                  <h2 className="text-sm font-semibold text-fg">
                     Invite member
                   </h2>
                 </div>
                 <form onSubmit={handleInvite} className="space-y-3">
                   <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       Email
                     </span>
                     <input
@@ -376,11 +378,11 @@ export function OrgSettingsPage() {
                       onChange={(event) => setEmail(event.target.value)}
                       type="email"
                       required
-                      className="h-10 w-full rounded border border-gray-200 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                      className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       Role
                     </span>
                     <select
@@ -390,7 +392,7 @@ export function OrgSettingsPage() {
                           event.target.value as Exclude<CloudRole, 'owner'>,
                         )
                       }
-                      className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                      className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     >
                       {inviteRoles.map((inviteRole) => (
                         <option key={inviteRole} value={inviteRole}>
@@ -402,7 +404,7 @@ export function OrgSettingsPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
                   >
                     {submitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -414,21 +416,21 @@ export function OrgSettingsPage() {
                 </form>
               </section>
 
-              <section className="rounded border border-gray-200 bg-white">
-                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <section className="rounded border border-line bg-surface">
+                <div className="flex items-center justify-between border-b border-line-subtle px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <MailPlus className="h-4 w-4 text-gray-400" />
-                    <h2 className="text-sm font-semibold text-gray-900">
+                    <MailPlus className="h-4 w-4 text-fg-faint" />
+                    <h2 className="text-sm font-semibold text-fg">
                       Pending invitations
                     </h2>
                   </div>
-                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                  <span className="rounded bg-surface-subtle px-2 py-0.5 text-xs font-medium text-fg-subtle">
                     {pendingInvitations.length}
                   </span>
                 </div>
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-line-subtle">
                   {pendingInvitations.length === 0 ? (
-                    <div className="px-4 py-5 text-sm text-gray-500">
+                    <div className="px-4 py-5 text-sm text-fg-subtle">
                       No pending invitations.
                     </div>
                   ) : (
@@ -438,10 +440,10 @@ export function OrgSettingsPage() {
                         <div key={invitation.id} className="px-4 py-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-medium text-gray-900">
+                              <div className="truncate text-sm font-medium text-fg">
                                 {invitation.email}
                               </div>
-                              <div className="mt-1 text-xs text-gray-500">
+                              <div className="mt-1 text-xs text-fg-subtle">
                                 {roleLabel(invitation.role)} · {status} ·
                                 expires {formatDate(invitation.expiresAt)}
                               </div>
@@ -451,7 +453,7 @@ export function OrgSettingsPage() {
                               onClick={() =>
                                 void handleRevokeInvitation(invitation)
                               }
-                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-gray-200 text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-line text-fg-subtle hover:border-danger-border hover:bg-danger-bg hover:text-danger-fg"
                               aria-label={`Revoke invitation for ${invitation.email}`}
                             >
                               <Ban className="h-4 w-4" />

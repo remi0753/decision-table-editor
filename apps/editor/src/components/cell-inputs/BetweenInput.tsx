@@ -15,15 +15,15 @@ export function BetweenInput({ lo, hi, onChangeLo, onChangeHi, type }: Props) {
         type={inputType}
         value={lo}
         onChange={(e) => onChangeLo(e.target.value)}
-        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
         placeholder="以上"
       />
-      <span className="text-gray-400 text-xs whitespace-nowrap">〜</span>
+      <span className="text-fg-faint text-xs whitespace-nowrap">〜</span>
       <input
         type={inputType}
         value={hi}
         onChange={(e) => onChangeHi(e.target.value)}
-        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
         placeholder="以下"
       />
     </div>

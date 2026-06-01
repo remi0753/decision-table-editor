@@ -62,7 +62,7 @@ export function BatchPanel({ logic, onInspect }: Props) {
         <button
           type="button"
           onClick={handleLoadCsv}
-          className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-700"
+          className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-surface-muted text-fg-secondary"
         >
           <Upload size={14} /> {t.loadCsv}
         </button>
@@ -70,16 +70,16 @@ export function BatchPanel({ logic, onInspect }: Props) {
           type="button"
           onClick={() => downloadBatchTemplate(logic)}
           disabled={noFields}
-          className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-surface-muted text-fg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Download size={14} /> {t.downloadTemplate}
         </button>
       </div>
 
-      {noFields && <p className="text-xs text-gray-400">{t.noFields}</p>}
+      {noFields && <p className="text-xs text-fg-faint">{t.noFields}</p>}
 
       {batchFileName && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-fg-subtle">
           {t.loadedFile(batchFileName, batchCases.length)}
         </p>
       )}
@@ -89,14 +89,14 @@ export function BatchPanel({ logic, onInspect }: Props) {
           <button
             type="button"
             onClick={handleRunAll}
-            className="flex items-center gap-1.5 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
+            className="flex items-center gap-1.5 bg-brand text-white text-sm px-3 py-1.5 rounded hover:bg-brand-strong"
           >
             <Play size={14} /> {t.runAll}
           </button>
           <button
             type="button"
             onClick={clearBatch}
-            className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-gray-50 text-gray-600"
+            className="flex items-center gap-1.5 border text-sm px-3 py-1.5 rounded hover:bg-surface-muted text-fg-muted"
           >
             <RotateCcw size={14} /> {t.clear}
           </button>
