@@ -37,14 +37,16 @@ export function EditorPage() {
       <DocSection title="Workspace layout">
         <p>
           The editor is a three-part workspace. A header runs across the top, a
-          sidebar on the left lists the structural building blocks of the logic,
-          and the center is the table or flowchart you are editing. When you are
-          ready to try a case, the evaluation panel slides in from the right.
+          sidebar on the left holds the logic&apos;s name, description, and
+          field definitions, and the center is the table or flowchart you are
+          editing — with the table tabs and a collapsible logic overview sitting
+          above it. When you are ready to try a case, the evaluation panel
+          slides in from the right.
         </p>
         <figure className="media-card">
           <img
             src={asset('editor-table.png')}
-            alt="LEVERIE editor with header, left sidebar showing tables and field definitions, decision table in the center, and the evaluation panel on the right."
+            alt="LEVERIE editor with header, left sidebar showing the logic name and field definitions, table tabs and the decision table in the center, and the evaluation panel on the right."
           />
           <figcaption>
             Header (top), sidebar (left), decision table (center), and
@@ -56,12 +58,12 @@ export function EditorPage() {
             {
               icon: LayoutPanelLeft,
               title: 'Sidebar',
-              body: 'Lists tables, fields, and a small flowchart preview so you can navigate without leaving the page.',
+              body: 'Holds the logic name, description, and field definitions — the typed inputs every table shares.',
             },
             {
               icon: MousePointer2,
               title: 'Main work area',
-              body: 'Switches between a table view (row-by-row authoring) and a flowchart view (read-only structure).',
+              body: 'Tables are tabs across the top, with a collapsible logic overview above and a table or flowchart view below.',
             },
             {
               icon: Sparkles,
@@ -93,7 +95,11 @@ export function EditorPage() {
             ],
             [
               'More actions',
-              'A menu for New, Import, Export, Sample templates, and Batch test. New is destructive in local mode; export your logic first if you want to keep it.',
+              'A menu for New, Open file, Save backup, and Batch test. New is destructive in local mode; save a backup first if you want to keep your work. Open file and Save backup appear in local mode only.',
+            ],
+            [
+              'Docs',
+              'Opens this documentation in a new tab so you can keep the editor open beside it.',
             ],
           ]}
         />
@@ -103,26 +109,22 @@ export function EditorPage() {
             alt="The More actions menu in the LEVERIE editor header with File and Tools sections."
           />
           <figcaption>
-            The More actions menu groups document operations (File) and
-            authoring tools (Sample templates, Batch test).
+            The More actions menu groups document operations (File: New, Open
+            file, Save backup) and authoring tools (Tools: Batch test).
           </figcaption>
         </figure>
       </DocSection>
 
       <DocSection title="Left sidebar">
         <p>
-          The sidebar gives an at-a-glance view of the logic. Three sections
-          stack vertically.
+          The sidebar holds the parts of the logic that stay constant as you
+          move between tables.
         </p>
         <DefinitionList
           items={[
             [
-              'Table Graph',
-              'A miniature flowchart of how tables call each other. Click a node to jump to that table.',
-            ],
-            [
-              'Tables',
-              'A flat list of every table in the logic. The entry table is marked with a ▶. Add and delete tables from here.',
+              'Logic name and description',
+              'Name the logic and describe what it decides. In cloud mode the same area surfaces draft, publish, and workspace controls.',
             ],
             [
               'Field Definitions',
@@ -130,18 +132,22 @@ export function EditorPage() {
             ],
           ]}
         />
-        <Callout icon={MousePointer2} title="Open and close sections">
-          Click any section header to collapse it. On narrower screens the
-          sidebar scrolls independently of the main area so a large field list
-          does not push the table off-screen.
+        <Callout icon={MousePointer2} title="Tables and the table graph moved">
+          The list of tables now lives as tabs across the top of the main work
+          area, and the miniature table graph is the collapsible{' '}
+          <strong>Logic overview</strong> above the table. The Field Definitions
+          header still collapses, and on narrower screens the sidebar scrolls
+          independently so a large field list does not push the table
+          off-screen.
         </Callout>
       </DocSection>
 
       <DocSection title="Main work area">
         <p>
           The center of the editor is the table you are currently working on.
-          The breadcrumb at the top names the table and marks the entry table
-          with ▶. Two buttons on the right toggle between authoring views.
+          Tables are tabs across the top — the entry table carries an entry icon
+          — and a collapsible Logic overview above them shows how the tables
+          connect. Two buttons on the right toggle between authoring views.
         </p>
         <FeatureGrid
           items={[
@@ -189,7 +195,7 @@ export function EditorPage() {
             {
               icon: HardDrive,
               title: 'Local mode',
-              body: 'Logic is saved in browser storage only. No account is needed. Use Import and Export to move between machines.',
+              body: 'Logic is saved in browser storage only. No account is needed. Use Open file and Save backup to move between machines.',
             },
             {
               icon: Cloud,
@@ -199,10 +205,9 @@ export function EditorPage() {
           ]}
         />
         <Callout icon={Cloud} title="Moving a local draft to the cloud">
-          When you sign up while a local draft is open, the auth screen offers
-          to <strong>Move browser draft to cloud</strong>. Accepting it creates
-          a new cloud logic from your local work without overwriting anything
-          already in the workspace.
+          When you sign in or sign up while a local draft is open, the editor
+          keeps that draft and offers it as a new cloud logic once you reach
+          your workspace — without overwriting anything already there.
         </Callout>
       </DocSection>
     </>

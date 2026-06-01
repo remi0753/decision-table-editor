@@ -148,16 +148,18 @@ export function TablesPage() {
         <figure className="media-card">
           <img
             src={asset('editor-flowchart.png')}
-            alt="The flowchart view of the support ticket routing logic showing the Triage table on the left and child tables Escalation and Standard routing on the right."
+            alt="The flowchart view of the Triage table, showing how priority and customer tier branch into continue steps to Escalation and Standard routing alongside a direct conclusion."
           />
           <figcaption>
-            The flowchart view shows the Triage table branching into Escalation
-            or Standard routing. Each box is a table you can click into.
+            The flowchart view of the Triage table. Conditions branch from left
+            to right; a continue step (→ Escalation, → Standard routing) jumps
+            into a child table, while a conclusion ends with outputs.
           </figcaption>
         </figure>
         <p>
-          The sidebar also shows a smaller version of the same graph at the top,
-          so you can navigate while staying in the table view.
+          The collapsible Logic overview above the table shows how every table
+          connects, so you can navigate the whole logic while staying in the
+          table view.
         </p>
       </DocSection>
 

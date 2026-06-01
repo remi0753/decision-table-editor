@@ -57,7 +57,7 @@ export function IntroductionPage() {
         <figure className="media-card">
           <img
             src={asset('editor-overview.png')}
-            alt="Actual LEVERIE editor showing a customer support routing sample with a decision table, graph, and evaluation panel."
+            alt="Actual LEVERIE editor showing a customer support routing sample with the decision table, the logic overview, and the evaluation panel."
           />
           <figcaption>
             The same logic artifact is edited visually, reviewed by people, and
