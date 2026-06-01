@@ -9,6 +9,16 @@ import {
   nextTableId,
 } from '@/lib/idgen';
 
+// Whether a logic holds work worth carrying over (vs. the empty default that
+// `createInitialLogic` produces). Used to decide if a local draft should be
+// preserved for the cloud when the user leaves local mode to authenticate.
+export const hasEditableContent = (logic: Logic): boolean => {
+  if (Object.keys(logic.fieldDefs).length > 0) return true;
+  return Object.values(logic.tables).some(
+    (table) => table.rows.length > 0 || table.cols.length > 0,
+  );
+};
+
 export const createInitialLogic = (): Logic => {
   const t = getT();
   return {

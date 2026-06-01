@@ -1,8 +1,6 @@
 import {
   ArrowRight,
-  Check,
   Cloud,
-  CloudUpload,
   LockKeyhole,
   MailCheck,
   Monitor,
@@ -12,7 +10,6 @@ import { type FormEvent, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
 import {
-  clearMigrationDraft,
   loadFromStorage,
   stashDraftForMigration,
 } from '@/hooks/useLocalStorage';
@@ -23,6 +20,7 @@ import {
   signOut,
   signUpEmail,
 } from '@/lib/cloudApi';
+import { hasEditableContent } from '@/store/logicStore';
 
 function authErrorMessage(error: unknown) {
   if (error instanceof CloudApiError) return error.message;
@@ -50,24 +48,21 @@ export function AuthPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [localDraft] = useState(() => loadFromStorage());
-  const [migrateLocalDraft, setMigrateLocalDraft] = useState(
-    () => localDraft !== null,
-  );
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
   const [pendingVerification, setPendingVerification] =
     useState<VerificationPending | null>(null);
 
-  // Promote (or discard) the local draft for the cloud handoff. We copy it into
-  // a persistent slot so it survives the sign-up + email-verification round trip
-  // — the verification link can land on /edit in a different tab, where the
-  // sessionStorage working draft would be gone.
-  const persistMigrateChoice = () => {
-    if (migrateLocalDraft && localDraft) {
-      stashDraftForMigration(localDraft);
-    } else {
-      clearMigrationDraft();
+  // Authentication itself makes no decision about the local draft. We only
+  // preserve it across the transition: if the user came from local mode with
+  // real work, copy it into a persistent slot so the post-auth "new logic"
+  // screen can offer to start from it (the choice lives there, not here). The
+  // slot survives the sign-up + email-verification round trip, which can land
+  // on /edit in a different tab where the sessionStorage draft would be gone.
+  const preserveLocalDraftForHandoff = () => {
+    const draft = loadFromStorage();
+    if (draft && hasEditableContent(draft)) {
+      stashDraftForMigration(draft);
     }
   };
 
@@ -82,14 +77,12 @@ export function AuthPage() {
           password,
           buildVerificationCallbackURL(),
         );
-        // Keep the migrate-draft choice so it is honored after the user
-        // clicks the verification link and lands on /edit.
-        persistMigrateChoice();
+        preserveLocalDraftForHandoff();
         setPendingVerification({ email, reason: 'sign-up' });
         return;
       }
       await signInEmail(email, password);
-      persistMigrateChoice();
+      preserveLocalDraftForHandoff();
       window.location.assign('/edit');
     } catch (error) {
       if (
@@ -229,39 +222,6 @@ export function AuthPage() {
                 </p>
               </div>
 
-              {localDraft ? (
-                <button
-                  type="button"
-                  onClick={() => setMigrateLocalDraft((value) => !value)}
-                  className={`mb-4 flex w-full items-start gap-3 rounded border p-3 text-left transition-colors ${
-                    migrateLocalDraft
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
-                      : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-white'
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
-                      migrateLocalDraft
-                        ? 'border-emerald-500 bg-emerald-600 text-white'
-                        : 'border-gray-300 bg-white text-transparent'
-                    }`}
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2 text-sm font-semibold">
-                      <CloudUpload className="h-4 w-4 shrink-0" />
-                      Move browser draft to cloud
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-gray-600">
-                      {migrateLocalDraft
-                        ? `"${localDraft.name}" will be created as a new cloud logic after sign-in.`
-                        : 'Keep the browser draft local and load your cloud workspace normally.'}
-                    </span>
-                  </span>
-                </button>
-              ) : null}
-
               <form onSubmit={handleSubmit} className="space-y-3">
                 {isSignUp ? (
                   <label className="block">
@@ -305,13 +265,7 @@ export function AuthPage() {
                   disabled={submitting}
                   className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
                 >
-                  {migrateLocalDraft && localDraft
-                    ? isSignUp
-                      ? 'Create account and move draft'
-                      : 'Sign in and move draft'
-                    : isSignUp
-                      ? 'Create account'
-                      : 'Sign in'}
+                  {isSignUp ? 'Create account' : 'Sign in'}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </form>

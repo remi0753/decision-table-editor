@@ -1,11 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
-import {
-  clearMigrationDraft,
-  loadFromStorage,
-  loadMigrationDraft,
-} from '@/hooks/useLocalStorage';
+import { loadFromStorage } from '@/hooks/useLocalStorage';
 import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
 import { useT } from '@/i18n/useT';
 import { useCloudStore } from '@/store/cloudStore';
@@ -54,18 +50,13 @@ export default function EditorApp({
       return;
     }
 
-    // Cloud mode (`/edit`). If a local draft was promoted for migration (e.g.
-    // the user chose "move my draft" on the auth page), pick it up so it can be
-    // saved into a new cloud logic.
-    const migrationDraft = loadMigrationDraft();
-    if (migrationDraft) {
-      importLogic(migrationDraft);
-    }
-
+    // Cloud mode (`/edit`). Authentication just loads the cloud session and
+    // opens the existing logic (or the new-logic screen for first-time users).
+    // A local draft preserved at sign-in time is surfaced as an opt-in source
+    // on the new-logic screen itself, not forced here.
     toast.info(t.cloudChecking, { id: 'cloud-session-checking' });
-    void initializeCloud(migrationDraft ?? logic, importLogic, {
+    void initializeCloud(logic, importLogic, {
       requireAuth: true,
-      migrateLocalDraft: Boolean(migrationDraft),
     }).finally(() => {
       const cloud = useCloudStore.getState();
       if (
@@ -83,13 +74,6 @@ export default function EditorApp({
         }
         window.location.assign('/access');
         return;
-      }
-      // The migration draft is now carried in the in-memory logic (and through
-      // any workspace-selection step). Only clear the persistent slot once the
-      // user is authenticated — a failed auth check redirects to /auth and we
-      // want the draft to survive for the next attempt.
-      if (cloud.mode === 'cloud' || cloud.mode === 'selecting') {
-        clearMigrationDraft();
       }
       clearHistory();
     });
