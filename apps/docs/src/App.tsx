@@ -1,4 +1,12 @@
-import { ChevronRight, Menu, Search, X } from 'lucide-react';
+import {
+  ChevronRight,
+  Menu,
+  Monitor,
+  Moon,
+  Search,
+  Sun,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import logoUrl from '../../editor/src/assets/logo.svg';
 import {
@@ -10,9 +18,19 @@ import {
   sectionId,
 } from './docs/metadata';
 import { PageContent } from './docs/pages';
+import { type ThemePreference, useTheme } from './theme';
+
+const THEME_META: Record<ThemePreference, { Icon: typeof Sun; label: string }> =
+  {
+    system: { Icon: Monitor, label: 'Theme: system (click for light)' },
+    light: { Icon: Sun, label: 'Theme: light (click for dark)' },
+    dark: { Icon: Moon, label: 'Theme: dark (click for system)' },
+  };
 
 function App() {
   const current = resolvePage() ?? defaultPage;
+  const { preference, cycle } = useTheme();
+  const { Icon: ThemeIcon, label: themeLabel } = THEME_META[preference];
   const [query, setQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -185,6 +203,15 @@ function App() {
           <a href="/">Home</a>
           <a href="/edit">Editor</a>
           <a href="https://github.com/remi0753/leverie">GitHub</a>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={cycle}
+            aria-label={themeLabel}
+            title={themeLabel}
+          >
+            <ThemeIcon className="icon" aria-hidden />
+          </button>
         </nav>
       </header>
 

@@ -50,6 +50,25 @@
     name="twitter:image:alt"
     content="LEVERIE decision table editor preview"
   />
+  <script>
+    // Theme bootstrap — runs before first paint to avoid a flash of the wrong
+    // theme. Reads the saved preference ('light' | 'dark' | 'system'); when it
+    // is 'system' or unset, follows the OS color scheme. Sets the resolved
+    // theme on <html data-theme> and primes the background color so the page
+    // never flashes white before the stylesheet loads.
+    (() => {
+      try {
+        const pref = localStorage.getItem('leverie-theme') || 'system';
+        const dark =
+          pref === 'dark' ||
+          (pref !== 'light' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        const root = document.documentElement;
+        root.dataset.theme = dark ? 'dark' : 'light';
+        root.style.backgroundColor = dark ? '#0f0e17' : '#faf9ff';
+      } catch {}
+    })();
+  </script>
   <style>
     .seo-fallback {
       position: absolute;
