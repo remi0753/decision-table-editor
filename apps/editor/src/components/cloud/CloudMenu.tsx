@@ -12,9 +12,10 @@ import {
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { stashDraftForMigration } from '@/hooks/useLocalStorage';
 import { useT } from '@/i18n/useT';
 import { useCloudStore } from '@/store/cloudStore';
-import { useLogicStore } from '@/store/logicStore';
+import { hasEditableContent, useLogicStore } from '@/store/logicStore';
 
 export function CloudMenu() {
   const t = useT();
@@ -71,6 +72,12 @@ export function CloudMenu() {
     event.preventDefault();
     setSubmitting(true);
     try {
+      // Authentication only authenticates. If there is real local work, preserve
+      // it across the transition so the post-auth "new logic" screen can offer
+      // to start from it — the choice lives there, not on this sign-in form.
+      if (mode === 'local' && hasEditableContent(logic)) {
+        stashDraftForMigration(logic);
+      }
       if (isSignUp) {
         await signUp(name || email, email, password, logic, importLogic);
       } else {

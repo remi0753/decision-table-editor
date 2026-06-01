@@ -22,7 +22,11 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useCloudAutoSave } from '@/hooks/useCloudAutoSave';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
-import { useAutoSave } from '@/hooks/useLocalStorage';
+import {
+  clearMigrationDraft,
+  loadMigrationDraft,
+  useAutoSave,
+} from '@/hooks/useLocalStorage';
 import type { Lang } from '@/i18n/translations';
 import { useT } from '@/i18n/useT';
 import { useCloudStore } from '@/store/cloudStore';
@@ -78,19 +82,39 @@ export function AppLayout() {
   const [newLogicDescription, setNewLogicDescription] = useState('');
   const [newLogicIdEdited, setNewLogicIdEdited] = useState(false);
   const [pendingNewLogic, setPendingNewLogic] = useState<Logic | null>(null);
+  // A local draft preserved when the user signed in from local mode. When set,
+  // the new-logic dialog offers starting the new cloud logic from it.
+  const [newLogicStash, setNewLogicStash] = useState<Logic | null>(null);
+  const [newLogicFromLocal, setNewLogicFromLocal] = useState(false);
 
   useAutoSave(logic, cloudMode === 'local');
   useCloudAutoSave(logic);
 
+  const prefillNewLogicFrom = (base: Logic) => {
+    setNewLogicName(base.name);
+    setNewLogicId(logicIdFromName(base.name));
+    setNewLogicDescription(base.description ?? '');
+    setNewLogicIdEdited(false);
+    setPendingNewLogic(base);
+  };
+
+  // Switch the new-logic dialog between starting blank and starting from the
+  // preserved local draft, re-prefilling the form from the chosen source.
+  const selectNewLogicSource = (fromLocal: boolean) => {
+    setNewLogicFromLocal(fromLocal);
+    prefillNewLogicFrom(
+      fromLocal && newLogicStash ? newLogicStash : createInitialLogic(),
+    );
+  };
+
   const handleNew = () => {
     if (window.confirm(t.newLogicConfirm)) {
-      const nextLogic = createInitialLogic();
       if (cloudMode === 'cloud') {
-        setNewLogicName(nextLogic.name);
-        setNewLogicId(logicIdFromName(nextLogic.name));
-        setNewLogicDescription(nextLogic.description ?? '');
-        setNewLogicIdEdited(false);
-        setPendingNewLogic(nextLogic);
+        // Default to a blank logic; offer the preserved local draft as an
+        // opt-in source if one is pending.
+        setNewLogicStash(loadMigrationDraft());
+        setNewLogicFromLocal(false);
+        prefillNewLogicFrom(createInitialLogic());
         setNewCloudLogicOpen(true);
       } else {
         resetLogic();
@@ -112,11 +136,11 @@ export function AppLayout() {
   };
 
   const openNewLogicDialog = (nextLogic: Logic) => {
-    setNewLogicName(nextLogic.name);
-    setNewLogicId(logicIdFromName(nextLogic.name));
-    setNewLogicDescription(nextLogic.description ?? '');
-    setNewLogicIdEdited(false);
-    setPendingNewLogic(nextLogic);
+    // Opened from a sample: the sample is the source, so don't offer the
+    // local-draft choice.
+    setNewLogicStash(null);
+    setNewLogicFromLocal(false);
+    prefillNewLogicFrom(nextLogic);
     setNewCloudLogicOpen(true);
   };
 
@@ -159,6 +183,8 @@ export function AppLayout() {
       },
       importLogic,
     );
+    if (newLogicFromLocal) clearMigrationDraft();
+    setNewLogicStash(null);
     setNewCloudLogicOpen(false);
     setPendingNewLogic(null);
     setSelectedTable(nextLogic.entryTableId);
@@ -315,6 +341,42 @@ export function AppLayout() {
               {t.createCloudLogicTitle}
             </h2>
             <div className="mt-4 space-y-3">
+              {newLogicStash ? (
+                <div>
+                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                    {t.newLogicSourceLabel}
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => selectNewLogicSource(true)}
+                      className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
+                        newLogicFromLocal
+                          ? 'border-violet-300 bg-violet-50 text-violet-800'
+                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {t.newLogicFromLocalDraft}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => selectNewLogicSource(false)}
+                      className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
+                        newLogicFromLocal
+                          ? 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                          : 'border-violet-300 bg-violet-50 text-violet-800'
+                      }`}
+                    >
+                      {t.newLogicBlank}
+                    </button>
+                  </div>
+                  {newLogicFromLocal ? (
+                    <span className="mt-1 block text-xs leading-5 text-gray-500">
+                      {t.newLogicFromLocalDraftHint}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-gray-600">
                   {t.logicNameLabel}

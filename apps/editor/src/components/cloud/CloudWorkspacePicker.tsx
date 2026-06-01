@@ -1,8 +1,12 @@
 import { Cloud, Plus } from 'lucide-react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  clearMigrationDraft,
+  loadMigrationDraft,
+} from '@/hooks/useLocalStorage';
 import { useT } from '@/i18n/useT';
 import { useCloudStore } from '@/store/cloudStore';
-import { useLogicStore } from '@/store/logicStore';
+import { createInitialLogic, useLogicStore } from '@/store/logicStore';
 
 const NEW_LOGIC = 'new';
 const LOGIC_ID_PATTERN = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
@@ -37,6 +41,17 @@ export function CloudWorkspacePicker() {
     logic.description ?? '',
   );
   const [logicIdEdited, setLogicIdEdited] = useState(false);
+  // A local draft preserved when the user left local mode to authenticate. When
+  // present, the new-logic form lets the user choose to seed the cloud logic
+  // from it instead of starting blank.
+  const stashedDraft = useMemo(() => loadMigrationDraft(), []);
+  const [seedFromLocal, setSeedFromLocal] = useState(
+    () => stashedDraft !== null,
+  );
+  const seedLogic = useMemo(
+    () => (seedFromLocal && stashedDraft ? stashedDraft : createInitialLogic()),
+    [seedFromLocal, stashedDraft],
+  );
   const t = useT();
 
   const workspaces = useMemo(
@@ -80,16 +95,18 @@ export function CloudWorkspacePicker() {
   }, [canCreateLogic, choices?.preferNewLogic, logics]);
 
   useEffect(() => {
-    setLogicName(logic.name);
-    setLogicDescription(logic.description ?? '');
-    if (!logicIdEdited) setLogicStableId(logicIdFromName(logic.name));
-  }, [logic.description, logic.name, logicIdEdited]);
+    setLogicName(seedLogic.name);
+    setLogicDescription(seedLogic.description ?? '');
+    if (!logicIdEdited) setLogicStableId(logicIdFromName(seedLogic.name));
+  }, [seedLogic, logicIdEdited]);
 
   if (mode !== 'selecting' || !choices) return null;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!orgId) return;
+    // When creating a new logic, seed it from the chosen source (the preserved
+    // local draft or a blank logic); existing-logic selections ignore this.
     await selectCloudTarget(
       {
         orgId,
@@ -103,9 +120,12 @@ export function CloudWorkspacePicker() {
             }
           : undefined,
       },
-      logic,
+      creatingNewLogic ? seedLogic : logic,
       importLogic,
     );
+    if (creatingNewLogic && useCloudStore.getState().mode === 'cloud') {
+      clearMigrationDraft();
+    }
     const cloud = useCloudStore.getState();
     if (
       cloud.mode === 'cloud' &&
@@ -199,9 +219,7 @@ export function CloudWorkspacePicker() {
                   </option>
                 ))}
                 {canCreateLogic ? (
-                  <option value={NEW_LOGIC}>
-                    Create new from current draft
-                  </option>
+                  <option value={NEW_LOGIC}>Create a new logic</option>
                 ) : null}
                 {!canCreateLogic && logics.length === 0 ? (
                   <option value="">No shared runners available</option>
@@ -211,6 +229,42 @@ export function CloudWorkspacePicker() {
 
             {creatingNewLogic && canCreateLogic ? (
               <div className="space-y-3 rounded border border-gray-200 bg-gray-50 p-3">
+                {stashedDraft ? (
+                  <div>
+                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                      {t.newLogicSourceLabel}
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSeedFromLocal(true)}
+                        className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
+                          seedFromLocal
+                            ? 'border-violet-300 bg-violet-50 text-violet-800'
+                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {t.newLogicFromLocalDraft}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSeedFromLocal(false)}
+                        className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
+                          seedFromLocal
+                            ? 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                            : 'border-violet-300 bg-violet-50 text-violet-800'
+                        }`}
+                      >
+                        {t.newLogicBlank}
+                      </button>
+                    </div>
+                    {seedFromLocal ? (
+                      <span className="mt-1 block text-xs leading-5 text-gray-500">
+                        {t.newLogicFromLocalDraftHint}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
                 <label className="block">
                   <span className="mb-1 block text-xs font-medium text-gray-600">
                     {t.logicNameLabel}

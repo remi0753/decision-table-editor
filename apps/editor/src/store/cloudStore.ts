@@ -53,7 +53,7 @@ type CloudStore = {
   initializeCloud: (
     localLogic: Logic,
     importLogic: (logic: Logic) => void,
-    options?: { requireAuth?: boolean; migrateLocalDraft?: boolean },
+    options?: { requireAuth?: boolean },
   ) => Promise<void>;
   selectCloudTarget: (
     input: {
@@ -223,9 +223,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             const preferredWorkspace = workspacesByOrgId[preferredOrgId]?.[0];
             if (preferredOrg && preferredWorkspace) {
               const logics = logicsByWorkspaceId[preferredWorkspace.id] ?? [];
-              const logicSummary = options?.migrateLocalDraft
-                ? undefined
-                : logics[0];
+              const logicSummary = logics[0];
               const cloudResult = logicSummary
                 ? await getLogic(logicSummary.id)
                 : null;
@@ -292,7 +290,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
               roleByOrgId,
               workspacesByOrgId,
               logicsByWorkspaceId,
-              preferNewLogic: options?.migrateLocalDraft,
+              preferNewLogic: false,
             },
             error: null,
           });
@@ -330,7 +328,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
               roleByOrgId,
               workspacesByOrgId,
               logicsByWorkspaceId,
-              preferNewLogic: options?.migrateLocalDraft,
+              preferNewLogic: false,
             },
             error: null,
           });
@@ -354,9 +352,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           return;
         }
 
-        const logicSummary = options?.migrateLocalDraft
-          ? undefined
-          : logics.logics[0];
+        const logicSummary = logics.logics[0];
         const cloudResult = logicSummary
           ? await getLogic(logicSummary.id)
           : null;
@@ -414,9 +410,6 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           lastSavedAt: new Date(),
           error: null,
         });
-        if (options?.migrateLocalDraft) {
-          toast.success('Local draft moved to cloud.');
-        }
       } catch (error) {
         if (options?.requireAuth) {
           set({ mode: 'checking', error: apiErrorMessage(error) });

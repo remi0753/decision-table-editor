@@ -94,6 +94,10 @@ export type TranslationSet = {
   cancel: string;
   useSelectedWorkspace: string;
   connecting: string;
+  newLogicSourceLabel: string;
+  newLogicFromLocalDraft: string;
+  newLogicBlank: string;
+  newLogicFromLocalDraftHint: string;
 
   // LeftPane
   logicNameLabel: string;
@@ -437,6 +441,11 @@ export const translations: Record<Lang, TranslationSet> = {
     cancel: 'Cancel',
     useSelectedWorkspace: 'Use selected workspace',
     connecting: 'Connecting...',
+    newLogicSourceLabel: 'Start this logic from',
+    newLogicFromLocalDraft: 'My local edits',
+    newLogicBlank: 'A blank logic',
+    newLogicFromLocalDraftHint:
+      'Carry over the work from your local session as a new cloud logic.',
 
     logicNameLabel: 'Logic Name',
     logicNamePlaceholder: 'Logic name',
@@ -796,6 +805,11 @@ export const translations: Record<Lang, TranslationSet> = {
     cancel: 'キャンセル',
     useSelectedWorkspace: '選択したワークスペースを使う',
     connecting: '接続中...',
+    newLogicSourceLabel: 'このロジックの開始元',
+    newLogicFromLocalDraft: 'ローカルの編集内容',
+    newLogicBlank: '空のロジック',
+    newLogicFromLocalDraftHint:
+      'ローカルで作業していた内容を新しいクラウドロジックとして引き継ぎます。',
 
     logicNameLabel: 'ロジック名',
     logicNamePlaceholder: 'ロジック名',
