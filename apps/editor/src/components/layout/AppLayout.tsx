@@ -8,7 +8,6 @@ import {
   Loader2,
   Menu,
   Redo2,
-  Sparkles,
   Undo2,
   Upload,
 } from 'lucide-react';
@@ -254,31 +253,31 @@ export function AppLayout() {
                   <FilePlus className="h-4 w-4 text-gray-400" />
                   <span>{t.newCreate}</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  onSelect={importFn}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
-                >
-                  <Upload className="h-4 w-4 text-gray-400" />
-                  <span>{t.importBtn}</span>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  onSelect={() => exportLogic(logic)}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
-                >
-                  <Download className="h-4 w-4 text-gray-400" />
-                  <span>{t.exportBtn}</span>
-                </DropdownMenu.Item>
+                {/* File-based backup/restore is the local-mode safety net;
+                    cloud mode persists via autosave + publish, so it's hidden
+                    there. */}
+                {cloudMode === 'local' ? (
+                  <>
+                    <DropdownMenu.Item
+                      onSelect={importFn}
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                    >
+                      <Upload className="h-4 w-4 text-gray-400" />
+                      <span>{t.importBtn}</span>
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      onSelect={() => exportLogic(logic)}
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                    >
+                      <Download className="h-4 w-4 text-gray-400" />
+                      <span>{t.exportBtn}</span>
+                    </DropdownMenu.Item>
+                  </>
+                ) : null}
                 <DropdownMenu.Separator className="my-1 h-px bg-gray-100" />
                 <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                   {t.toolActions}
                 </DropdownMenu.Label>
-                <DropdownMenu.Item
-                  onSelect={() => setSampleGalleryOpen(true)}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
-                >
-                  <Sparkles className="h-4 w-4 text-gray-400" />
-                  <span>{t.samples}</span>
-                </DropdownMenu.Item>
                 <DropdownMenu.Item
                   onSelect={() => setBatchDialogOpen(true)}
                   className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
