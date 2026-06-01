@@ -17,6 +17,7 @@ export type TranslationSet = {
   undo: string;
   redo: string;
   moreActions: string;
+  docsLink: string;
   fileActions: string;
   toolActions: string;
   accountMenu: string;
@@ -359,6 +360,7 @@ export const translations: Record<Lang, TranslationSet> = {
     undo: 'Undo (⌘Z)',
     redo: 'Redo (⇧⌘Z)',
     moreActions: 'More actions',
+    docsLink: 'Docs',
     fileActions: 'File',
     toolActions: 'Tools',
     accountMenu: 'Account and workspace',
@@ -726,6 +728,7 @@ export const translations: Record<Lang, TranslationSet> = {
     undo: '元に戻す（⌘Z）',
     redo: 'やり直し（⇧⌘Z）',
     moreActions: 'その他の操作',
+    docsLink: 'ドキュメント',
     fileActions: 'ファイル',
     toolActions: 'ツール',
     accountMenu: 'アカウントとワークスペース',

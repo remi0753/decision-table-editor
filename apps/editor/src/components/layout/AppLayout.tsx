@@ -1,6 +1,7 @@
 import type { Logic } from '@leverie/engine';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
+  BookOpen,
   Download,
   FilePlus,
   FlaskConical,
@@ -204,17 +205,6 @@ export function AppLayout() {
           <img src={logoUrl} alt="LEVERIE" height={34} className="h-[34px]" />
         </div>
         <div className="flex items-center gap-2">
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value as Lang)}
-            className="text-xs border border-gray-200 rounded px-2 py-1.5 bg-white hover:bg-violet-50 hover:border-violet-200 text-gray-500 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-300"
-          >
-            <option value="en">EN</option>
-            <option value="ja">日本語</option>
-          </select>
-          <div className="w-px h-5 bg-gray-200" />
-          <CloudMenu />
-          <div className="w-px h-5 bg-gray-200" />
           <Tooltip content={t.undo}>
             <IconButton
               size="md"
@@ -299,6 +289,26 @@ export function AppLayout() {
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
+          <div className="w-px h-5 bg-gray-200" />
+          <a
+            href="/docs/introduction"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-medium text-gray-500 hover:bg-violet-50 hover:text-violet-700 focus:outline-none focus:ring-1 focus:ring-violet-300"
+          >
+            <BookOpen className="h-4 w-4" />
+            <span>{t.docsLink}</span>
+          </a>
+          <select
+            value={lang}
+            onChange={(e) => setLang(e.target.value as Lang)}
+            className="text-xs border border-gray-200 rounded px-2 py-1.5 bg-white hover:bg-violet-50 hover:border-violet-200 text-gray-500 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-300"
+          >
+            <option value="en">EN</option>
+            <option value="ja">日本語</option>
+          </select>
+          <div className="w-px h-5 bg-gray-200" />
+          <CloudMenu />
         </div>
       </header>
 
