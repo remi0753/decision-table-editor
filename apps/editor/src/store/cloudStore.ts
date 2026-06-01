@@ -678,7 +678,6 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
 
   signIn: async (email, password, localLogic, importLogic) => {
     await signInEmail(email, password);
-    sessionStorage.removeItem('leverie-editor-mode');
     await get().initializeCloud(localLogic, importLogic, { requireAuth: true });
   },
 
@@ -688,7 +687,6 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
     // can fetch /api/me. Callers should drive a "check your email" UI rather
     // than relying on this method to land the user inside the editor.
     await signUpEmail(name, email, password, `${window.location.origin}/edit`);
-    sessionStorage.removeItem('leverie-editor-mode');
     const me = await getMe().catch(() => null);
     if (me && me.orgs.length === 0) {
       await createOrg(name || 'My organization');

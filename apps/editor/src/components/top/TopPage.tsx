@@ -17,10 +17,6 @@ import logoUrl from '@/assets/logo.svg';
 const GITHUB_URL = 'https://github.com/remi0753/leverie';
 
 export function TopPage() {
-  const startGuestEditor = () => {
-    sessionStorage.setItem('leverie-editor-mode', 'guest');
-  };
-
   return (
     <div className="min-h-screen bg-violet-50 text-gray-950">
       <header className="fixed inset-x-0 top-0 z-30 border-b border-violet-200 bg-white/90 px-4 backdrop-blur md:px-8">
@@ -62,8 +58,7 @@ export function TopPage() {
               Sign in
             </a>
             <a
-              href="/edit"
-              onClick={startGuestEditor}
+              href="/local"
               className="inline-flex items-center gap-2 whitespace-nowrap rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-600/20 hover:bg-violet-700"
             >
               <span className="sm:hidden">Try it</span>
@@ -105,8 +100,7 @@ export function TopPage() {
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <a
-                  href="/edit"
-                  onClick={startGuestEditor}
+                  href="/local"
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-violet-600 px-5 py-3 text-base font-semibold text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700"
                 >
                   Open the free editor
@@ -285,8 +279,7 @@ export function TopPage() {
             </div>
             <div className="mt-10 flex justify-center">
               <a
-                href="/edit"
-                onClick={startGuestEditor}
+                href="/local"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-base font-semibold text-violet-950 hover:bg-violet-50"
               >
                 Play with a sample
@@ -347,11 +340,7 @@ export function TopPage() {
               </p>
               <ul className="mt-4 space-y-2 text-sm text-white/80">
                 <li>
-                  <a
-                    href="/edit"
-                    onClick={startGuestEditor}
-                    className="hover:text-white"
-                  >
+                  <a href="/local" className="hover:text-white">
                     Open the editor
                   </a>
                 </li>
