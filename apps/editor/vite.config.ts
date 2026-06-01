@@ -48,6 +48,14 @@ export default defineConfig(({ command, mode }) => ({
         target: 'http://localhost:8787',
         changeOrigin: true,
       },
+      // Proxy the docs site (its own Vite dev server on :5174, served under
+      // the /docs/ base) so the header's Docs link resolves in development,
+      // mirroring production where @leverie/server serves /docs/* itself.
+      '/docs': {
+        target: 'http://127.0.0.1:5174',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 }));
