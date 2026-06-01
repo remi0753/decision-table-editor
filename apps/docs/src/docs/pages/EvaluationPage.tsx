@@ -90,11 +90,11 @@ export function EvaluationPage() {
         <figure className="media-card">
           <img
             src={asset('editor-batch-test.png')}
-            alt="The Batch test dialog explaining the CSV import format and offering Sample CSV and Choose CSV buttons."
+            alt="The Batch test dialog with a short explanation and Load CSV and Download template buttons."
           />
           <figcaption>
-            The Batch test dialog explains the CSV schema and offers a
-            ready-made sample so you don&apos;t have to guess at column names.
+            The Batch test dialog. Download template gives you a CSV with the
+            right columns; Load CSV runs your filled-in cases.
           </figcaption>
         </figure>
         <DefinitionList
@@ -117,11 +117,11 @@ export function EvaluationPage() {
 
       <DocSection title="Sample templates">
         <p>
-          You don&apos;t have to start from a blank page. The Sample templates
-          dialog (More actions → Sample templates) ships with realistic starting
-          points — customer support routing, refund eligibility, loan review,
-          and more — each with fields, tables, and example rows already wired
-          up.
+          You don&apos;t have to start from a blank page. An empty table shows a{' '}
+          <strong>Start from a sample</strong> button that opens the Sample
+          templates dialog, which ships with realistic starting points —
+          customer support routing, refund eligibility, loan review, and more —
+          each with fields, tables, and example rows already wired up.
         </p>
         <figure className="media-card">
           <img
@@ -135,34 +135,37 @@ export function EvaluationPage() {
         </figure>
         <Callout
           icon={FlaskConical}
-          title="Templates overwrite the current draft"
+          title="Create new, or replace the current draft"
         >
-          Loading a template replaces the current local draft. Export anything
-          you want to keep first.
+          The dialog can create a new draft from a sample or replace the one you
+          are editing. Replacing overwrites the current draft, so save a backup
+          of anything you want to keep first.
         </Callout>
       </DocSection>
 
-      <DocSection title="Importing and exporting">
+      <DocSection title="Backups: Open file and Save backup">
         <p>
           The File group in the More actions menu lets you move logic between
-          machines or save a checkpoint before a risky refactor.
+          machines or save a checkpoint before a risky refactor. These entries
+          appear in local mode; cloud mode persists through autosave and
+          publishing instead.
         </p>
         <FeatureGrid
           items={[
             {
               icon: Download,
-              title: 'Export',
+              title: 'Save backup',
               body: 'Downloads the current logic as a JSON file. Keep these in version control if you treat logic as code.',
             },
             {
               icon: Upload,
-              title: 'Import',
-              body: 'Loads a JSON file produced by Export. Validation runs immediately so a malformed file cannot corrupt the editor.',
+              title: 'Open file',
+              body: 'Loads a JSON file produced by Save backup. Validation runs immediately so a malformed file cannot corrupt the editor.',
             },
             {
               icon: FileSpreadsheet,
               title: 'New',
-              body: 'Clears the current draft. In local mode this is destructive — export first if you want to keep the work.',
+              body: 'Clears the current draft. In local mode this is destructive — save a backup first if you want to keep the work.',
             },
           ]}
         />
@@ -171,7 +174,7 @@ export function EvaluationPage() {
             'Use single evaluation while you are still drafting the rules.',
             'Use batch test before promoting a draft to production.',
             'Keep a small library of canonical test cases — at minimum one per major branch and one no-match case.',
-            'Export the logic JSON after a milestone so you can restore it without relying on browser storage.',
+            'Save a backup of the logic JSON after a milestone so you can restore it without relying on browser storage.',
           ]}
         />
       </DocSection>
