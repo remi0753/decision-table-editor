@@ -123,7 +123,7 @@ export function SharingPage() {
         <figure className="media-card">
           <img
             src={asset('editor-auth.png')}
-            alt="The LEVERIE auth screen with sign-in form and the option to move browser draft to cloud."
+            alt="The LEVERIE auth screen with the sign-in form, a create-account option, and a link to continue without signing in."
           />
           <figcaption>
             The auth screen used by both sign-up and sign-in, including
