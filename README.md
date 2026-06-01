@@ -8,6 +8,15 @@
 
 ---
 
+## Demo
+
+<video src="artifacts/leverie-build-logic-30s-en.mp4" controls muted playsinline width="100%"></video>
+
+If the video does not render in your browser, open the
+[30-second build demo](artifacts/leverie-build-logic-30s-en.mp4) directly.
+
+---
+
 ## Name
 
 **Pronunciation:** /lɛvəˈrie/ · レヴァリエ
