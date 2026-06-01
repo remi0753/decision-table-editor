@@ -19,7 +19,7 @@ interface InputFormProps {
 }
 
 const inputBase =
-  'w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400';
+  'w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm text-fg placeholder-fg-faint focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand-border-strong';
 
 export function InputForm({
   logic,
@@ -33,7 +33,7 @@ export function InputForm({
   const fields = Object.values(logic.fieldDefs);
 
   if (fields.length === 0) {
-    return <p className="text-xs text-gray-400">{t.noFields}</p>;
+    return <p className="text-xs text-fg-faint">{t.noFields}</p>;
   }
 
   return (
@@ -72,7 +72,7 @@ function FieldRow({
     <div className="min-w-0">
       <label
         htmlFor={field.id}
-        className="mb-1 flex items-center gap-1.5 text-xs font-medium text-gray-600"
+        className="mb-1 flex items-center gap-1.5 text-xs font-medium text-fg-muted"
       >
         <TypeIcon type={field.type} />
         <span className="truncate">{field.name}</span>
@@ -102,7 +102,7 @@ function FieldInput({
     return (
       <fieldset
         aria-label={field.name}
-        className="flex w-full rounded-md border border-gray-300 bg-white p-0.5"
+        className="flex w-full rounded-md border border-line-strong bg-surface p-0.5"
       >
         {options.map((o) => {
           const active = value === o.v;
@@ -122,7 +122,7 @@ function FieldInput({
                 onChange={() => onChange(o.v)}
                 className="peer sr-only"
               />
-              <span className="block rounded px-2 py-1 text-center text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 peer-checked:bg-violet-600 peer-checked:text-white peer-checked:shadow-sm">
+              <span className="block rounded px-2 py-1 text-center text-xs font-medium text-fg-muted transition-colors hover:bg-surface-muted peer-checked:bg-brand peer-checked:text-white peer-checked:shadow-sm">
                 {o.label}
               </span>
             </label>
@@ -148,7 +148,7 @@ function FieldInput({
             </option>
           ))}
         </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" />
+        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-fg-faint" />
       </div>
     );
   }
@@ -212,7 +212,7 @@ function TypeIcon({ type }: { type: FieldType }) {
     strokeWidth: 2,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
-    className: 'text-gray-400 shrink-0',
+    className: 'text-fg-faint shrink-0',
     'aria-hidden': true,
   };
   switch (type) {

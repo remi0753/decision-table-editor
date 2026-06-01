@@ -83,7 +83,7 @@ function ValueInput({
       <select
         value={strVal}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
       >
         <option value="">{t.pleaseSelect}</option>
         {(field.enumValues ?? []).map((v) => (
@@ -101,7 +101,7 @@ function ValueInput({
         type="date"
         value={strVal}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
       />
     );
   }
@@ -112,7 +112,7 @@ function ValueInput({
         type="datetime-local"
         value={strVal}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+        className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
       />
     );
   }
@@ -162,26 +162,26 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
           data-cell-trigger=""
           data-tour-target={field ? 'condition-cell' : undefined}
           className={cn(
-            'w-full h-full px-2 py-1 text-left text-xs hover:bg-gray-50 transition-colors',
-            !cell ? 'text-gray-400 italic' : 'text-gray-700',
+            'w-full h-full px-2 py-1 text-left text-xs hover:bg-surface-muted transition-colors',
+            !cell ? 'text-fg-faint italic' : 'text-fg-secondary',
           )}
         >
-          {field ? summary : <span className="text-gray-300">—</span>}
+          {field ? summary : <span className="text-fg-faint">—</span>}
         </button>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          className="bg-white border rounded-lg shadow-lg p-3 w-72 z-50"
+          className="bg-surface border rounded-lg shadow-lg p-3 w-72 z-50"
           sideOffset={4}
         >
           {!field ? (
-            <p className="text-sm text-gray-500">{t.assignField}</p>
+            <p className="text-sm text-fg-subtle">{t.assignField}</p>
           ) : (
             <div className="space-y-3">
               <div>
                 <label
                   htmlFor="cell-operator"
-                  className="text-xs text-gray-500 mb-1 block"
+                  className="text-xs text-fg-subtle mb-1 block"
                 >
                   {t.operatorLabel}
                 </label>
@@ -189,7 +189,7 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
                   id="cell-operator"
                   value={op}
                   onChange={(e) => handleOpChange(e.target.value as Operator)}
-                  className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+                  className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                 >
                   {OPERATORS_BY_TYPE[field.type].map((o) => (
                     <option key={o} value={o}>
@@ -205,7 +205,7 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="flex-1 bg-violet-600 text-white text-xs rounded px-3 py-1.5 hover:bg-violet-700"
+                  className="flex-1 bg-brand text-white text-xs rounded px-3 py-1.5 hover:bg-brand-strong"
                 >
                   {t.setCell}
                 </button>
@@ -215,14 +215,14 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
                     onClear();
                     setOpen(false);
                   }}
-                  className="flex-1 border text-xs rounded px-3 py-1.5 hover:bg-gray-50 text-gray-600"
+                  className="flex-1 border text-xs rounded px-3 py-1.5 hover:bg-surface-muted text-fg-muted"
                 >
                   {t.wildcard}
                 </button>
               </div>
             </div>
           )}
-          <Popover.Arrow className="fill-white stroke-gray-200" />
+          <Popover.Arrow className="fill-white stroke-line" />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

@@ -145,21 +145,21 @@ export function CloudWorkspacePicker() {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] bg-white/85 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[80] bg-surface/85 backdrop-blur-sm">
       <div className="flex min-h-full items-center justify-center p-6">
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-md rounded border border-gray-200 bg-white p-5 shadow-xl"
+          className="w-full max-w-md rounded border border-line bg-surface p-5 shadow-xl"
         >
           <div className="mb-5 flex items-start gap-3">
-            <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-emerald-700">
+            <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded border border-success-border bg-success-bg text-success-fg">
               <Cloud className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900">
+              <h2 className="text-base font-semibold text-fg">
                 Choose cloud workspace
               </h2>
-              <p className="mt-1 text-sm leading-6 text-gray-500">
+              <p className="mt-1 text-sm leading-6 text-fg-subtle">
                 Select where this editor session should load and save.
               </p>
             </div>
@@ -167,13 +167,13 @@ export function CloudWorkspacePicker() {
 
           <div className="space-y-3">
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-gray-600">
+              <span className="mb-1 block text-xs font-medium text-fg-muted">
                 Organization
               </span>
               <select
                 value={orgId}
                 onChange={(event) => setOrgId(event.target.value)}
-                className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
               >
                 {choices.orgs.map((org) => (
                   <option key={org.id} value={org.id}>
@@ -184,13 +184,13 @@ export function CloudWorkspacePicker() {
             </label>
 
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-gray-600">
+              <span className="mb-1 block text-xs font-medium text-fg-muted">
                 Workspace
               </span>
               <select
                 value={workspaceId}
                 onChange={(event) => setWorkspaceId(event.target.value)}
-                className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
               >
                 {workspaces.length === 0 ? (
                   <option value="">Create Default workspace</option>
@@ -205,13 +205,13 @@ export function CloudWorkspacePicker() {
             </label>
 
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-gray-600">
+              <span className="mb-1 block text-xs font-medium text-fg-muted">
                 Logic
               </span>
               <select
                 value={logicId}
                 onChange={(event) => setLogicId(event.target.value)}
-                className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
               >
                 {logics.map((cloudLogic) => (
                   <option key={cloudLogic.id} value={cloudLogic.id}>
@@ -228,10 +228,10 @@ export function CloudWorkspacePicker() {
             </label>
 
             {creatingNewLogic && canCreateLogic ? (
-              <div className="space-y-3 rounded border border-gray-200 bg-gray-50 p-3">
+              <div className="space-y-3 rounded border border-line bg-surface-muted p-3">
                 {stashedDraft ? (
                   <div>
-                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
                       {t.newLogicSourceLabel}
                     </span>
                     <div className="grid grid-cols-2 gap-2">
@@ -240,8 +240,8 @@ export function CloudWorkspacePicker() {
                         onClick={() => setSeedFromLocal(true)}
                         className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
                           seedFromLocal
-                            ? 'border-violet-300 bg-violet-50 text-violet-800'
-                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                            ? 'border-brand-border-strong bg-brand-subtle text-brand-fg-strong'
+                            : 'border-line bg-surface text-fg-muted hover:bg-surface-muted'
                         }`}
                       >
                         {t.newLogicFromLocalDraft}
@@ -251,22 +251,22 @@ export function CloudWorkspacePicker() {
                         onClick={() => setSeedFromLocal(false)}
                         className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
                           seedFromLocal
-                            ? 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                            : 'border-violet-300 bg-violet-50 text-violet-800'
+                            ? 'border-line bg-surface text-fg-muted hover:bg-surface-muted'
+                            : 'border-brand-border-strong bg-brand-subtle text-brand-fg-strong'
                         }`}
                       >
                         {t.newLogicBlank}
                       </button>
                     </div>
                     {seedFromLocal ? (
-                      <span className="mt-1 block text-xs leading-5 text-gray-500">
+                      <span className="mt-1 block text-xs leading-5 text-fg-subtle">
                         {t.newLogicFromLocalDraftHint}
                       </span>
                     ) : null}
                   </div>
                 ) : null}
                 <label className="block">
-                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                  <span className="mb-1 block text-xs font-medium text-fg-muted">
                     {t.logicNameLabel}
                   </span>
                   <input
@@ -280,13 +280,13 @@ export function CloudWorkspacePicker() {
                     }}
                     required
                     maxLength={120}
-                    className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     placeholder={t.logicNamePlaceholder}
                   />
                 </label>
 
                 <label className="block">
-                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                  <span className="mb-1 block text-xs font-medium text-fg-muted">
                     {t.logicIdLabel}
                   </span>
                   <input
@@ -298,21 +298,21 @@ export function CloudWorkspacePicker() {
                     required
                     maxLength={63}
                     pattern="[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
-                    className="h-10 w-full rounded border border-gray-200 bg-white px-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    className="h-10 w-full rounded border border-line bg-surface px-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     placeholder={t.logicIdPlaceholder}
                   />
-                  <span className="mt-1 block text-xs leading-5 text-gray-500">
+                  <span className="mt-1 block text-xs leading-5 text-fg-subtle">
                     {t.logicIdHint}
                   </span>
                   {trimmedLogicStableId && !logicStableIdValid ? (
-                    <span className="mt-1 block text-xs text-red-600">
+                    <span className="mt-1 block text-xs text-danger-fg">
                       {t.logicIdInvalid}
                     </span>
                   ) : null}
                 </label>
 
                 <label className="block">
-                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                  <span className="mb-1 block text-xs font-medium text-fg-muted">
                     {t.logicDescriptionLabel}
                   </span>
                   <textarea
@@ -322,7 +322,7 @@ export function CloudWorkspacePicker() {
                     }
                     maxLength={500}
                     rows={3}
-                    className="w-full resize-none rounded border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                    className="w-full resize-none rounded border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                     placeholder={t.logicDescriptionPlaceholder}
                   />
                 </label>
@@ -335,7 +335,7 @@ export function CloudWorkspacePicker() {
             disabled={
               saveState === 'saving' || !orgId || !logicId || !logicFormValid
             }
-            className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+            className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
             {saveState === 'saving' ? t.connecting : t.useSelectedWorkspace}

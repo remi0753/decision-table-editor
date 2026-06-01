@@ -17,12 +17,12 @@ const sizeClass: Record<Size, string> = {
 
 const toneClass: Record<Tone, string> = {
   neutral:
-    'text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:hover:bg-transparent',
+    'text-fg-subtle hover:bg-surface-subtle hover:text-fg-secondary disabled:hover:bg-transparent',
   danger:
-    'text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:hover:bg-transparent',
+    'text-fg-faint hover:bg-danger-bg hover:text-danger-fg disabled:hover:bg-transparent',
   primary:
-    'text-gray-600 hover:bg-violet-50 hover:text-violet-700 disabled:hover:bg-transparent',
-  drag: 'text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing',
+    'text-fg-muted hover:bg-brand-subtle hover:text-brand-fg disabled:hover:bg-transparent',
+  drag: 'text-fg-faint hover:text-fg-subtle cursor-grab active:cursor-grabbing',
 };
 
 export const IconButton = forwardRef<HTMLButtonElement, Props>(

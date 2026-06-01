@@ -18,6 +18,9 @@ export type TranslationSet = {
   redo: string;
   moreActions: string;
   docsLink: string;
+  themeSystemLabel: string;
+  themeLightLabel: string;
+  themeDarkLabel: string;
   fileActions: string;
   toolActions: string;
   accountMenu: string;
@@ -380,6 +383,9 @@ export const translations: Record<Lang, TranslationSet> = {
     redo: 'Redo (⇧⌘Z)',
     moreActions: 'More actions',
     docsLink: 'Docs',
+    themeSystemLabel: 'Theme: system (click for light)',
+    themeLightLabel: 'Theme: light (click for dark)',
+    themeDarkLabel: 'Theme: dark (click for system)',
     fileActions: 'File',
     toolActions: 'Tools',
     accountMenu: 'Account and workspace',
@@ -776,6 +782,9 @@ export const translations: Record<Lang, TranslationSet> = {
     redo: 'やり直し（⇧⌘Z）',
     moreActions: 'その他の操作',
     docsLink: 'ドキュメント',
+    themeSystemLabel: 'テーマ: システム (クリックでライト)',
+    themeLightLabel: 'テーマ: ライト (クリックでダーク)',
+    themeDarkLabel: 'テーマ: ダーク (クリックでシステム)',
     fileActions: 'ファイル',
     toolActions: 'ツール',
     accountMenu: 'アカウントとワークスペース',

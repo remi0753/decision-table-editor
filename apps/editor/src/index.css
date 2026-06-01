@@ -2,11 +2,137 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme tokens. Colors are stored as space-separated RGB channels so Tailwind
+ * utilities keep their opacity modifiers (rgb(var(--token) / <alpha-value>)).
+ * Light values live on :root; .dark (toggled on <html>) swaps them. Most
+ * tokens flip; a few (brand/success/danger/warning solids, ink) intentionally
+ * stay similar in both themes because they back fixed-contrast surfaces.
+ */
+:root {
+  --surface: 255 255 255;
+  --surface-muted: 249 250 251;
+  --surface-subtle: 243 244 246;
+  --surface-strong: 229 231 235;
+  --ink: 17 24 39;
+
+  --fg: 17 24 39;
+  --fg-secondary: 55 65 81;
+  --fg-muted: 75 85 99;
+  --fg-subtle: 107 114 128;
+  --fg-faint: 156 163 175;
+
+  --line: 229 231 235;
+  --line-subtle: 243 244 246;
+  --line-strong: 209 213 219;
+
+  --brand: 124 58 237;
+  --brand-strong: 109 40 217;
+  --brand-deep: 76 29 149;
+  --brand-fg: 109 40 217;
+  --brand-fg-strong: 91 33 182;
+  --brand-fg-mid: 139 92 246;
+  --brand-fg-light: 221 214 254;
+  --brand-subtle: 245 243 255;
+  --brand-soft: 237 233 254;
+  --brand-border: 221 214 254;
+  --brand-border-subtle: 237 233 254;
+  --brand-border-strong: 196 181 253;
+  --brand-ring: 196 181 253;
+
+  --success: 5 150 105;
+  --success-bg: 236 253 245;
+  --success-border: 167 243 208;
+  --success-fg: 4 120 87;
+
+  --danger: 220 38 38;
+  --danger-bg: 254 242 242;
+  --danger-border: 254 202 202;
+  --danger-fg: 220 38 38;
+
+  --warning: 245 158 11;
+  --warning-bg: 255 251 235;
+  --warning-border: 253 230 138;
+  --warning-fg: 180 83 9;
+
+  color-scheme: light;
+}
+
+.dark {
+  --surface: 26 24 34;
+  --surface-muted: 21 19 29;
+  --surface-subtle: 33 30 43;
+  --surface-strong: 44 40 56;
+  --ink: 42 37 53;
+
+  --fg: 243 240 250;
+  --fg-secondary: 203 197 218;
+  --fg-muted: 168 161 184;
+  --fg-subtle: 147 141 163;
+  --fg-faint: 111 105 130;
+
+  --line: 44 40 56;
+  --line-subtle: 35 32 48;
+  --line-strong: 58 53 80;
+
+  --brand: 139 92 246;
+  --brand-strong: 124 58 237;
+  --brand-deep: 42 29 77;
+  --brand-fg: 196 181 253;
+  --brand-fg-strong: 214 202 255;
+  --brand-fg-mid: 185 164 247;
+  --brand-fg-light: 221 214 254;
+  --brand-subtle: 34 29 51;
+  --brand-soft: 42 35 66;
+  --brand-border: 58 51 87;
+  --brand-border-subtle: 46 40 71;
+  --brand-border-strong: 74 64 114;
+  --brand-ring: 124 92 200;
+
+  --success: 5 150 105;
+  --success-bg: 15 41 31;
+  --success-border: 31 95 67;
+  --success-fg: 110 231 183;
+
+  --danger: 220 38 38;
+  --danger-bg: 46 20 22;
+  --danger-border: 95 36 36;
+  --danger-fg: 252 165 165;
+
+  --warning: 245 158 11;
+  --warning-bg: 43 36 16;
+  --warning-border: 95 77 31;
+  --warning-fg: 252 211 77;
+
+  /* React Flow (@xyflow/react) controls/background/edges read these vars from
+     an ancestor, so theming them here covers the flowchart and the DAG graph. */
+  --xy-controls-button-background-color-default: #1a1822;
+  --xy-controls-button-background-color-hover-default: #2a2535;
+  --xy-controls-button-color-default: #cbc5da;
+  --xy-controls-button-color-hover-default: #f3f0fa;
+  --xy-controls-button-border-color-default: #2c2838;
+  --xy-background-pattern-color-default: #2c2838;
+  --xy-edge-stroke-default: #6f6982;
+  --xy-attribution-background-color-default: rgba(26, 24, 34, 0.6);
+  --xy-minimap-background-color-default: #15131d;
+
+  color-scheme: dark;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
   }
+  /* Preflight defaults the border color to gray-200; make borderless-color
+     utilities (border, border-b, ...) follow the theme instead. */
+  *,
+  ::before,
+  ::after {
+    border-color: rgb(var(--line));
+  }
   body {
+    background-color: rgb(var(--surface));
+    color: rgb(var(--fg));
     font-family:
       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
@@ -20,6 +146,12 @@
     pointer-events: none;
     content: "";
     background: rgb(17 24 39 / 0.24);
+  }
+
+  /* On a dark page the light dim barely registers, so the spotlighted element
+     doesn't read as emphasized. Deepen the scrim in dark mode. */
+  html[data-local-tour-step].dark body::before {
+    background: rgb(0 0 0 / 0.66);
   }
 
   html[data-local-tour-step="field"] [data-tour-target="field-add"] {

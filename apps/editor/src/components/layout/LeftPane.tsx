@@ -16,15 +16,15 @@ export function LeftPane() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="shrink-0 border-b bg-white px-3 pt-3 pb-3">
+      <div className="shrink-0 border-b bg-surface px-3 pt-3 pb-3">
         <div className="mb-3">
-          <div className="mb-1 text-xs font-medium tracking-wide text-gray-400">
+          <div className="mb-1 text-xs font-medium tracking-wide text-fg-faint">
             {t.logicNameLabel}
           </div>
           <InlineEdit
             value={logic.name}
             onSave={setLogicName}
-            className="block w-full text-sm font-semibold text-gray-800"
+            className="block w-full text-sm font-semibold text-fg-secondary"
             inputClassName="text-sm w-full"
             placeholder={t.logicNamePlaceholder}
           />

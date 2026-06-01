@@ -82,7 +82,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
     return () => window.clearTimeout(clearTimer);
   }, [highlightTarget, tableId, setHighlightTarget]);
 
-  if (!table) return <div className="p-4 text-gray-400">{t.tableNotFound}</div>;
+  if (!table) return <div className="p-4 text-fg-faint">{t.tableNotFound}</div>;
 
   const rowIds = table.rows.map((r) => r.id);
   const colIds = table.cols.map((c) => c.id);
@@ -111,22 +111,22 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
 
   return (
     <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
-      <div className="flex min-h-0 flex-col bg-white">
+      <div className="flex min-h-0 flex-col bg-surface">
         {/* Header */}
-        <div className="flex min-h-11 min-w-0 items-stretch justify-between gap-3 border-b border-violet-100 bg-white">
+        <div className="flex min-h-11 min-w-0 items-stretch justify-between gap-3 border-b border-brand-border-subtle bg-surface">
           <TableTabs activeTableId={tableId} />
 
           <div className="flex shrink-0 items-center gap-2 py-1.5 pr-3 pl-1">
             {/* Tab switcher */}
-            <div className="flex h-8 items-center gap-0.5 rounded border border-gray-200 bg-gray-50 p-0.5">
+            <div className="flex h-8 items-center gap-0.5 rounded border border-line bg-surface-muted p-0.5">
               <button
                 type="button"
                 onClick={() => handleTabChange('table')}
                 className={cn(
                   'flex h-7 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition-colors',
                   activeTab === 'table'
-                    ? 'bg-white text-violet-800 shadow-sm'
-                    : 'text-gray-500 hover:bg-white hover:text-gray-700',
+                    ? 'bg-surface text-brand-fg-strong shadow-sm'
+                    : 'text-fg-subtle hover:bg-surface hover:text-fg-secondary',
                 )}
               >
                 <Table2 size={11} /> {t.tableTab}
@@ -137,13 +137,13 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                 className={cn(
                   'flex h-7 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition-colors',
                   activeTab === 'flowchart'
-                    ? 'bg-white text-violet-800 shadow-sm'
-                    : 'text-gray-500 hover:bg-white hover:text-gray-700',
+                    ? 'bg-surface text-brand-fg-strong shadow-sm'
+                    : 'text-fg-subtle hover:bg-surface hover:text-fg-secondary',
                 )}
               >
                 <GitBranch size={11} /> {t.flowchartTab}
                 {gapCount > 0 && (
-                  <span className="rounded bg-yellow-100 px-1 text-[10px] font-semibold leading-tight text-yellow-800">
+                  <span className="rounded bg-warning-bg px-1 text-[10px] font-semibold leading-tight text-warning-fg">
                     ⚠️ {gapCount}
                   </span>
                 )}
@@ -164,8 +164,8 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
               >
                 <thead>
                   <tr>
-                    <th className="border-b border-r border-gray-200 bg-gray-100 w-14 sticky left-0 z-10" />
-                    <th className="border-b border-r border-gray-200 bg-gray-100 w-10 text-xs text-gray-500 px-2">
+                    <th className="border-b border-r border-line bg-surface-subtle w-14 sticky left-0 z-10" />
+                    <th className="border-b border-r border-line bg-surface-subtle w-10 text-xs text-fg-subtle px-2">
                       #
                     </th>
                     <SortableContext
@@ -182,7 +182,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                       ))}
                     </SortableContext>
                     <th
-                      className="border-b border-r border-gray-200 bg-gray-100 p-0"
+                      className="border-b border-r border-line bg-surface-subtle p-0"
                       style={{ width: 32, minWidth: 32, maxWidth: 32 }}
                     >
                       <button
@@ -191,13 +191,13 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                         data-tour-target="condition-add"
                         title={t.addConditionCol}
                         aria-label={t.addConditionCol}
-                        className="w-full h-full flex items-center justify-center text-gray-400 hover:text-violet-700 hover:bg-violet-50 transition-colors py-1.5"
+                        className="w-full h-full flex items-center justify-center text-fg-faint hover:text-brand-fg hover:bg-brand-subtle transition-colors py-1.5"
                       >
                         <Plus size={14} strokeWidth={2.5} />
                       </button>
                     </th>
                     <th
-                      className="border-b border-r border-gray-200 bg-gray-100 px-2 py-1 text-xs font-medium relative text-gray-700"
+                      className="border-b border-r border-line bg-surface-subtle px-2 py-1 text-xs font-medium relative text-fg-secondary"
                       style={{ minWidth: 240 }}
                     >
                       <div className="flex items-center justify-between">
@@ -219,7 +219,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                         />
                       )}
                     </th>
-                    <th className="border-b border-l border-gray-200 bg-gray-100 w-16 sticky right-0 z-10" />
+                    <th className="border-b border-l border-line bg-surface-subtle w-16 sticky right-0 z-10" />
                   </tr>
                 </thead>
                 <tbody>
@@ -255,7 +255,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                           data-tour-target="row-add"
                           title={t.addRow}
                           aria-label={t.addRow}
-                          className="w-full flex items-center justify-center text-gray-300 hover:text-violet-700 hover:bg-violet-50 transition-colors py-1 group/addrow"
+                          className="w-full flex items-center justify-center text-fg-faint hover:text-brand-fg hover:bg-brand-subtle transition-colors py-1 group/addrow"
                         >
                           <Plus
                             size={14}
@@ -271,10 +271,10 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
             </div>
 
             {(table.rows.length === 0 || table.cols.length === 0) && (
-              <div className="flex items-center justify-center px-4 py-10 border-t bg-gray-50/50">
-                <div className="flex flex-col items-center gap-3 bg-white border border-gray-200 rounded-lg shadow-sm px-8 py-6 max-w-md">
+              <div className="flex items-center justify-center px-4 py-10 border-t bg-surface-muted/50">
+                <div className="flex flex-col items-center gap-3 bg-surface border border-line rounded-lg shadow-sm px-8 py-6 max-w-md">
                   {table.rows.length === 0 && table.cols.length === 0 && (
-                    <p className="text-sm text-gray-600 mb-1">
+                    <p className="text-sm text-fg-muted mb-1">
                       {t.emptyTableHelper}
                     </p>
                   )}
@@ -286,18 +286,18 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                         <button
                           type="button"
                           onClick={onOpenSampleGallery}
-                          className="w-72 flex items-center justify-center gap-1.5 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded px-3 py-2"
+                          className="w-72 flex items-center justify-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-strong rounded px-3 py-2"
                         >
                           <Sparkles size={16} strokeWidth={2.5} />
                           {t.startFromSample}
                         </button>
-                        <p className="text-xs text-gray-500 text-center -mt-1 max-w-xs">
+                        <p className="text-xs text-fg-subtle text-center -mt-1 max-w-xs">
                           {t.startFromSampleHint}
                         </p>
-                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-400 w-72">
-                          <span className="flex-1 border-t border-gray-200" />
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-fg-faint w-72">
+                          <span className="flex-1 border-t border-line" />
                           <span>{t.orSeparator}</span>
-                          <span className="flex-1 border-t border-gray-200" />
+                          <span className="flex-1 border-t border-line" />
                         </div>
                       </>
                     )}
@@ -306,7 +306,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                       type="button"
                       onClick={() => addCol(tableId)}
                       data-tour-target="condition-add"
-                      className="w-72 flex items-center justify-center gap-1.5 text-sm text-violet-700 hover:text-violet-900 bg-white border border-violet-300 hover:border-violet-500 rounded px-3 py-2"
+                      className="w-72 flex items-center justify-center gap-1.5 text-sm text-brand-fg hover:text-brand-fg-strong bg-surface border border-brand-border-strong hover:border-brand-border-strong rounded px-3 py-2"
                     >
                       <Plus size={16} strokeWidth={2.5} />
                       {t.addFirstConditionCol}
@@ -317,7 +317,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                       type="button"
                       onClick={() => addRow(tableId)}
                       data-tour-target="row-add"
-                      className="w-72 flex items-center justify-center gap-1.5 text-sm text-violet-700 hover:text-violet-900 bg-white border border-violet-300 hover:border-violet-500 rounded px-3 py-2"
+                      className="w-72 flex items-center justify-center gap-1.5 text-sm text-brand-fg hover:text-brand-fg-strong bg-surface border border-brand-border-strong hover:border-brand-border-strong rounded px-3 py-2"
                     >
                       <Plus size={16} strokeWidth={2.5} />
                       {t.addFirstRow}
@@ -328,12 +328,12 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
             )}
 
             {gapCount > 0 && table.rows.length > 0 && (
-              <div className="mx-4 mb-3 bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800 flex items-center justify-between gap-2">
+              <div className="mx-4 mb-3 bg-warning-bg border border-warning-border rounded p-2 text-xs text-warning-fg flex items-center justify-between gap-2">
                 <span>⚠️ {t.coverageGapWarning(gapCount)}</span>
                 <button
                   type="button"
                   onClick={() => handleTabChange('flowchart')}
-                  className="text-yellow-900 hover:text-yellow-700 font-medium underline whitespace-nowrap"
+                  className="text-warning-fg hover:text-warning-fg font-medium underline whitespace-nowrap"
                 >
                   {t.viewInFlowchart} →
                 </button>

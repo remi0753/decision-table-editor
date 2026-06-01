@@ -18,26 +18,26 @@ const GITHUB_URL = 'https://github.com/remi0753/leverie';
 
 export function TopPage() {
   return (
-    <div className="min-h-screen bg-violet-50 text-gray-950">
-      <header className="fixed inset-x-0 top-0 z-30 border-b border-violet-200 bg-white/90 px-4 backdrop-blur md:px-8">
+    <div className="min-h-screen bg-brand-subtle text-fg">
+      <header className="fixed inset-x-0 top-0 z-30 border-b border-brand-border bg-surface/90 px-4 backdrop-blur md:px-8">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4">
           <a href="/" aria-label="LEVERIE top">
             <img src={logoUrl} alt="LEVERIE" className="h-9" />
           </a>
-          <nav className="hidden items-center gap-7 text-sm font-medium text-gray-600 md:flex">
-            <a href="#value" className="hover:text-violet-800">
+          <nav className="hidden items-center gap-7 text-sm font-medium text-fg-muted md:flex">
+            <a href="#value" className="hover:text-brand-fg-strong">
               Features
             </a>
-            <a href="#flow" className="hover:text-violet-800">
+            <a href="#flow" className="hover:text-brand-fg-strong">
               How it works
             </a>
-            <a href="#integrations" className="hover:text-violet-800">
+            <a href="#integrations" className="hover:text-brand-fg-strong">
               Integrations
             </a>
-            <a href="#fit" className="hover:text-violet-800">
+            <a href="#fit" className="hover:text-brand-fg-strong">
               Use cases
             </a>
-            <a href="/docs/introduction" className="hover:text-violet-800">
+            <a href="/docs/introduction" className="hover:text-brand-fg-strong">
               Docs
             </a>
           </nav>
@@ -47,19 +47,19 @@ export function TopPage() {
               target="_blank"
               rel="noreferrer"
               aria-label="Open LEVERIE on GitHub"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-violet-200 bg-white/80 text-gray-700 shadow-sm hover:bg-white hover:text-violet-800"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-brand-border bg-surface/80 text-fg-secondary shadow-sm hover:bg-surface hover:text-brand-fg-strong"
             >
               <Github className="h-5 w-5" aria-hidden="true" />
             </a>
             <a
               href="/auth"
-              className="whitespace-nowrap rounded-md border border-violet-200 bg-white/80 px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-white hover:text-violet-800"
+              className="whitespace-nowrap rounded-md border border-brand-border bg-surface/80 px-3 py-2 text-sm font-semibold text-fg-secondary shadow-sm hover:bg-surface hover:text-brand-fg-strong"
             >
               Sign in
             </a>
             <a
               href="/local"
-              className="inline-flex items-center gap-2 whitespace-nowrap rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-600/20 hover:bg-violet-700"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-md bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-600/20 hover:bg-brand-strong"
             >
               <span className="sm:hidden">Try it</span>
               <span className="hidden sm:inline">Try it free</span>
@@ -79,21 +79,21 @@ export function TopPage() {
               backgroundSize: '44px 44px',
             }}
           />
-          <div className="absolute right-[-10vw] top-20 hidden h-[76vh] w-[60vw] rotate-[-5deg] rounded-[32px] border border-violet-200 bg-white/88 shadow-2xl shadow-violet-950/15 lg:block">
+          <div className="absolute right-[-10vw] top-20 hidden h-[76vh] w-[60vw] rotate-[-5deg] rounded-[32px] border border-brand-border bg-surface/88 shadow-2xl shadow-violet-950/15 lg:block">
             <DecisionWorkspacePreview />
           </div>
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="flex min-h-[64vh] flex-col justify-center pb-4">
-              <p className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-violet-200 bg-white/85 px-3 py-1 text-sm font-semibold text-violet-700">
+              <p className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-brand-border bg-surface/85 px-3 py-1 text-sm font-semibold text-brand-fg">
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
                 Business rules, readable to humans &amp; AI
               </p>
-              <h1 className="max-w-3xl text-5xl font-semibold leading-[1.06] tracking-normal text-gray-950 md:text-7xl">
+              <h1 className="max-w-3xl text-5xl font-semibold leading-[1.06] tracking-normal text-fg md:text-7xl">
                 Grow decision rules
                 <br />
                 in tables, not code.
               </h1>
-              <p className="mt-7 max-w-2xl text-lg leading-8 text-gray-700 md:text-xl">
+              <p className="mt-7 max-w-2xl text-lg leading-8 text-fg-secondary md:text-xl">
                 LEVERIE turns "if this, then that" logic — for triage, reviews,
                 approvals, and routing — into spreadsheet-style decision tables
                 your team can build, verify, and share.
@@ -101,35 +101,35 @@ export function TopPage() {
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="/local"
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-violet-600 px-5 py-3 text-base font-semibold text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700"
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-brand px-5 py-3 text-base font-semibold text-white shadow-lg shadow-violet-600/25 hover:bg-brand-strong"
                 >
                   Open the free editor
                   <ArrowRight className="h-5 w-5" aria-hidden="true" />
                 </a>
                 <a
                   href="/auth"
-                  className="inline-flex items-center justify-center gap-2 rounded-md border border-violet-200 bg-white/80 px-5 py-3 text-base font-semibold text-gray-800 shadow-sm hover:bg-white hover:text-violet-800"
+                  className="inline-flex items-center justify-center gap-2 rounded-md border border-brand-border bg-surface/80 px-5 py-3 text-base font-semibold text-fg-secondary shadow-sm hover:bg-surface hover:text-brand-fg-strong"
                 >
                   Use with your team
                 </a>
               </div>
-              <div className="mt-8 grid max-w-2xl gap-3 text-sm font-medium text-gray-600 sm:grid-cols-3">
+              <div className="mt-8 grid max-w-2xl gap-3 text-sm font-medium text-fg-muted sm:grid-cols-3">
                 <span className="inline-flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-violet-600" />
+                  <CheckCircle2 className="h-4 w-4 text-brand-fg" />
                   No JSON required
                 </span>
                 <span className="inline-flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-violet-600" />
+                  <CheckCircle2 className="h-4 w-4 text-brand-fg" />
                   Conflict detection
                 </span>
                 <span className="inline-flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-violet-600" />
+                  <CheckCircle2 className="h-4 w-4 text-brand-fg" />
                   AI-ready output
                 </span>
               </div>
             </div>
             <div className="relative lg:hidden">
-              <div className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-2xl shadow-violet-950/15">
+              <div className="overflow-hidden rounded-2xl border border-brand-border bg-surface shadow-2xl shadow-violet-950/15">
                 <DecisionWorkspacePreview />
               </div>
             </div>
@@ -138,23 +138,23 @@ export function TopPage() {
 
         <section
           id="value"
-          className="border-y border-violet-200 bg-white px-4 py-28 md:px-8 md:py-36"
+          className="border-y border-brand-border bg-surface px-4 py-28 md:px-8 md:py-36"
         >
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-600">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-fg">
                 Why LEVERIE
               </p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
                 One place to write, inspect, and trust every rule.
               </h2>
-              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-fg-muted">
                 LEVERIE keeps business rules in the shape teams already
                 understand: a table. The editor makes the important parts
                 visible without exposing JSON or implementation details.
               </p>
             </div>
-            <div className="mt-16 overflow-hidden rounded-[28px] border border-violet-200 bg-violet-50 shadow-2xl shadow-violet-950/10">
+            <div className="mt-16 overflow-hidden rounded-[28px] border border-brand-border bg-brand-subtle shadow-2xl shadow-violet-950/10">
               <DecisionWorkspacePreview />
             </div>
             <div className="mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
@@ -177,16 +177,19 @@ export function TopPage() {
           </div>
         </section>
 
-        <section id="flow" className="bg-violet-50 px-4 py-28 md:px-8 md:py-36">
+        <section
+          id="flow"
+          className="bg-brand-subtle px-4 py-28 md:px-8 md:py-36"
+        >
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-700">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-fg">
                 From Rulebook To Running Logic
               </p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
                 Test the rule while the reasoning is still in front of you.
               </h2>
-              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-fg-muted">
                 Instead of asking someone to re-create a decision in code, try
                 real inputs in the editor and see the matched row, output, and
                 explanation immediately.
@@ -217,17 +220,17 @@ export function TopPage() {
 
         <section
           id="integrations"
-          className="border-y border-violet-200 bg-white px-4 py-28 md:px-8 md:py-36"
+          className="border-y border-brand-border bg-surface px-4 py-28 md:px-8 md:py-36"
         >
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-600">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-fg">
                 Integrations
               </p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
                 Run approved logic from products, workflows, and agents.
               </h2>
-              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-fg-muted">
                 Publish a decision table once, then call it over HTTP or expose
                 it as an MCP tool. LEVERIE returns the matched result and trace,
                 so apps and AI agents can act without hiding the reasoning.
@@ -258,11 +261,11 @@ export function TopPage() {
 
         <section
           id="fit"
-          className="bg-violet-950 px-4 py-28 text-white md:px-8 md:py-36"
+          className="bg-brand-deep px-4 py-28 text-white md:px-8 md:py-36"
         >
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-violet-200">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-fg-light">
                 Use Cases
               </p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
@@ -274,13 +277,13 @@ export function TopPage() {
                 shared surface to review it before it reaches production.
               </p>
             </div>
-            <div className="mt-16 overflow-hidden rounded-[28px] border border-white/12 bg-white/[0.04] shadow-2xl shadow-black/30">
+            <div className="mt-16 overflow-hidden rounded-[28px] border border-white/12 bg-surface/[0.04] shadow-2xl shadow-black/30">
               <RunnerReviewPreview />
             </div>
             <div className="mt-10 flex justify-center">
               <a
                 href="/local"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-5 py-3 text-base font-semibold text-violet-950 hover:bg-violet-50"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-surface px-5 py-3 text-base font-semibold text-brand-fg-strong hover:bg-brand-subtle"
               >
                 Play with a sample
                 <Play className="h-5 w-5" aria-hidden="true" />
@@ -290,7 +293,7 @@ export function TopPage() {
         </section>
       </main>
 
-      <footer className="bg-violet-950 px-4 pb-10 pt-16 text-white md:px-8">
+      <footer className="bg-brand-deep px-4 pb-10 pt-16 text-white md:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr] md:gap-12">
             <div>
@@ -359,7 +362,7 @@ export function TopPage() {
               target="_blank"
               rel="noreferrer"
               aria-label="Open LEVERIE on GitHub"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-white/70 hover:border-white/25 hover:bg-white/10 hover:text-white"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-white/70 hover:border-white/25 hover:bg-surface/10 hover:text-white"
             >
               <Github className="h-5 w-5" aria-hidden="true" />
             </a>
@@ -380,12 +383,12 @@ function FeaturePoint({
   body: string;
 }) {
   return (
-    <div className="rounded-md border border-violet-200 bg-white p-5 shadow-sm">
-      <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-md bg-violet-600 text-white [&>svg]:h-5 [&>svg]:w-5">
+    <div className="rounded-md border border-brand-border bg-surface p-5 shadow-sm">
+      <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-md bg-brand text-white [&>svg]:h-5 [&>svg]:w-5">
         {icon}
       </div>
       <h3 className="text-lg font-semibold">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-gray-600">{body}</p>
+      <p className="mt-2 text-sm leading-6 text-fg-muted">{body}</p>
     </div>
   );
 }
@@ -400,12 +403,12 @@ function FlowStep({
   body: string;
 }) {
   return (
-    <div className="rounded-md border border-violet-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">
+    <div className="rounded-md border border-brand-border bg-surface p-5 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-fg">
         {number}
       </p>
-      <h3 className="mt-4 text-xl font-semibold text-gray-950">{title}</h3>
-      <p className="mt-3 text-sm leading-7 text-gray-600">{body}</p>
+      <h3 className="mt-4 text-xl font-semibold text-fg">{title}</h3>
+      <p className="mt-3 text-sm leading-7 text-fg-muted">{body}</p>
     </div>
   );
 }
@@ -420,13 +423,13 @@ function ApiPoint({
   body: string;
 }) {
   return (
-    <div className="grid grid-cols-[2.5rem_1fr] gap-4 rounded-md border border-violet-200 bg-violet-50/70 p-4">
-      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-violet-600 text-white [&>svg]:h-5 [&>svg]:w-5">
+    <div className="grid grid-cols-[2.5rem_1fr] gap-4 rounded-md border border-brand-border bg-brand-subtle/70 p-4">
+      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand text-white [&>svg]:h-5 [&>svg]:w-5">
         {icon}
       </div>
       <div>
-        <h3 className="text-base font-semibold text-gray-950">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-gray-600">{body}</p>
+        <h3 className="text-base font-semibold text-fg">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-fg-muted">{body}</p>
       </div>
     </div>
   );
@@ -434,32 +437,32 @@ function ApiPoint({
 
 function ApiExecutionPreview() {
   return (
-    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-violet-200 bg-violet-950 shadow-2xl shadow-violet-950/20">
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.04] px-5 py-4">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-brand-border bg-brand-deep shadow-2xl shadow-violet-950/20">
+      <div className="flex items-center justify-between border-b border-white/10 bg-surface/[0.04] px-5 py-4">
         <div>
           <p className="text-sm font-semibold text-white">Production logic</p>
-          <p className="mt-1 text-xs text-violet-200/80">
+          <p className="mt-1 text-xs text-brand-fg-light/80">
             Called from checkout, CRM, MCP clients, or internal systems
           </p>
         </div>
-        <span className="rounded-md bg-emerald-400 px-3 py-1.5 text-xs font-bold text-emerald-950">
+        <span className="rounded-md bg-success px-3 py-1.5 text-xs font-bold text-success-fg">
           200 OK
         </span>
       </div>
       <div className="grid flex-1 gap-0 lg:grid-cols-[1.02fr_0.98fr]">
-        <div className="min-w-0 border-b border-white/10 bg-white/[0.03] p-5 lg:border-b-0 lg:border-r">
+        <div className="min-w-0 border-b border-white/10 bg-surface/[0.03] p-5 lg:border-b-0 lg:border-r">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-1 text-xs font-bold uppercase tracking-[0.16em] text-violet-200">
+            <p className="mr-1 text-xs font-bold uppercase tracking-[0.16em] text-brand-fg-light">
               Invocation
             </p>
-            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-violet-100">
+            <span className="rounded-full bg-surface/10 px-2.5 py-1 text-[11px] font-semibold text-brand-fg-light">
               HTTP API
             </span>
-            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-violet-100">
+            <span className="rounded-full bg-surface/10 px-2.5 py-1 text-[11px] font-semibold text-brand-fg-light">
               MCP tool
             </span>
           </div>
-          <pre className="mt-4 max-w-full overflow-x-auto rounded-md border border-white/10 bg-black/30 p-4 text-sm leading-6 text-violet-50">
+          <pre className="mt-4 max-w-full overflow-x-auto rounded-md border border-white/10 bg-black/30 p-4 text-sm leading-6 text-brand-fg-light">
             <code>{`POST /v1/logics/loan-review/evaluate
 
 {
@@ -473,15 +476,15 @@ function ApiExecutionPreview() {
 tools/call leverie.loan_review`}</code>
           </pre>
         </div>
-        <div className="min-w-0 bg-white p-5 text-gray-950">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-600">
+        <div className="min-w-0 bg-surface p-5 text-fg">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-fg">
             Response
           </p>
-          <div className="mt-4 rounded-md border border-violet-200 bg-violet-50 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-600">
+          <div className="mt-4 rounded-md border border-brand-border bg-brand-subtle p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-fg">
               Result
             </p>
-            <p className="mt-3 text-2xl font-semibold text-violet-950">
+            <p className="mt-3 text-2xl font-semibold text-brand-fg-strong">
               Manager review
             </p>
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
@@ -489,7 +492,7 @@ tools/call leverie.loan_review`}</code>
               <PreviewMetric label="Decision" value="review_required" />
             </div>
           </div>
-          <div className="mt-4 rounded-md border border-violet-200 bg-white p-4">
+          <div className="mt-4 rounded-md border border-brand-border bg-surface p-4">
             <TraceItem
               status="checked"
               title="Trace returned"
@@ -499,14 +502,14 @@ tools/call leverie.loan_review`}</code>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3">
             <a
               href="/docs/hosted-api"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-violet-700 hover:text-violet-900"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-brand-fg hover:text-brand-fg-strong"
             >
               API docs
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </a>
             <a
               href="/docs/hosted-mcp"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-violet-700 hover:text-violet-900"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-brand-fg hover:text-brand-fg-strong"
             >
               MCP docs
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -520,17 +523,15 @@ tools/call leverie.loan_review`}</code>
 
 function EvaluationWorkbenchPreview() {
   return (
-    <div className="rounded-[28px] border border-violet-200 bg-white p-4 shadow-2xl shadow-violet-950/10">
-      <div className="flex items-center justify-between border-b border-violet-100 px-2 pb-4">
+    <div className="rounded-[28px] border border-brand-border bg-surface p-4 shadow-2xl shadow-violet-950/10">
+      <div className="flex items-center justify-between border-b border-brand-border-subtle px-2 pb-4">
         <div>
-          <p className="text-sm font-semibold text-gray-950">
-            Evaluation panel
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="text-sm font-semibold text-fg">Evaluation panel</p>
+          <p className="mt-1 text-xs text-fg-subtle">
             Try a case without leaving the rule table
           </p>
         </div>
-        <span className="rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white">
+        <span className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white">
           Run test
         </span>
       </div>
@@ -544,20 +545,18 @@ function EvaluationWorkbenchPreview() {
           ].map(([label, value]) => (
             <div
               key={label}
-              className="rounded-md border border-violet-100 bg-violet-50/70 p-3"
+              className="rounded-md border border-brand-border-subtle bg-brand-subtle/70 p-3"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-violet-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-fg-mid">
                 {label}
               </p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">
-                {value}
-              </p>
+              <p className="mt-1 text-sm font-semibold text-fg">{value}</p>
             </div>
           ))}
         </div>
-        <div className="rounded-md border border-violet-200 bg-white">
-          <div className="border-b border-violet-100 bg-violet-50 px-4 py-3">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-700">
+        <div className="rounded-md border border-brand-border bg-surface">
+          <div className="border-b border-brand-border-subtle bg-brand-subtle px-4 py-3">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-fg">
               Trace
             </p>
           </div>
@@ -594,8 +593,8 @@ function TraceItem({
       <div
         className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full ${
           status === 'checked'
-            ? 'bg-violet-600 text-white'
-            : 'bg-violet-100 text-violet-700'
+            ? 'bg-brand text-white'
+            : 'bg-brand-soft text-brand-fg'
         }`}
       >
         {status === 'checked' ? (
@@ -605,8 +604,8 @@ function TraceItem({
         )}
       </div>
       <div>
-        <p className="text-sm font-semibold text-gray-950">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-gray-600">{body}</p>
+        <p className="text-sm font-semibold text-fg">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-fg-muted">{body}</p>
       </div>
     </div>
   );
@@ -622,11 +621,11 @@ function RunnerReviewPreview() {
 
   return (
     <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
-      <div className="border-b border-white/10 bg-white/[0.03] p-6 lg:border-b-0 lg:border-r">
-        <div className="rounded-2xl border border-white/12 bg-white text-gray-950 shadow-2xl shadow-black/25">
-          <div className="border-b border-violet-100 px-5 py-4">
+      <div className="border-b border-white/10 bg-surface/[0.03] p-6 lg:border-b-0 lg:border-r">
+        <div className="rounded-2xl border border-white/12 bg-surface text-fg shadow-2xl shadow-black/25">
+          <div className="border-b border-brand-border-subtle px-5 py-4">
             <p className="text-sm font-semibold">Shared runner</p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-fg-subtle">
               Review a published rule as a business user
             </p>
           </div>
@@ -637,20 +636,20 @@ function RunnerReviewPreview() {
               <PreviewField label="KYC" value="Verified" />
               <button
                 type="button"
-                className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-violet-600 text-sm font-semibold text-white"
+                className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-white"
               >
                 <Play className="h-4 w-4" />
                 Run decision
               </button>
             </div>
-            <div className="rounded-md border border-violet-200 bg-violet-50 p-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-600">
+            <div className="rounded-md border border-brand-border bg-brand-subtle p-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-fg">
                 Result
               </p>
-              <p className="mt-3 text-2xl font-semibold text-violet-950">
+              <p className="mt-3 text-2xl font-semibold text-brand-fg-strong">
                 Manager review
               </p>
-              <div className="mt-5 rounded-md bg-white p-3 text-sm leading-6 text-gray-600">
+              <div className="mt-5 rounded-md bg-surface p-3 text-sm leading-6 text-fg-muted">
                 Matched Intake decision row 1 because customer is Business and
                 amount is at least ¥5M.
               </div>
@@ -662,9 +661,9 @@ function RunnerReviewPreview() {
         {useCases.map(([title, body]) => (
           <div
             key={title}
-            className="grid grid-cols-[2.5rem_1fr] gap-4 rounded-md border border-white/10 bg-white/[0.06] p-4"
+            className="grid grid-cols-[2.5rem_1fr] gap-4 rounded-md border border-white/10 bg-surface/[0.06] p-4"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/10 text-violet-200">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-surface/10 text-brand-fg-light">
               <GitBranch className="h-5 w-5" />
             </div>
             <div>
@@ -681,8 +680,8 @@ function RunnerReviewPreview() {
 function PreviewField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-xs font-semibold text-gray-500">{label}</span>
-      <span className="mt-1 block rounded-md border border-violet-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900">
+      <span className="text-xs font-semibold text-fg-subtle">{label}</span>
+      <span className="mt-1 block rounded-md border border-brand-border bg-surface px-3 py-2 text-sm font-semibold text-fg">
         {value}
       </span>
     </div>
@@ -729,20 +728,20 @@ function DecisionWorkspacePreview() {
   ];
 
   return (
-    <div className="bg-violet-50 p-4 text-left">
-      <div className="mb-4 flex items-center justify-between border-b border-violet-200 pb-3">
+    <div className="bg-brand-subtle p-4 text-left">
+      <div className="mb-4 flex items-center justify-between border-b border-brand-border pb-3">
         <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-violet-300" />
-          <span className="h-3 w-3 rounded-full bg-violet-500" />
-          <span className="h-3 w-3 rounded-full bg-violet-700" />
+          <span className="h-3 w-3 rounded-full bg-brand" />
+          <span className="h-3 w-3 rounded-full bg-brand" />
+          <span className="h-3 w-3 rounded-full bg-brand-strong" />
         </div>
-        <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-fg">
           Review Rules v3
         </span>
       </div>
       <div className="grid gap-4 lg:grid-cols-[11rem_1fr]">
-        <div className="hidden rounded-md border border-violet-200 bg-white p-3 lg:block">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-gray-400">
+        <div className="hidden rounded-md border border-brand-border bg-surface p-3 lg:block">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-fg-faint">
             Tables
           </p>
           {['Intake', 'Identity', 'Follow-up'].map((item, index) => (
@@ -750,33 +749,33 @@ function DecisionWorkspacePreview() {
               key={item}
               className={`mb-2 rounded-md px-3 py-2 text-sm font-semibold ${
                 index === 0
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-violet-50 text-gray-600'
+                  ? 'bg-brand text-white'
+                  : 'bg-brand-subtle text-fg-muted'
               }`}
             >
               {item}
             </div>
           ))}
-          <div className="mt-5 rounded-md bg-violet-100 p-3 text-xs leading-5 text-violet-800">
+          <div className="mt-5 rounded-md bg-brand-soft p-3 text-xs leading-5 text-brand-fg-strong">
             2 uncovered patterns detected
           </div>
         </div>
-        <div className="overflow-hidden rounded-md border border-violet-200 bg-white">
-          <div className="flex items-center justify-between border-b border-violet-200 bg-violet-50 px-4 py-3">
+        <div className="overflow-hidden rounded-md border border-brand-border bg-surface">
+          <div className="flex items-center justify-between border-b border-brand-border bg-brand-subtle px-4 py-3">
             <div>
-              <p className="text-sm font-bold text-gray-950">Intake decision</p>
-              <p className="text-xs text-gray-500">First matching row wins</p>
+              <p className="text-sm font-bold text-fg">Intake decision</p>
+              <p className="text-xs text-fg-subtle">First matching row wins</p>
             </div>
-            <span className="rounded-md bg-violet-600 px-2.5 py-1 text-xs font-semibold text-white">
+            <span className="rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-white">
               Tests passing
             </span>
           </div>
           <div className="min-w-[560px]">
-            <div className="grid grid-cols-[3rem_1.1fr_1fr_1fr_1.2fr] bg-violet-100 text-xs font-bold text-violet-800">
+            <div className="grid grid-cols-[3rem_1.1fr_1fr_1fr_1.2fr] bg-brand-soft text-xs font-bold text-brand-fg-strong">
               {previewColumns.map((column) => (
                 <div
                   key={column.key}
-                  className="border-r border-violet-200 px-3 py-3"
+                  className="border-r border-brand-border px-3 py-3"
                 >
                   {column.label}
                 </div>
@@ -786,13 +785,13 @@ function DecisionWorkspacePreview() {
               <div
                 key={row.id}
                 className={`grid grid-cols-[3rem_1.1fr_1fr_1fr_1.2fr] text-sm ${
-                  rowIndex === 1 ? 'bg-violet-50' : 'bg-white'
+                  rowIndex === 1 ? 'bg-brand-subtle' : 'bg-surface'
                 }`}
               >
                 {previewColumns.map((column) => (
                   <div
                     key={column.key}
-                    className="border-r border-t border-violet-100 px-3 py-3 text-gray-700"
+                    className="border-r border-t border-brand-border-subtle px-3 py-3 text-fg-secondary"
                   >
                     {row[column.key]}
                   </div>
@@ -800,7 +799,7 @@ function DecisionWorkspacePreview() {
               </div>
             ))}
           </div>
-          <div className="grid gap-3 border-t border-violet-200 bg-violet-50 p-4 md:grid-cols-3">
+          <div className="grid gap-3 border-t border-brand-border bg-brand-subtle p-4 md:grid-cols-3">
             <PreviewMetric label="Matched row" value="Row 2" />
             <PreviewMetric label="Output" value="Auto-approve" />
             <PreviewMetric label="Reasoning" value="View conditions" />
@@ -813,11 +812,11 @@ function DecisionWorkspacePreview() {
 
 function PreviewMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-violet-200 bg-white px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+    <div className="rounded-md border border-brand-border bg-surface px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-faint">
         {label}
       </p>
-      <p className="mt-1 text-sm font-bold text-violet-950">{value}</p>
+      <p className="mt-1 text-sm font-bold text-brand-fg-strong">{value}</p>
     </div>
   );
 }

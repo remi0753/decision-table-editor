@@ -23,7 +23,7 @@ export function RightPane({ onOpenSampleGallery }: Props) {
           {tableId && logic.tables[tableId] ? (
             <>
               <LogicInsightBar />
-              <div className="border rounded-lg bg-white overflow-hidden">
+              <div className="border rounded-lg bg-surface overflow-hidden">
                 <DecisionTable
                   tableId={tableId}
                   onOpenSampleGallery={onOpenSampleGallery}
@@ -31,7 +31,7 @@ export function RightPane({ onOpenSampleGallery }: Props) {
               </div>
             </>
           ) : (
-            <div className="text-gray-400 text-sm p-4">{t.selectTable}</div>
+            <div className="text-fg-faint text-sm p-4">{t.selectTable}</div>
           )}
         </div>
       </div>

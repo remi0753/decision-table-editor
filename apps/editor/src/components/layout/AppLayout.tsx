@@ -20,6 +20,7 @@ import { BatchDialog } from '@/components/evaluation/BatchDialog';
 import { LocalOnboarding } from '@/components/onboarding/LocalOnboarding';
 import { SampleGalleryDialog } from '@/components/templates/SampleGalleryDialog';
 import { IconButton } from '@/components/ui/IconButton';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useCloudAutoSave } from '@/hooks/useCloudAutoSave';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
@@ -204,7 +205,7 @@ export function AppLayout({
     <div className="h-screen flex flex-col overflow-hidden">
       <Toaster position="top-right" richColors />
 
-      <header className="h-12 border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white flex items-center justify-between px-3 shrink-0 gap-4">
+      <header className="h-12 border-b border-brand-border bg-gradient-to-r from-brand-subtle to-surface flex items-center justify-between px-3 shrink-0 gap-4">
         <div className="flex min-w-0 items-center">
           <img src={logoUrl} alt="LEVERIE" height={34} className="h-[34px]" />
         </div>
@@ -246,16 +247,16 @@ export function AppLayout({
               <DropdownMenu.Content
                 align="end"
                 sideOffset={6}
-                className="z-50 min-w-[220px] rounded-md border border-gray-200 bg-white p-1 shadow-lg"
+                className="z-50 min-w-[220px] rounded-md border border-line bg-surface p-1 shadow-lg"
               >
-                <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
                   {t.fileActions}
                 </DropdownMenu.Label>
                 <DropdownMenu.Item
                   onSelect={handleNew}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                 >
-                  <FilePlus className="h-4 w-4 text-gray-400" />
+                  <FilePlus className="h-4 w-4 text-fg-faint" />
                   <span>{t.newCreate}</span>
                 </DropdownMenu.Item>
                 {/* File-based backup/restore is the local-mode safety net;
@@ -265,40 +266,40 @@ export function AppLayout({
                   <>
                     <DropdownMenu.Item
                       onSelect={importFn}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                     >
-                      <Upload className="h-4 w-4 text-gray-400" />
+                      <Upload className="h-4 w-4 text-fg-faint" />
                       <span>{t.importBtn}</span>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item
                       onSelect={() => exportLogic(logic)}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                     >
-                      <Download className="h-4 w-4 text-gray-400" />
+                      <Download className="h-4 w-4 text-fg-faint" />
                       <span>{t.exportBtn}</span>
                     </DropdownMenu.Item>
                   </>
                 ) : null}
-                <DropdownMenu.Separator className="my-1 h-px bg-gray-100" />
-                <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                <DropdownMenu.Separator className="my-1 h-px bg-surface-subtle" />
+                <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
                   {t.toolActions}
                 </DropdownMenu.Label>
                 <DropdownMenu.Item
                   onSelect={() => setBatchDialogOpen(true)}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 outline-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-800"
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                 >
-                  <FlaskConical className="h-4 w-4 text-gray-400" />
+                  <FlaskConical className="h-4 w-4 text-fg-faint" />
                   <span>{t.batchTest}</span>
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
-          <div className="w-px h-5 bg-gray-200" />
+          <div className="w-px h-5 bg-surface-strong" />
           <a
             href="/docs/introduction"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-medium text-gray-500 hover:bg-violet-50 hover:text-violet-700 focus:outline-none focus:ring-1 focus:ring-violet-300"
+            className="flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-medium text-fg-subtle hover:bg-brand-subtle hover:text-brand-fg focus:outline-none focus:ring-1 focus:ring-brand-ring"
           >
             <BookOpen className="h-4 w-4" />
             <span>{t.docsLink}</span>
@@ -306,27 +307,28 @@ export function AppLayout({
           <select
             value={lang}
             onChange={(e) => setLang(e.target.value as Lang)}
-            className="text-xs border border-gray-200 rounded px-2 py-1.5 bg-white hover:bg-violet-50 hover:border-violet-200 text-gray-500 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-300"
+            className="text-xs border border-line rounded px-2 py-1.5 bg-surface hover:bg-brand-subtle hover:border-brand-border text-fg-subtle font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-ring"
           >
             <option value="en">EN</option>
             <option value="ja">日本語</option>
           </select>
-          <div className="w-px h-5 bg-gray-200" />
+          <ThemeToggle />
+          <div className="w-px h-5 bg-surface-strong" />
           <CloudMenu />
         </div>
       </header>
 
       <div className="relative flex flex-1 overflow-hidden">
-        <aside className="w-80 border-r bg-gray-50 overflow-hidden flex flex-col shrink-0">
+        <aside className="w-80 border-r bg-surface-muted overflow-hidden flex flex-col shrink-0">
           <LeftPane />
         </aside>
-        <main className="flex-1 overflow-hidden bg-gray-50">
+        <main className="flex-1 overflow-hidden bg-surface-muted">
           <RightPane onOpenSampleGallery={() => setSampleGalleryOpen(true)} />
         </main>
         {cloudMode === 'checking' ? (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/90 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-3 text-gray-700">
-              <Loader2 className="h-7 w-7 animate-spin text-violet-600" />
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-surface/90 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3 text-fg-secondary">
+              <Loader2 className="h-7 w-7 animate-spin text-brand-fg" />
               <div className="text-sm font-medium">{t.cloudChecking}</div>
             </div>
           </div>
@@ -352,15 +354,15 @@ export function AppLayout({
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-6">
           <form
             onSubmit={handleCreateCloudLogic}
-            className="w-full max-w-md rounded border border-gray-200 bg-white p-5 shadow-xl"
+            className="w-full max-w-md rounded border border-line bg-surface p-5 shadow-xl"
           >
-            <h2 className="text-base font-semibold text-gray-900">
+            <h2 className="text-base font-semibold text-fg">
               {t.createCloudLogicTitle}
             </h2>
             <div className="mt-4 space-y-3">
               {newLogicStash ? (
                 <div>
-                  <span className="mb-1 block text-xs font-medium text-gray-600">
+                  <span className="mb-1 block text-xs font-medium text-fg-muted">
                     {t.newLogicSourceLabel}
                   </span>
                   <div className="grid grid-cols-2 gap-2">
@@ -369,8 +371,8 @@ export function AppLayout({
                       onClick={() => selectNewLogicSource(true)}
                       className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
                         newLogicFromLocal
-                          ? 'border-violet-300 bg-violet-50 text-violet-800'
-                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                          ? 'border-brand-border-strong bg-brand-subtle text-brand-fg-strong'
+                          : 'border-line bg-surface text-fg-muted hover:bg-surface-muted'
                       }`}
                     >
                       {t.newLogicFromLocalDraft}
@@ -380,22 +382,22 @@ export function AppLayout({
                       onClick={() => selectNewLogicSource(false)}
                       className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
                         newLogicFromLocal
-                          ? 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                          : 'border-violet-300 bg-violet-50 text-violet-800'
+                          ? 'border-line bg-surface text-fg-muted hover:bg-surface-muted'
+                          : 'border-brand-border-strong bg-brand-subtle text-brand-fg-strong'
                       }`}
                     >
                       {t.newLogicBlank}
                     </button>
                   </div>
                   {newLogicFromLocal ? (
-                    <span className="mt-1 block text-xs leading-5 text-gray-500">
+                    <span className="mt-1 block text-xs leading-5 text-fg-subtle">
                       {t.newLogicFromLocalDraftHint}
                     </span>
                   ) : null}
                 </div>
               ) : null}
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-gray-600">
+                <span className="mb-1 block text-xs font-medium text-fg-muted">
                   {t.logicNameLabel}
                 </span>
                 <input
@@ -409,12 +411,12 @@ export function AppLayout({
                   }}
                   required
                   maxLength={120}
-                  className="h-10 w-full rounded border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                   placeholder={t.logicNamePlaceholder}
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-gray-600">
+                <span className="mb-1 block text-xs font-medium text-fg-muted">
                   {t.logicIdLabel}
                 </span>
                 <input
@@ -426,20 +428,20 @@ export function AppLayout({
                   required
                   maxLength={63}
                   pattern="[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
-                  className="h-10 w-full rounded border border-gray-200 bg-white px-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  className="h-10 w-full rounded border border-line bg-surface px-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                   placeholder={t.logicIdPlaceholder}
                 />
-                <span className="mt-1 block text-xs leading-5 text-gray-500">
+                <span className="mt-1 block text-xs leading-5 text-fg-subtle">
                   {t.logicIdHint}
                 </span>
                 {trimmedNewLogicId && !newLogicIdValid ? (
-                  <span className="mt-1 block text-xs text-red-600">
+                  <span className="mt-1 block text-xs text-danger-fg">
                     {t.logicIdInvalid}
                   </span>
                 ) : null}
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-gray-600">
+                <span className="mb-1 block text-xs font-medium text-fg-muted">
                   {t.logicDescriptionLabel}
                 </span>
                 <textarea
@@ -449,7 +451,7 @@ export function AppLayout({
                   }
                   maxLength={500}
                   rows={3}
-                  className="w-full resize-none rounded border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  className="w-full resize-none rounded border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                   placeholder={t.logicDescriptionPlaceholder}
                 />
               </label>
@@ -461,14 +463,14 @@ export function AppLayout({
                   setNewCloudLogicOpen(false);
                   setPendingNewLogic(null);
                 }}
-                className="h-9 rounded border border-gray-200 bg-white px-3 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                className="h-9 rounded border border-line bg-surface px-3 text-sm font-medium text-fg-muted hover:bg-surface-muted"
               >
                 {t.cancel}
               </button>
               <button
                 type="submit"
                 disabled={!newCloudLogicValid}
-                className="h-9 rounded bg-violet-600 px-3 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+                className="h-9 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
               >
                 {t.createCloudLogicSubmit}
               </button>

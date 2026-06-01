@@ -88,13 +88,13 @@ export function RunnerPage() {
   }, [runnerRef]);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="flex h-14 items-center justify-between border-b border-violet-200 bg-gradient-to-r from-violet-50 to-white px-4">
+    <div className="min-h-screen bg-surface-muted text-fg">
+      <header className="flex h-14 items-center justify-between border-b border-brand-border bg-gradient-to-r from-brand-subtle to-surface px-4">
         <img src={logoUrl} alt="LEVERIE" className="h-9" />
         {state.status === 'ready' && state.data.runner.canEdit ? (
           <a
             href="/edit"
-            className="inline-flex h-9 items-center gap-2 rounded border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex h-9 items-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
           >
             <ExternalLink className="h-4 w-4" />
             Edit
@@ -104,33 +104,31 @@ export function RunnerPage() {
 
       {state.status === 'loading' ? (
         <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-5">
-          <div className="inline-flex items-center gap-2 text-sm font-medium text-gray-500">
+          <div className="inline-flex items-center gap-2 text-sm font-medium text-fg-subtle">
             <RefreshCw className="h-4 w-4 animate-spin" />
             Loading runner...
           </div>
         </main>
       ) : state.status === 'error' ? (
         <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-xl flex-col items-center justify-center px-5 text-center">
-          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded border border-gray-200 bg-white text-gray-500">
+          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded border border-line bg-surface text-fg-subtle">
             <LockKeyhole className="h-5 w-5" />
           </div>
-          <h1 className="text-2xl font-semibold text-gray-950">
-            {state.title}
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-gray-600">
+          <h1 className="text-2xl font-semibold text-fg">{state.title}</h1>
+          <p className="mt-3 text-sm leading-6 text-fg-muted">
             {state.message}
           </p>
           {state.actionHref ? (
             <a
               href={state.actionHref}
-              className="mt-6 inline-flex h-10 items-center gap-2 rounded bg-violet-600 px-4 text-sm font-medium text-white hover:bg-violet-700"
+              className="mt-6 inline-flex h-10 items-center gap-2 rounded bg-brand px-4 text-sm font-medium text-white hover:bg-brand-strong"
             >
               Sign in
             </a>
           ) : (
             <a
               href="/"
-              className="mt-6 inline-flex h-10 items-center gap-2 rounded border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="mt-6 inline-flex h-10 items-center gap-2 rounded border border-line bg-surface px-4 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to LEVERIE
@@ -139,25 +137,25 @@ export function RunnerPage() {
         </main>
       ) : (
         <main className="mx-auto max-w-5xl px-5 py-8">
-          <div className="mb-6 border-b border-gray-200 pb-5">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-gray-500">
+          <div className="mb-6 border-b border-line pb-5">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-fg-subtle">
               <span>{state.data.workspace.name}</span>
               <span>/</span>
               <span>v{state.data.version.versionNumber}</span>
               <span>/</span>
               <span>{formatPublishedAt(state.data.version.publishedAt)}</span>
             </div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-gray-950">
+            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-fg">
               {state.data.logic.name}
             </h1>
             {state.data.logic.description ? (
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-fg-muted">
                 {state.data.logic.description}
               </p>
             ) : null}
           </div>
 
-          <section className="rounded border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="rounded border border-line bg-surface p-5 shadow-sm">
             <LogicRunner
               logic={state.data.version.data}
               runLabel="Run review"

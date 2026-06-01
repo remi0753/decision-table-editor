@@ -17,7 +17,7 @@ export function ScalarInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+      className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
     />
   );
 }

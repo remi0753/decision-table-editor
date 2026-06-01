@@ -116,87 +116,87 @@ export function CloudMenu() {
           aria-label={t.accountMenu}
           className={`inline-flex h-8 max-w-[240px] items-center gap-2 rounded border px-2.5 text-xs font-medium shadow-sm transition-colors ${
             mode === 'local'
-              ? 'border-amber-300 bg-amber-50 text-amber-900 hover:border-amber-400 hover:bg-amber-100'
-              : 'border-gray-200 bg-white text-gray-700 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800'
+              ? 'border-warning-border bg-warning-bg text-warning-fg hover:border-warning-border hover:bg-warning-bg'
+              : 'border-line bg-surface text-fg-secondary hover:border-brand-border hover:bg-brand-subtle hover:text-brand-fg-strong'
           }`}
         >
           {mode === 'cloud' ? (
-            <Cloud className="h-4 w-4 shrink-0 text-emerald-700" />
+            <Cloud className="h-4 w-4 shrink-0 text-success-fg" />
           ) : (
-            <CloudOff className="h-4 w-4 shrink-0 text-amber-600" />
+            <CloudOff className="h-4 w-4 shrink-0 text-warning-fg" />
           )}
           <span className="hidden min-w-0 flex-col items-start leading-tight sm:flex">
             <span className="max-w-[150px] truncate">{workspaceName}</span>
-            <span className="max-w-[150px] truncate text-[10px] font-normal text-gray-500">
+            <span className="max-w-[150px] truncate text-[10px] font-normal text-fg-subtle">
               {status}
             </span>
           </span>
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-fg-faint" />
         </button>
       </Tooltip>
 
       {open ? (
-        <div className="fixed right-2 top-12 z-50 w-[calc(100vw-1rem)] max-w-96 rounded-md border border-gray-200 bg-white p-3 shadow-lg">
+        <div className="fixed right-2 top-12 z-50 w-[calc(100vw-1rem)] max-w-96 rounded-md border border-line bg-surface p-3 shadow-lg">
           <div className="mb-3 flex items-start gap-2">
-            <div className="mt-0.5 rounded bg-emerald-50 p-1 text-emerald-700">
+            <div className="mt-0.5 rounded bg-success-bg p-1 text-success-fg">
               {mode === 'cloud' ? (
                 <CheckCircle2 className="h-4 w-4" />
               ) : (
-                <CloudOff className="h-4 w-4 text-gray-500" />
+                <CloudOff className="h-4 w-4 text-fg-subtle" />
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-gray-800">
+              <div className="text-sm font-semibold text-fg-secondary">
                 {status}
               </div>
-              <div className="mt-1 text-xs text-gray-500">
+              <div className="mt-1 text-xs text-fg-subtle">
                 {mode === 'cloud'
                   ? `${t.signedInAs} ${user?.email ?? ''}`
                   : t.localModeDescription}
               </div>
             </div>
             {error ? (
-              <div className="mt-1 text-xs text-red-600">{error}</div>
+              <div className="mt-1 text-xs text-danger-fg">{error}</div>
             ) : null}
           </div>
 
           {mode === 'cloud' ? (
             <div className="space-y-3">
-              <div className="space-y-2 border-y border-gray-100 py-3">
+              <div className="space-y-2 border-y border-line-subtle py-3">
                 <div className="flex items-start gap-2">
-                  <UserCircle className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  <UserCircle className="mt-0.5 h-4 w-4 shrink-0 text-fg-faint" />
                   <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
                       {t.accountSection}
                     </div>
-                    <div className="truncate text-sm font-medium text-gray-800">
+                    <div className="truncate text-sm font-medium text-fg-secondary">
                       {displayName}
                     </div>
                     {user?.name && user.email ? (
-                      <div className="truncate text-xs text-gray-500">
+                      <div className="truncate text-xs text-fg-subtle">
                         {user.email}
                       </div>
                     ) : null}
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-fg-faint" />
                   <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
                       {t.organizationSection}
                     </div>
-                    <div className="truncate text-sm font-medium text-gray-800">
+                    <div className="truncate text-sm font-medium text-fg-secondary">
                       {org?.name ?? '-'}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Cloud className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  <Cloud className="mt-0.5 h-4 w-4 shrink-0 text-fg-faint" />
                   <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
                       {t.workspaceSection}
                     </div>
-                    <div className="truncate text-sm font-medium text-gray-800">
+                    <div className="truncate text-sm font-medium text-fg-secondary">
                       {workspaceName}
                     </div>
                   </div>
@@ -208,14 +208,14 @@ export function CloudMenu() {
                     <>
                       <a
                         href="/settings/org"
-                        className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                        className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-line px-2 text-xs font-medium text-fg-muted hover:bg-surface-muted"
                       >
                         <Building2 className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">Org</span>
                       </a>
                       <a
                         href="/settings/workspace"
-                        className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                        className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-line px-2 text-xs font-medium text-fg-muted hover:bg-surface-muted"
                       >
                         <Settings className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{t.workspaceSection}</span>
@@ -225,7 +225,7 @@ export function CloudMenu() {
                   <button
                     type="button"
                     onClick={signOutToAuth}
-                    className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded border border-line px-2 text-xs font-medium text-fg-muted hover:bg-surface-muted"
                   >
                     <LogOut className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{t.signOut}</span>
@@ -240,7 +240,7 @@ export function CloudMenu() {
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   placeholder={t.namePlaceholder}
-                  className="h-8 w-full rounded border border-gray-200 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                  className="h-8 w-full rounded border border-line px-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                 />
               ) : null}
               <input
@@ -249,7 +249,7 @@ export function CloudMenu() {
                 placeholder={t.emailPlaceholder}
                 type="email"
                 required
-                className="h-8 w-full rounded border border-gray-200 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                className="h-8 w-full rounded border border-line px-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
               />
               <input
                 value={password}
@@ -257,13 +257,13 @@ export function CloudMenu() {
                 placeholder={t.passwordPlaceholder}
                 type="password"
                 required
-                className="h-8 w-full rounded border border-gray-200 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300"
+                className="h-8 w-full rounded border border-line px-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
               />
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded bg-violet-600 px-2 text-xs font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+                  className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded bg-brand px-2 text-xs font-medium text-white hover:bg-brand-strong disabled:opacity-50"
                 >
                   <LogIn className="h-3.5 w-3.5" />
                   {isSignUp ? t.signUp : t.signIn}
@@ -271,7 +271,7 @@ export function CloudMenu() {
                 <button
                   type="button"
                   onClick={() => setIsSignUp((value) => !value)}
-                  className="h-8 rounded border border-gray-200 px-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                  className="h-8 rounded border border-line px-2 text-xs font-medium text-fg-muted hover:bg-surface-muted"
                 >
                   {isSignUp ? t.useExistingAccount : t.createAccount}
                 </button>

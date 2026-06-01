@@ -8,30 +8,30 @@ type Props = {
 };
 
 const CELL_TONE: Record<CellStatus, string> = {
-  unchanged: 'bg-gray-100',
-  changed: 'bg-amber-400',
-  added: 'bg-emerald-400',
-  removed: 'bg-red-400',
+  unchanged: 'bg-surface-subtle',
+  changed: 'bg-warning',
+  added: 'bg-success',
+  removed: 'bg-danger',
 };
 
 const ROW_ACCENT: Record<GridRow['kind'], string> = {
   unchanged: 'border-transparent',
-  changed: 'border-amber-400',
-  added: 'border-emerald-400',
-  removed: 'border-red-400',
+  changed: 'border-warning-border',
+  added: 'border-success-border',
+  removed: 'border-danger-border',
 };
 
 function RowGlyph({ kind }: { kind: GridRow['kind'] }) {
   if (kind === 'added')
-    return <Plus className="h-3 w-3 text-emerald-600" aria-hidden />;
+    return <Plus className="h-3 w-3 text-success-fg" aria-hidden />;
   if (kind === 'removed')
-    return <Minus className="h-3 w-3 text-red-600" aria-hidden />;
+    return <Minus className="h-3 w-3 text-danger-fg" aria-hidden />;
   return null;
 }
 
 function LegendItem({ tone, label }: { tone: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-600">
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-fg-muted">
       <span className={`h-3 w-3 rounded-sm ${tone}`} />
       {label}
     </span>
@@ -62,13 +62,13 @@ function GridRowView({
       <span
         className={`flex w-12 shrink-0 items-center gap-1 border-l-2 pl-2 text-[11px] tabular-nums ${ROW_ACCENT[row.kind]} ${
           row.kind === 'removed'
-            ? 'text-gray-400 line-through'
-            : 'text-gray-500'
+            ? 'text-fg-faint line-through'
+            : 'text-fg-subtle'
         }`}
       >
         <RowGlyph kind={row.kind} />#{rowNumber}
         {row.reordered ? (
-          <ArrowUpDown className="h-3 w-3 text-amber-500" aria-hidden />
+          <ArrowUpDown className="h-3 w-3 text-warning-fg" aria-hidden />
         ) : null}
       </span>
       <span className="flex gap-1">
@@ -80,7 +80,7 @@ function GridRowView({
         ))}
       </span>
       {outputCells.length > 0 ? (
-        <span className="ml-2 flex gap-1 border-l border-gray-200 pl-2">
+        <span className="ml-2 flex gap-1 border-l border-line pl-2">
           {outputCells.map((cell) => (
             <span
               key={cell.colId}
@@ -97,7 +97,7 @@ function GridRowView({
       <button
         type="button"
         onClick={() => onSelectRule(row.ruleId)}
-        className="flex w-full items-center rounded py-0.5 text-left hover:bg-violet-50"
+        className="flex w-full items-center rounded py-0.5 text-left hover:bg-brand-subtle"
       >
         {content}
       </button>
@@ -125,11 +125,11 @@ function TableGridView({
 
   if (!grid.hasChanges) {
     return (
-      <div className="flex items-center justify-between gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-        <span className="truncate text-xs font-medium text-gray-500">
+      <div className="flex items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2">
+        <span className="truncate text-xs font-medium text-fg-subtle">
           {grid.tableName}
         </span>
-        <span className="shrink-0 text-[11px] text-gray-400">
+        <span className="shrink-0 text-[11px] text-fg-faint">
           {t.publishReviewMapTableUnchanged}
         </span>
       </div>
@@ -137,18 +137,18 @@ function TableGridView({
   }
 
   return (
-    <div className="rounded border border-gray-200 bg-white">
-      <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-3 py-2">
-        <span className="truncate text-xs font-semibold text-gray-800">
+    <div className="rounded border border-line bg-surface">
+      <div className="flex items-center justify-between gap-2 border-b border-line-subtle px-3 py-2">
+        <span className="truncate text-xs font-semibold text-fg-secondary">
           {grid.tableName}
         </span>
-        <span className="shrink-0 rounded bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+        <span className="shrink-0 rounded bg-warning-bg px-2 py-0.5 text-[11px] font-medium text-warning-fg">
           {t.publishReviewMapChangedRows(grid.changedRows)}
         </span>
       </div>
       <div className="overflow-x-auto p-3">
         <div className="min-w-max">
-          <div className="mb-1 flex items-center text-[10px] font-medium uppercase tracking-wide text-gray-400">
+          <div className="mb-1 flex items-center text-[10px] font-medium uppercase tracking-wide text-fg-faint">
             <span className="w-12 shrink-0" />
             <span
               className="shrink-0"
@@ -191,7 +191,7 @@ export function PublishDiffHeatmap({ grids, onSelectRule }: Props) {
         <LegendItem tone={CELL_TONE.changed} label={t.publishReviewChanged} />
         <LegendItem tone={CELL_TONE.added} label={t.publishReviewAdded} />
         <LegendItem tone={CELL_TONE.removed} label={t.publishReviewRemoved} />
-        <span className="text-[11px] text-gray-400">
+        <span className="text-[11px] text-fg-faint">
           {t.publishReviewMapHint}
         </span>
       </div>
