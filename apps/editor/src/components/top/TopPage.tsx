@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import logoUrl from '@/assets/logo.svg';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const GITHUB_URL = 'https://github.com/remi0753/leverie';
 
@@ -42,6 +43,7 @@ export function TopPage() {
             </a>
           </nav>
           <div className="flex items-center gap-2">
+            <ThemeToggle className="h-10 w-10 justify-center rounded-md border-brand-border bg-surface/80 text-fg-secondary shadow-sm hover:bg-surface hover:border-brand-border hover:text-brand-fg-strong" />
             <a
               href={GITHUB_URL}
               target="_blank"
