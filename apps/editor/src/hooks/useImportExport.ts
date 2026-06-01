@@ -1,5 +1,5 @@
 import type { Logic } from '@leverie/engine';
-import { FieldDefsFileSchema, LogicSchema } from '@leverie/engine';
+import { LogicSchema } from '@leverie/engine';
 import { toast } from 'sonner';
 import { getT, useT } from '@/i18n/useT';
 import { useLogicStore } from '@/store/logicStore';
@@ -117,62 +117,6 @@ export function downloadBatchTemplate(logic: Logic): void {
   a.download = `${safeName}${t.csvTemplateFileSuffix}`;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-export function exportFieldDefs(logic: Logic): void {
-  const fields = Object.values(logic.fieldDefs).map((f) => ({
-    name: f.name,
-    type: f.type,
-    ...(f.type === 'enum' ? { enumValues: f.enumValues ?? [] } : {}),
-  }));
-  const payload = { version: '1', fields };
-  const safeName = logic.name.replace(/[/\\?%*:|"<>]/g, '_') || 'logic';
-  const blob = new Blob([JSON.stringify(payload, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${safeName}_fields.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export function useImportFieldDefs() {
-  const importFieldDefs = useLogicStore((s) => s.importFieldDefs);
-  const t = useT();
-
-  return () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json,application/json';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        const parsed = JSON.parse(text);
-        const result = FieldDefsFileSchema.safeParse(parsed);
-        if (!result.success) {
-          toast.error(
-            t.importJsonInvalid(result.error.issues[0]?.message ?? ''),
-          );
-          return;
-        }
-        const { added, skipped } = importFieldDefs(result.data.fields);
-        if (added === 0 && skipped.length === 0) {
-          toast.warning(t.fieldDefsImportEmpty);
-        } else if (skipped.length === 0) {
-          toast.success(t.fieldDefsImportSuccess(added));
-        } else {
-          toast.success(t.fieldDefsImportSuccessWithSkip(added, skipped));
-        }
-      } catch {
-        toast.error(t.importJsonParseFailed);
-      }
-    };
-    input.click();
-  };
 }
 
 export function exportLogic(logic: Logic): void {

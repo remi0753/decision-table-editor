@@ -1,8 +1,5 @@
 import { CloudLogicControls } from '@/components/cloud/CloudLogicControls';
-import {
-  FieldsSection,
-  FieldsSectionActions,
-} from '@/components/fields/FieldsSection';
+import { FieldsSection } from '@/components/fields/FieldsSection';
 import { LogicDescriptionField } from '@/components/logic/LogicDescriptionField';
 import { AccordionSection } from '@/components/ui/AccordionSection';
 import { InlineEdit } from '@/components/ui/InlineEdit';
@@ -43,7 +40,6 @@ export function LeftPane() {
           title={t.fieldDefinitions}
           open={sections.fields}
           onToggle={() => toggleSection('fields')}
-          actions={<FieldsSectionActions />}
         >
           <FieldsSection />
         </AccordionSection>

@@ -17,6 +17,7 @@ export type TranslationSet = {
   undo: string;
   redo: string;
   moreActions: string;
+  docsLink: string;
   fileActions: string;
   toolActions: string;
   accountMenu: string;
@@ -134,13 +135,6 @@ export type TranslationSet = {
   changeFieldType: string;
   changeFieldTypeConfirm: (count: number) => string;
   changeConfirm: string;
-  importFieldDefs: string;
-  importFieldDefsTitle: string;
-  exportFieldDefs: string;
-  exportFieldDefsTitle: string;
-  fieldDefsImportSuccess: (added: number) => string;
-  fieldDefsImportSuccessWithSkip: (added: number, skipped: string[]) => string;
-  fieldDefsImportEmpty: string;
 
   // DecisionTable
   tableNotFound: string;
@@ -354,11 +348,12 @@ export const translations: Record<Lang, TranslationSet> = {
     newLogicConfirm:
       'Close the current logic and create a new one?\nThe current logic is saved in the browser.',
     newCreate: 'New',
-    importBtn: 'Import',
-    exportBtn: 'Export',
+    importBtn: 'Open file',
+    exportBtn: 'Save backup',
     undo: 'Undo (⌘Z)',
     redo: 'Redo (⇧⌘Z)',
     moreActions: 'More actions',
+    docsLink: 'Docs',
     fileActions: 'File',
     toolActions: 'Tools',
     accountMenu: 'Account and workspace',
@@ -482,15 +477,6 @@ export const translations: Record<Lang, TranslationSet> = {
     changeFieldTypeConfirm: (count) =>
       `Changing the type will reset ${count} condition(s) using this field. Continue?`,
     changeConfirm: 'Change',
-    importFieldDefs: 'Import',
-    importFieldDefsTitle: 'Import field definitions from JSON',
-    exportFieldDefs: 'Export',
-    exportFieldDefsTitle: 'Export field definitions as JSON',
-    fieldDefsImportSuccess: (added) =>
-      `Imported ${added} field${added === 1 ? '' : 's'}.`,
-    fieldDefsImportSuccessWithSkip: (added, skipped) =>
-      `Imported ${added} field${added === 1 ? '' : 's'}. Skipped duplicate name${skipped.length === 1 ? '' : 's'}: ${skipped.join(', ')}`,
-    fieldDefsImportEmpty: 'No fields found in the file.',
 
     tableNotFound: 'Table not found.',
     entryBadge: '▶ Entry',
@@ -721,11 +707,12 @@ export const translations: Record<Lang, TranslationSet> = {
     newLogicConfirm:
       '現在のロジックを閉じて新しいロジックを作成しますか？\n現在のロジックはブラウザに保存されています。',
     newCreate: '新規作成',
-    importBtn: 'インポート',
-    exportBtn: 'エクスポート',
+    importBtn: 'ファイルを開く',
+    exportBtn: 'バックアップを保存',
     undo: '元に戻す（⌘Z）',
     redo: 'やり直し（⇧⌘Z）',
     moreActions: 'その他の操作',
+    docsLink: 'ドキュメント',
     fileActions: 'ファイル',
     toolActions: 'ツール',
     accountMenu: 'アカウントとワークスペース',
@@ -848,14 +835,6 @@ export const translations: Record<Lang, TranslationSet> = {
     changeFieldTypeConfirm: (count) =>
       `型を変更すると、このフィールドを使用している${count}件の条件がリセットされます。続けますか？`,
     changeConfirm: '変更する',
-    importFieldDefs: 'インポート',
-    importFieldDefsTitle: 'フィールド定義をJSONから読み込む',
-    exportFieldDefs: 'エクスポート',
-    exportFieldDefsTitle: 'フィールド定義をJSONで書き出す',
-    fieldDefsImportSuccess: (added) => `${added}件のフィールドを追加しました。`,
-    fieldDefsImportSuccessWithSkip: (added, skipped) =>
-      `${added}件のフィールドを追加しました。同名のためスキップ: ${skipped.join('、')}`,
-    fieldDefsImportEmpty: 'ファイルにフィールドが見つかりませんでした。',
 
     tableNotFound: 'テーブルが見つかりません。',
     entryBadge: '▶ 入口',
