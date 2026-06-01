@@ -185,8 +185,12 @@ export function FieldsSection() {
         );
       })}
 
-      <div className="flex items-center gap-1 pl-3 pr-3 py-1.5 border-t bg-gray-50/50">
+      <div
+        data-tour-target="field-add"
+        className="flex items-center gap-1 pl-3 pr-3 py-1.5 border-t bg-gray-50/50"
+      >
         <input
+          data-tour-target="field-name-input"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => {
@@ -197,6 +201,7 @@ export function FieldsSection() {
           className="text-xs border rounded px-1.5 py-1 flex-1 min-w-0 focus:outline-none focus:ring-1 focus:ring-violet-400"
         />
         <select
+          data-tour-target="field-type-select"
           value={newType}
           onChange={(e) => setNewType(e.target.value as FieldType)}
           className="text-xs border rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"
@@ -209,6 +214,7 @@ export function FieldsSection() {
         </select>
         <button
           type="button"
+          data-tour-target="field-submit"
           onClick={handleAdd}
           className="flex items-center text-violet-600 hover:text-violet-800 border border-violet-300 rounded px-1.5 py-1"
           title={t.add}

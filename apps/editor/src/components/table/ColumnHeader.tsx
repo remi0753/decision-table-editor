@@ -58,6 +58,7 @@ export function ColumnHeader({ tableId, colId, fieldId }: Props) {
           <GripHorizontal />
         </IconButton>
         <select
+          data-tour-target="condition-field-select"
           value={fieldId ?? ''}
           onChange={(e) => setColField(tableId, colId, e.target.value || null)}
           className="flex-1 min-w-0 text-xs border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-400 bg-white"

@@ -188,6 +188,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                       <button
                         type="button"
                         onClick={() => addCol(tableId)}
+                        data-tour-target="condition-add"
                         title={t.addConditionCol}
                         aria-label={t.addConditionCol}
                         className="w-full h-full flex items-center justify-center text-gray-400 hover:text-violet-700 hover:bg-violet-50 transition-colors py-1.5"
@@ -251,6 +252,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                         <button
                           type="button"
                           onClick={() => addRow(tableId)}
+                          data-tour-target="row-add"
                           title={t.addRow}
                           aria-label={t.addRow}
                           className="w-full flex items-center justify-center text-gray-300 hover:text-violet-700 hover:bg-violet-50 transition-colors py-1 group/addrow"
@@ -303,6 +305,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                     <button
                       type="button"
                       onClick={() => addCol(tableId)}
+                      data-tour-target="condition-add"
                       className="w-72 flex items-center justify-center gap-1.5 text-sm text-violet-700 hover:text-violet-900 bg-white border border-violet-300 hover:border-violet-500 rounded px-3 py-2"
                     >
                       <Plus size={16} strokeWidth={2.5} />
@@ -313,6 +316,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
                     <button
                       type="button"
                       onClick={() => addRow(tableId)}
+                      data-tour-target="row-add"
                       className="w-72 flex items-center justify-center gap-1.5 text-sm text-violet-700 hover:text-violet-900 bg-white border border-violet-300 hover:border-violet-500 rounded px-3 py-2"
                     >
                       <Plus size={16} strokeWidth={2.5} />

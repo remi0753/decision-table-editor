@@ -11,3 +11,89 @@
       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 }
+
+@layer components {
+  html[data-local-tour-step] body::before {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    pointer-events: none;
+    content: "";
+    background: rgb(17 24 39 / 0.24);
+  }
+
+  html[data-local-tour-step="field"] [data-tour-target="field-add"] {
+    position: relative;
+    z-index: 50;
+  }
+
+  html[data-local-tour-step="field"]
+    [data-tour-target="field-add"]:has(
+      [data-tour-target="field-name-input"]:placeholder-shown
+    )
+    [data-tour-target="field-name-input"],
+  html[data-local-tour-step="field"]
+    [data-tour-target="field-add"]:has(
+      [data-tour-target="field-name-input"]:not(:placeholder-shown)
+    )
+    [data-tour-target="field-submit"],
+  html[data-local-tour-step="condition"] [data-tour-target="condition-add"],
+  html[data-local-tour-step="condition"]
+    [data-tour-target="condition-field-select"],
+  html[data-local-tour-step="row"] [data-tour-target="row-add"],
+  html[data-local-tour-step="conditionCell"]
+    [data-tour-target="condition-cell"],
+  html[data-local-tour-step="conclusion"] [data-tour-target="conclusion-cell"],
+  html[data-local-tour-step="evaluate"] [data-tour-target="eval-open"],
+  html[data-local-tour-step="evaluate"] [data-tour-target="eval-inputs"],
+  html[data-local-tour-step="evaluate"] [data-tour-target="eval-run"] {
+    position: relative;
+    z-index: 50;
+    animation: local-tour-pulse 1.6s ease-in-out infinite;
+    color: rgb(109 40 217);
+    background-color: white;
+    border-radius: 6px;
+    outline: 3px solid rgb(124 58 237 / 0.75);
+    outline-offset: -3px;
+    box-shadow:
+      inset 0 0 0 2px white,
+      0 0 0 1px rgb(124 58 237 / 0.35),
+      0 12px 32px rgb(17 24 39 / 0.22);
+  }
+
+  html[data-local-tour-step] [data-tour-target] :is(input, select, button),
+  html[data-local-tour-step] button[data-tour-target],
+  html[data-local-tour-step] input[data-tour-target],
+  html[data-local-tour-step] select[data-tour-target] {
+    color: rgb(109 40 217);
+    background-color: white;
+    border-color: rgb(167 139 250);
+  }
+
+  html[data-local-tour-step] button[data-tour-target],
+  html[data-local-tour-step] [data-tour-target] button {
+    font-weight: 600;
+    background-color: rgb(245 243 255);
+  }
+
+  html[data-local-tour-step] [data-tour-target] svg {
+    color: rgb(109 40 217);
+    stroke: currentColor;
+  }
+}
+
+@keyframes local-tour-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 2px white,
+      0 0 0 1px rgb(124 58 237 / 0.35),
+      0 12px 32px rgb(17 24 39 / 0.22);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 2px white,
+      0 0 0 4px rgb(124 58 237 / 0.22),
+      0 16px 36px rgb(17 24 39 / 0.26);
+  }
+}
