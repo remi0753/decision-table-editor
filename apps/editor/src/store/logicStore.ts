@@ -51,9 +51,6 @@ interface LogicStore {
     type: FieldType,
     enumValues?: string[],
   ) => { error?: string };
-  importFieldDefs: (
-    fields: { name: string; type: FieldType; enumValues?: string[] }[],
-  ) => { added: number; skipped: string[] };
   renameField: (fieldId: string, name: string) => { error?: string };
   changeFieldType: (fieldId: string, type: FieldType) => void;
   deleteField: (fieldId: string) => { error?: string };
@@ -202,48 +199,6 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
       },
     }));
     return {};
-  },
-
-  importFieldDefs: (fields) => {
-    const { logic } = get();
-    const existingNames = new Set(
-      Object.values(logic.fieldDefs).map((f) => f.name),
-    );
-    const skipped: string[] = [];
-    const toAdd: { name: string; type: FieldType; enumValues?: string[] }[] =
-      [];
-    const seenInBatch = new Set<string>();
-    for (const f of fields) {
-      if (existingNames.has(f.name) || seenInBatch.has(f.name)) {
-        skipped.push(f.name);
-        continue;
-      }
-      seenInBatch.add(f.name);
-      toAdd.push(f);
-    }
-    if (toAdd.length === 0) return { added: 0, skipped };
-    set((s) => {
-      const newFieldDefs = { ...s.logic.fieldDefs };
-      let n = s.logic.nField;
-      for (const f of toAdd) {
-        const id = nextFieldId(n);
-        newFieldDefs[id] = {
-          id,
-          name: f.name,
-          type: f.type,
-          ...(f.type === 'enum'
-            ? { enumValues: f.enumValues ?? [] }
-            : f.enumValues
-              ? { enumValues: f.enumValues }
-              : {}),
-        };
-        n++;
-      }
-      return {
-        logic: { ...s.logic, fieldDefs: newFieldDefs, nField: n },
-      };
-    });
-    return { added: toAdd.length, skipped };
   },
 
   renameField: (fieldId, name) => {

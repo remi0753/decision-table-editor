@@ -1,56 +1,14 @@
 import type { FieldType } from '@leverie/engine';
-import {
-  ChevronDown,
-  ChevronRight,
-  Download,
-  Plus,
-  Trash2,
-  Upload,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { IconButton } from '@/components/ui/IconButton';
 import { InlineEdit } from '@/components/ui/InlineEdit';
-import { exportFieldDefs, useImportFieldDefs } from '@/hooks/useImportExport';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
 import { useLogicStore } from '@/store/logicStore';
 import { EnumValuesEditor } from './EnumValuesEditor';
-
-export function FieldsSectionActions() {
-  const logic = useLogicStore((s) => s.logic);
-  const importFieldDefsFn = useImportFieldDefs();
-  const t = useT();
-  const fieldDefs = Object.values(logic.fieldDefs);
-  return (
-    <>
-      <IconButton
-        tone="primary"
-        onClick={(e) => {
-          e.stopPropagation();
-          importFieldDefsFn();
-        }}
-        title={t.importFieldDefsTitle}
-        aria-label={t.importFieldDefsTitle}
-      >
-        <Upload />
-      </IconButton>
-      <IconButton
-        tone="primary"
-        onClick={(e) => {
-          e.stopPropagation();
-          exportFieldDefs(logic);
-        }}
-        disabled={fieldDefs.length === 0}
-        title={t.exportFieldDefsTitle}
-        aria-label={t.exportFieldDefsTitle}
-      >
-        <Download />
-      </IconButton>
-    </>
-  );
-}
 
 export function FieldsSection() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
