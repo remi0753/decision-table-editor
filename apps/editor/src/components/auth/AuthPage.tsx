@@ -11,7 +11,11 @@ import {
 import { type FormEvent, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
-import { loadFromStorage } from '@/hooks/useLocalStorage';
+import {
+  clearMigrationDraft,
+  loadFromStorage,
+  stashDraftForMigration,
+} from '@/hooks/useLocalStorage';
 import {
   CloudApiError,
   sendVerificationEmail,
@@ -55,11 +59,15 @@ export function AuthPage() {
   const [pendingVerification, setPendingVerification] =
     useState<VerificationPending | null>(null);
 
+  // Promote (or discard) the local draft for the cloud handoff. We copy it into
+  // a persistent slot so it survives the sign-up + email-verification round trip
+  // — the verification link can land on /edit in a different tab, where the
+  // sessionStorage working draft would be gone.
   const persistMigrateChoice = () => {
     if (migrateLocalDraft && localDraft) {
-      sessionStorage.setItem('leverie-migrate-local-draft', '1');
+      stashDraftForMigration(localDraft);
     } else {
-      sessionStorage.removeItem('leverie-migrate-local-draft');
+      clearMigrationDraft();
     }
   };
 
@@ -76,13 +84,11 @@ export function AuthPage() {
         );
         // Keep the migrate-draft choice so it is honored after the user
         // clicks the verification link and lands on /edit.
-        sessionStorage.removeItem('leverie-editor-mode');
         persistMigrateChoice();
         setPendingVerification({ email, reason: 'sign-up' });
         return;
       }
       await signInEmail(email, password);
-      sessionStorage.removeItem('leverie-editor-mode');
       persistMigrateChoice();
       window.location.assign('/edit');
     } catch (error) {
@@ -325,10 +331,7 @@ export function AuthPage() {
               </div>
 
               <a
-                href="/edit"
-                onClick={() => {
-                  sessionStorage.setItem('leverie-editor-mode', 'guest');
-                }}
+                href="/local"
                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 <Monitor className="h-4 w-4" />

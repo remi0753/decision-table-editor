@@ -95,12 +95,16 @@ export function CloudMenu() {
           type="button"
           onClick={() => setOpen((value) => !value)}
           aria-label={t.accountMenu}
-          className="inline-flex h-8 max-w-[240px] items-center gap-2 rounded border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800"
+          className={`inline-flex h-8 max-w-[240px] items-center gap-2 rounded border px-2.5 text-xs font-medium shadow-sm transition-colors ${
+            mode === 'local'
+              ? 'border-amber-300 bg-amber-50 text-amber-900 hover:border-amber-400 hover:bg-amber-100'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800'
+          }`}
         >
           {mode === 'cloud' ? (
             <Cloud className="h-4 w-4 shrink-0 text-emerald-700" />
           ) : (
-            <CloudOff className="h-4 w-4 shrink-0 text-gray-500" />
+            <CloudOff className="h-4 w-4 shrink-0 text-amber-600" />
           )}
           <span className="hidden min-w-0 flex-col items-start leading-tight sm:flex">
             <span className="max-w-[150px] truncate">{workspaceName}</span>

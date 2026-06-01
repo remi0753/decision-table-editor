@@ -47,6 +47,10 @@ function route() {
   if (path === '/settings/org') return <OrgSettingsPage />;
   if (path === '/settings/workspace') return <WorkspaceSettingsPage />;
   if (path === '/edit') return <EditorApp />;
+  // `/local` opens the editor in local mode regardless of any existing cloud
+  // session: a stable, shareable/bookmarkable entry point that never depends on
+  // a click handler running first (unlike a bare /edit link).
+  if (path === '/local') return <EditorApp forceLocal />;
   if (path === '/auth') return <AuthPage />;
   if (path === '/access') return <AccessPage />;
   if (!hasTopPage) {
