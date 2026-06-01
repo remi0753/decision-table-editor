@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { stashDraftForMigration } from '@/hooks/useLocalStorage';
 import { useT } from '@/i18n/useT';
+import { signInEmail } from '@/lib/cloudApi';
 import { useCloudStore } from '@/store/cloudStore';
 import { hasEditableContent, useLogicStore } from '@/store/logicStore';
 
@@ -28,7 +29,6 @@ export function CloudMenu() {
   const orgRole = useCloudStore((s) => s.orgRole);
   const workspace = useCloudStore((s) => s.workspace);
   const error = useCloudStore((s) => s.error);
-  const signIn = useCloudStore((s) => s.signIn);
   const signUp = useCloudStore((s) => s.signUp);
   const signOutToAuth = useCloudStore((s) => s.signOutToAuth);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -80,11 +80,15 @@ export function CloudMenu() {
       }
       if (isSignUp) {
         await signUp(name || email, email, password, logic, importLogic);
+        setOpen(false);
+        toast.success(t.cloudConnected);
       } else {
-        await signIn(email, password, logic, importLogic);
+        await signInEmail(email, password);
+        // Move to /edit so the URL reflects the authenticated editor instead of
+        // staying on /local; the cloud session initializes there, and any
+        // preserved local draft is offered on the new-logic screen.
+        window.location.assign('/edit');
       }
-      setOpen(false);
-      toast.success(t.cloudConnected);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t.cloudError);
     } finally {

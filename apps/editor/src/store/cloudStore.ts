@@ -18,7 +18,6 @@ import {
   listWorkspaces,
   publishLogic,
   saveDraft,
-  signInEmail,
   signOut,
   signUpEmail,
 } from '@/lib/cloudApi';
@@ -86,12 +85,6 @@ type CloudStore = {
   ) => Promise<void>;
   saveCloudDraft: (logic: Logic) => Promise<void>;
   publishCloudLogic: (logic?: Logic) => Promise<void>;
-  signIn: (
-    email: string,
-    password: string,
-    localLogic: Logic,
-    importLogic: (logic: Logic) => void,
-  ) => Promise<void>;
   signUp: (
     name: string,
     email: string,
@@ -667,11 +660,6 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       set({ saveState: 'error', error: message });
       toast.error(message);
     }
-  },
-
-  signIn: async (email, password, localLogic, importLogic) => {
-    await signInEmail(email, password);
-    await get().initializeCloud(localLogic, importLogic, { requireAuth: true });
   },
 
   signUp: async (name, email, password, localLogic, importLogic) => {
