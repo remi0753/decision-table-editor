@@ -17,6 +17,7 @@ import logoUrl from '@/assets/logo.svg';
 import { CloudMenu } from '@/components/cloud/CloudMenu';
 import { CloudWorkspacePicker } from '@/components/cloud/CloudWorkspacePicker';
 import { BatchDialog } from '@/components/evaluation/BatchDialog';
+import { LocalOnboarding } from '@/components/onboarding/LocalOnboarding';
 import { SampleGalleryDialog } from '@/components/templates/SampleGalleryDialog';
 import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -55,7 +56,11 @@ function logicIdFromName(name: string) {
   );
 }
 
-export function AppLayout() {
+export function AppLayout({
+  localOnboardingEnabled = false,
+}: {
+  localOnboardingEnabled?: boolean;
+}) {
   const logic = useLogicStore((s) => s.logic);
   const resetLogic = useLogicStore((s) => s.resetLogic);
   const importLogic = useLogicStore((s) => s.importLogic);
@@ -340,6 +345,9 @@ export function AppLayout() {
         logic={logic}
       />
       <CloudWorkspacePicker />
+      <LocalOnboarding
+        enabled={localOnboardingEnabled && cloudMode === 'local'}
+      />
       {newCloudLogicOpen ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-6">
           <form

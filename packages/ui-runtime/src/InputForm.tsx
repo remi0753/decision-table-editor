@@ -1,8 +1,13 @@
 import type { FieldDef, FieldType, Logic } from '@leverie/engine';
+import type { HTMLAttributes } from 'react';
 import {
   defaultTranslations,
   type UiRuntimeTranslations,
 } from './translations.js';
+
+type WrapperProps = HTMLAttributes<HTMLDivElement> & {
+  [key: `data-${string}`]: string | undefined;
+};
 
 interface InputFormProps {
   logic: Logic;
@@ -10,6 +15,7 @@ interface InputFormProps {
   onChange: (fieldId: string, value: string) => void;
   translations?: UiRuntimeTranslations;
   className?: string;
+  wrapperProps?: WrapperProps;
 }
 
 const inputBase =
@@ -21,6 +27,7 @@ export function InputForm({
   onChange,
   translations,
   className,
+  wrapperProps,
 }: InputFormProps) {
   const t = translations ?? defaultTranslations.en;
   const fields = Object.values(logic.fieldDefs);
@@ -31,6 +38,7 @@ export function InputForm({
 
   return (
     <div
+      {...wrapperProps}
       className={
         className ??
         'grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-4 gap-y-3'

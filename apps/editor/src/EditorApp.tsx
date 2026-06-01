@@ -86,5 +86,5 @@ export default function EditorApp({
     setSelectedTable(logic.entryTableId);
   }, []);
 
-  return <AppLayout />;
+  return <AppLayout localOnboardingEnabled={forceLocal} />;
 }

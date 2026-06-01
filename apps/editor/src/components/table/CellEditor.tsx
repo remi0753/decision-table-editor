@@ -160,6 +160,7 @@ export function CellEditor({ cell, field, onSave, onClear }: Props) {
         <button
           type="button"
           data-cell-trigger=""
+          data-tour-target={field ? 'condition-cell' : undefined}
           className={cn(
             'w-full h-full px-2 py-1 text-left text-xs hover:bg-gray-50 transition-colors',
             !cell ? 'text-gray-400 italic' : 'text-gray-700',

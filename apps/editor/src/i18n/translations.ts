@@ -36,6 +36,32 @@ export type TranslationSet = {
   verificationEmailSent: string;
   localSaved: string;
   localModeDescription: string;
+  localStartTitle: string;
+  localStartDescription: string;
+  localCreateBlankTitle: string;
+  localCreateBlankDescription: string;
+  localGuideTitle: string;
+  localGuideDescription: string;
+  localGuideRecommended: string;
+  localGuidePanelTitle: string;
+  localGuideCompleteTitle: string;
+  localGuideCompleteDescription: string;
+  localGuideStepField: string;
+  localGuideStepCondition: string;
+  localGuideStepRow: string;
+  localGuideStepConditionCell: string;
+  localGuideStepConclusion: string;
+  localGuideStepEvaluate: string;
+  localGuideHintField: string;
+  localGuideHintCondition: string;
+  localGuideHintRow: string;
+  localGuideHintConditionCell: string;
+  localGuideHintConclusion: string;
+  localGuideHintEvaluateOpen: string;
+  localGuideHintEvaluateRun: string;
+  localGuideShow: string;
+  localGuideSkip: string;
+  localGuideClose: string;
   signIn: string;
   signUp: string;
   signOut: string;
@@ -374,6 +400,43 @@ export const translations: Record<Lang, TranslationSet> = {
     localSaved: 'Saved in this browser',
     localModeDescription:
       'Sign in to save drafts and published versions to your workspace.',
+    localStartTitle: 'Create a logic',
+    localStartDescription:
+      'Start from a blank decision table, or use the guided tour to build one small rule in the real editor.',
+    localCreateBlankTitle: 'Create blank logic',
+    localCreateBlankDescription:
+      'Use the editor freely when you already know what you want to build.',
+    localGuideTitle: 'Try the guided tour',
+    localGuideDescription:
+      'Add a field, a condition column, a rule row, and a conclusion while learning the core flow.',
+    localGuideRecommended: 'Recommended',
+    localGuidePanelTitle: 'First rule checklist',
+    localGuideCompleteTitle: 'First rule created',
+    localGuideCompleteDescription:
+      'You created a rule and evaluated it with a test input.',
+    localGuideStepField: 'Add one field',
+    localGuideStepCondition: 'Add a condition column',
+    localGuideStepRow: 'Add one rule row',
+    localGuideStepConditionCell: 'Enter the rule condition',
+    localGuideStepConclusion: 'Enter the conclusion',
+    localGuideStepEvaluate: 'Evaluate the logic',
+    localGuideHintField:
+      'Enter a field name, choose a type if needed, then press the add button.',
+    localGuideHintCondition:
+      'Add a condition column, then choose the field you just created in the column header.',
+    localGuideHintRow:
+      'Add the first row. Each row represents one rule to evaluate.',
+    localGuideHintConditionCell:
+      'Click the condition cell and set an operator and value, such as "at least 18".',
+    localGuideHintConclusion:
+      'Click the conclusion cell and enter the result returned when the row matches.',
+    localGuideHintEvaluateOpen:
+      'Open the evaluation panel on the right to test the rule you created.',
+    localGuideHintEvaluateRun:
+      'Enter a test value, then run the logic to see the result.',
+    localGuideShow: 'Show guide',
+    localGuideSkip: 'Skip guide',
+    localGuideClose: 'Close guide',
     signIn: 'Sign in',
     signUp: 'Sign up',
     signOut: 'Sign out',
@@ -733,6 +796,41 @@ export const translations: Record<Lang, TranslationSet> = {
     localSaved: 'このブラウザに保存中',
     localModeDescription:
       'サインインすると draft と公開バージョンをワークスペースに保存します。',
+    localStartTitle: 'ロジックを作成',
+    localStartDescription:
+      '空の判定表から自由に作るか、実際のエディターを操作しながら小さなルールを作成できます。',
+    localCreateBlankTitle: '空のロジックを作成',
+    localCreateBlankDescription:
+      '作りたい内容が決まっている場合は、空のエディターから始めます。',
+    localGuideTitle: 'ガイド付きで試す',
+    localGuideDescription:
+      'フィールド、条件列、ルール行、結論を追加しながら基本操作を確認します。',
+    localGuideRecommended: 'おすすめ',
+    localGuidePanelTitle: '最初のルール',
+    localGuideCompleteTitle: '最初のルールを作成しました',
+    localGuideCompleteDescription:
+      'ルールを作成し、テスト入力で評価できました。',
+    localGuideStepField: 'フィールドを1つ追加',
+    localGuideStepCondition: '条件列を追加',
+    localGuideStepRow: 'ルール行を追加',
+    localGuideStepConditionCell: 'ルール条件を入力',
+    localGuideStepConclusion: '結論を入力',
+    localGuideStepEvaluate: 'ロジックを評価',
+    localGuideHintField:
+      'フィールド名を入力し、必要なら型を選んで、追加ボタンを押します。',
+    localGuideHintCondition:
+      '条件列を追加し、列ヘッダーで先ほど作成したフィールドを選択します。',
+    localGuideHintRow: '最初の行を追加します。1行が1つの判定ルールになります。',
+    localGuideHintConditionCell:
+      '条件セルをクリックし、演算子と値を設定します。例: 「18以上」。',
+    localGuideHintConclusion:
+      '結論セルをクリックし、この行に一致したときに返す結果を入力します。',
+    localGuideHintEvaluateOpen:
+      '右端の評価パネルを開き、作成したルールをテストします。',
+    localGuideHintEvaluateRun: 'テスト値を入力し、評価実行で結果を確認します。',
+    localGuideShow: 'ガイドを表示',
+    localGuideSkip: 'ガイドを閉じる',
+    localGuideClose: 'ガイドを閉じる',
     signIn: 'サインイン',
     signUp: '登録',
     signOut: 'サインアウト',

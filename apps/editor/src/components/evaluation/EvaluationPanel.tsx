@@ -35,6 +35,7 @@ export function EvaluationPanel() {
       <button
         type="button"
         onClick={toggleDrawer}
+        data-tour-target="eval-open"
         aria-label={t.evaluationPanel}
         className="w-11 shrink-0 border-l bg-white hover:bg-violet-50 transition-colors flex flex-col items-center py-3 gap-3 text-gray-500"
       >
@@ -72,10 +73,12 @@ export function EvaluationPanel() {
           onChange={setEvalInput}
           translations={runtimeT}
           className="space-y-3"
+          wrapperProps={{ 'data-tour-target': 'eval-inputs' }}
         />
         <div className="flex gap-2">
           <button
             type="button"
+            data-tour-target="eval-run"
             onClick={handleEvaluate}
             className="flex items-center gap-1 bg-violet-600 text-white text-sm px-3 py-1.5 rounded hover:bg-violet-700"
           >

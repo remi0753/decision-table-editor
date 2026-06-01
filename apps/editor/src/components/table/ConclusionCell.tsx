@@ -85,6 +85,7 @@ export function ConclusionCell({
         <button
           type="button"
           data-cell-trigger=""
+          data-tour-target="conclusion-cell"
           onKeyDown={(e) => {
             if (open) return;
             if (!isLastRow || !onAdvance) return;
