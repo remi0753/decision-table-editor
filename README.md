@@ -8,12 +8,9 @@
 
 ---
 
-## Demo
+## See LEVERIE in Action
 
-<video src="artifacts/leverie-build-logic-30s-en.mp4" controls muted playsinline width="100%"></video>
-
-If the video does not render in your browser, open the
-[30-second build demo](artifacts/leverie-build-logic-30s-en.mp4) directly.
+https://github.com/user-attachments/assets/08c9055b-4dcd-4b4e-bbc1-2194323164f2
 
 ---
 
