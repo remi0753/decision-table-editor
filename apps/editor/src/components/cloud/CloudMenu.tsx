@@ -14,14 +14,13 @@ import { toast } from 'sonner';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { stashDraftForMigration } from '@/hooks/useLocalStorage';
 import { useT } from '@/i18n/useT';
-import { signInEmail } from '@/lib/cloudApi';
+import { signInEmail, signUpEmail } from '@/lib/cloudApi';
 import { useCloudStore } from '@/store/cloudStore';
 import { hasEditableContent, useLogicStore } from '@/store/logicStore';
 
 export function CloudMenu() {
   const t = useT();
   const logic = useLogicStore((s) => s.logic);
-  const importLogic = useLogicStore((s) => s.importLogic);
   const mode = useCloudStore((s) => s.mode);
   const saveState = useCloudStore((s) => s.saveState);
   const user = useCloudStore((s) => s.user);
@@ -29,7 +28,6 @@ export function CloudMenu() {
   const orgRole = useCloudStore((s) => s.orgRole);
   const workspace = useCloudStore((s) => s.workspace);
   const error = useCloudStore((s) => s.error);
-  const signUp = useCloudStore((s) => s.signUp);
   const signOutToAuth = useCloudStore((s) => s.signOutToAuth);
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -79,9 +77,19 @@ export function CloudMenu() {
         stashDraftForMigration(logic);
       }
       if (isSignUp) {
-        await signUp(name || email, email, password, logic, importLogic);
+        // Sign-up requires email verification, so no session is established
+        // now. Only send the email and stay in local mode — crucially without
+        // loading any pre-existing session that may still be in cookies for a
+        // different account. The account is entered later via the email link.
+        await signUpEmail(
+          name || email,
+          email,
+          password,
+          `${window.location.origin}/edit`,
+        );
         setOpen(false);
-        toast.success(t.cloudConnected);
+        setIsSignUp(false);
+        toast.success(t.verificationEmailSent);
       } else {
         await signInEmail(email, password);
         // Move to /edit so the URL reflects the authenticated editor instead of

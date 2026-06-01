@@ -32,6 +32,7 @@ export type TranslationSet = {
   cloudConflict: string;
   cloudError: string;
   cloudConnected: string;
+  verificationEmailSent: string;
   localSaved: string;
   localModeDescription: string;
   signIn: string;
@@ -373,6 +374,8 @@ export const translations: Record<Lang, TranslationSet> = {
     cloudConflict: 'Cloud conflict',
     cloudError: 'Cloud save failed',
     cloudConnected: 'Connected to cloud.',
+    verificationEmailSent:
+      'Verification email sent. Open the link to finish creating your account.',
     localSaved: 'Saved in this browser',
     localModeDescription:
       'Sign in to save drafts and published versions to your workspace.',
@@ -738,6 +741,8 @@ export const translations: Record<Lang, TranslationSet> = {
     cloudConflict: 'クラウド側で競合',
     cloudError: 'クラウド保存に失敗',
     cloudConnected: 'クラウドに接続しました。',
+    verificationEmailSent:
+      '確認メールを送信しました。メール内のリンクからアカウント登録を完了してください。',
     localSaved: 'このブラウザに保存中',
     localModeDescription:
       'サインインすると draft と公開バージョンをワークスペースに保存します。',
