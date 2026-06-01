@@ -19,7 +19,6 @@ import {
   publishLogic,
   saveDraft,
   signOut,
-  signUpEmail,
 } from '@/lib/cloudApi';
 
 type CloudMode = 'checking' | 'local' | 'cloud' | 'selecting';
@@ -85,13 +84,6 @@ type CloudStore = {
   ) => Promise<void>;
   saveCloudDraft: (logic: Logic) => Promise<void>;
   publishCloudLogic: (logic?: Logic) => Promise<void>;
-  signUp: (
-    name: string,
-    email: string,
-    password: string,
-    localLogic: Logic,
-    importLogic: (logic: Logic) => void,
-  ) => Promise<void>;
   signOutToAuth: () => Promise<void>;
 };
 
@@ -660,19 +652,6 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       set({ saveState: 'error', error: message });
       toast.error(message);
     }
-  },
-
-  signUp: async (name, email, password, localLogic, importLogic) => {
-    // With email verification required, sign-up returns no session — the user
-    // must click the link in the verification email before initializeCloud
-    // can fetch /api/me. Callers should drive a "check your email" UI rather
-    // than relying on this method to land the user inside the editor.
-    await signUpEmail(name, email, password, `${window.location.origin}/edit`);
-    const me = await getMe().catch(() => null);
-    if (me && me.orgs.length === 0) {
-      await createOrg(name || 'My organization');
-    }
-    await get().initializeCloud(localLogic, importLogic, { requireAuth: true });
   },
 
   signOutToAuth: async () => {
