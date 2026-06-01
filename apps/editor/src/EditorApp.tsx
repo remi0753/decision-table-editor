@@ -34,7 +34,9 @@ export default function EditorApp({
       if (saved) {
         importLogic(saved);
       } else {
-        toast.info(t.newLogicCreated);
+        // `id` dedupes the toast so a re-run of this mount effect (e.g. React
+        // StrictMode's double invocation) shows a single banner, not two.
+        toast.info(t.newLogicCreated, { id: 'new-logic-created' });
       }
       useCloudStore.setState({
         mode: 'local',
