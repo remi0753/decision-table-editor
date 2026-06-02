@@ -2,7 +2,6 @@ import type { Logic } from '@leverie/engine';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   BookOpen,
-  ChevronDown,
   Code2,
   Copy,
   Download,
@@ -84,7 +83,6 @@ export function AppLayout({
   const cloudMode = useCloudStore((s) => s.mode);
   const orgRole = useCloudStore((s) => s.orgRole);
   const logicId = useCloudStore((s) => s.logicId);
-  const latestVersion = useCloudStore((s) => s.latestVersion);
   const productionVersion = useCloudStore((s) => s.productionVersion);
   const saveState = useCloudStore((s) => s.saveState);
   const createCloudLogicFrom = useCloudStore((s) => s.createCloudLogicFrom);
@@ -183,13 +181,6 @@ export function AppLayout({
   const editableCloudLogic =
     cloudMode === 'cloud' && Boolean(logicId) && canEdit(orgRole);
   const handleUnavailableAction = () => toast.info(t.actionNotImplemented);
-  const logicVersionLabel = productionVersion
-    ? t.productionVersionLabel(productionVersion.versionNumber)
-    : latestVersion
-      ? t.latestVersionLabel(latestVersion.versionNumber)
-      : cloudMode === 'cloud'
-        ? t.draftOnly
-        : t.localMode;
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -215,19 +206,15 @@ export function AppLayout({
                 <button
                   type="button"
                   onClick={() => setLogicDialogOpen(true)}
-                  className="inline-flex h-8 max-w-[320px] min-w-0 items-center gap-2 rounded border border-line bg-surface px-2.5 text-left text-xs font-medium text-fg-secondary shadow-sm hover:border-brand-border hover:bg-brand-subtle hover:text-brand-fg-strong focus:outline-none focus:ring-1 focus:ring-brand-ring"
+                  className="inline-flex h-8 max-w-[320px] min-w-0 items-center gap-2 rounded-full border border-brand-border bg-white/25 px-3 text-left text-xs font-medium text-fg-secondary shadow-none backdrop-blur-[1px] hover:bg-white/65 hover:text-brand-fg-strong focus:outline-none focus:ring-1 focus:ring-brand-ring"
                   aria-label={t.switchLogic}
                 >
                   <FileText className="h-4 w-4 shrink-0 text-brand-fg" />
-                  <span className="min-w-0 flex flex-col leading-tight">
-                    <span className="truncate text-sm font-semibold">
+                  <span className="min-w-0 flex leading-tight">
+                    <span className="truncate text-sm font-light">
                       {logic.name}
                     </span>
-                    <span className="truncate text-[10px] font-normal text-fg-subtle">
-                      {logicVersionLabel}
-                    </span>
                   </span>
-                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-fg-faint" />
                 </button>
               </Tooltip>
             </div>
