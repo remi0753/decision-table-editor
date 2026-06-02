@@ -6,7 +6,11 @@ import { lazy, Suspense } from 'react';
 const TopPage = lazy(() =>
   import('@/components/top/TopPage').then((m) => ({ default: m.TopPage })),
 );
-const EditorApp = lazy(() => import('@/EditorApp'));
+// `/edit` and `/local` go through EditorRoute, a tiny wrapper that shows the
+// mobile gate or the full editor based on viewport. Both the editor and the
+// gate are split out of this wrapper, so a phone visitor never downloads the
+// heavy editor chunk just to read the "use a desktop" page.
+const EditorRoute = lazy(() => import('@/EditorRoute'));
 const RunnerPage = lazy(() =>
   import('@/components/runner/RunnerPage').then((m) => ({
     default: m.RunnerPage,
@@ -46,11 +50,11 @@ function route() {
   if (path === '/invite') return <InvitePage />;
   if (path === '/settings/org') return <OrgSettingsPage />;
   if (path === '/settings/workspace') return <WorkspaceSettingsPage />;
-  if (path === '/edit') return <EditorApp />;
+  if (path === '/edit') return <EditorRoute />;
   // `/local` opens the editor in local mode regardless of any existing cloud
   // session: a stable, shareable/bookmarkable entry point that never depends on
   // a click handler running first (unlike a bare /edit link).
-  if (path === '/local') return <EditorApp forceLocal />;
+  if (path === '/local') return <EditorRoute forceLocal />;
   if (path === '/auth') return <AuthPage />;
   if (path === '/access') return <AccessPage />;
   if (!hasTopPage) {
