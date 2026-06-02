@@ -1,4 +1,4 @@
-import { CheckCircle2, Copy, ExternalLink } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Copy, ExternalLink } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
@@ -11,25 +11,19 @@ const PRODUCT_VIDEO = {
   en: {
     mp4: `${MEDIA_BASE_PATH}/leverie-build-logic-30s-en.mp4`,
     webm: `${MEDIA_BASE_PATH}/leverie-build-logic-30s-en.webm`,
+    poster: `${MEDIA_BASE_PATH}/leverie-build-logic-30s-en-poster.jpg`,
   },
   ja: {
     mp4: `${MEDIA_BASE_PATH}/leverie-build-logic-30s-ja.mp4`,
     webm: `${MEDIA_BASE_PATH}/leverie-build-logic-30s-ja.webm`,
+    poster: `${MEDIA_BASE_PATH}/leverie-build-logic-30s-ja-poster.jpg`,
   },
-} satisfies Record<Lang, { mp4: string; webm: string }>;
+} satisfies Record<Lang, { mp4: string; webm: string; poster: string }>;
 
 const PRODUCT_SCREENSHOTS = [
   {
     id: 'flowchart',
     src: `${MEDIA_BASE_PATH}/leverie-flowchart.png`,
-  },
-  {
-    id: 'publishDiff',
-    src: `${MEDIA_BASE_PATH}/leverie-publish-diff.png`,
-  },
-  {
-    id: 'apiUsage',
-    src: `${MEDIA_BASE_PATH}/leverie-api-usage.png`,
   },
 ] as const;
 
@@ -40,25 +34,14 @@ const COPY = {
     mediaTitle: 'See the editor in action',
     mediaLead:
       'Watch a short walkthrough of defining fields, entering rules, and evaluating inputs in the desktop editor.',
-    mediaLink: 'Open video',
-    screenshotsTitle: 'More desktop workflows',
+    screenshotsTitle: 'See your rules as a flowchart',
     screenshotsLead:
-      'Flowcharts are part of the editor. Signed-in cloud workspaces also let you review diffs before publishing and use published logic via API.',
+      'The editor can turn the same decision table into a readable flowchart, so you can follow the whole decision path at a glance.',
     screenshots: {
       flowchart: {
         title: 'Flowchart view',
-        body: 'Turn table rules into a readable decision path for review.',
+        body: 'Built into the editor — review the decision path without touching the table.',
         alt: 'LEVERIE flowchart view screenshot',
-      },
-      publishDiff: {
-        title: 'Publish review diff',
-        body: 'This is the confirmation screen shown before publishing, where you review changed, added, and removed rules.',
-        alt: 'LEVERIE publish diff review screenshot',
-      },
-      apiUsage: {
-        title: 'API usage after publish',
-        body: 'Publishing logic and using it via the API require signing in to a cloud workspace.',
-        alt: 'LEVERIE API usage dialog screenshot',
       },
     },
     reasonTitle: 'Why mobile is limited',
@@ -74,7 +57,7 @@ const COPY = {
     copied: 'Link copied. Open it on a desktop browser.',
     copyFailed: 'Could not copy the link.',
     docs: 'View docs',
-    note: 'Open this URL on a desktop or large tablet to use the editor.',
+    continueAnyway: 'Continue to the editor anyway',
   },
   ja: {
     title: 'LEVERIEは大きな画面での編集に最適化されています',
@@ -82,25 +65,14 @@ const COPY = {
     mediaTitle: 'エディターの動きを見る',
     mediaLead:
       'フィールド定義、ルール入力、評価パネルでのテストまで、PC版エディターの流れを短い動画で確認できます。',
-    mediaLink: '動画を開く',
-    screenshotsTitle: 'PCで確認できるワークフロー',
+    screenshotsTitle: 'ルールをフローチャートで確認',
     screenshotsLead:
-      'フローチャートはエディターで使える機能です。サインイン後のクラウドワークスペースでは、公開前の差分確認や公開済みロジックのAPI利用もできます。',
+      '同じ決定表を、エディターはそのまま読みやすいフローチャートに変換できます。判断の流れをひと目で追えます。',
     screenshots: {
       flowchart: {
         title: 'フローチャート表示',
-        body: '表のルールをレビューしやすい判断経路として確認できます。',
+        body: 'エディターの標準機能。表を触らずに判断経路をレビューできます。',
         alt: 'LEVERIEのフローチャート表示のスクリーンショット',
-      },
-      publishDiff: {
-        title: '公開前の差分確認',
-        body: 'これはロジック公開前の確認画面です。本番反映前に、変更・追加・削除されたルールを確認できます。',
-        alt: 'LEVERIEの公開差分レビューのスクリーンショット',
-      },
-      apiUsage: {
-        title: '公開後のAPI利用',
-        body: 'ロジックの公開とAPI経由での利用には、クラウドワークスペースへのサインインが必要です。',
-        alt: 'LEVERIEのAPI利用ダイアログのスクリーンショット',
       },
     },
     reasonTitle: 'モバイルに向いていない理由',
@@ -116,16 +88,17 @@ const COPY = {
     copied: 'リンクをコピーしました。PCブラウザで開いてください。',
     copyFailed: 'リンクをコピーできませんでした。',
     docs: 'ドキュメントを見る',
-    note: 'このURLをPC、または大きめのタブレットで開くとエディターを利用できます。',
+    continueAnyway: 'それでもこのまま開く',
   },
 } satisfies Record<Lang, unknown>;
 
 interface Props {
   lang: Lang;
   setLang: (lang: Lang) => void;
+  onContinueAnyway: () => void;
 }
 
-export function MobileEditorGate({ lang, setLang }: Props) {
+export function MobileEditorGate({ lang, setLang, onContinueAnyway }: Props) {
   const c = COPY[lang];
   const video = PRODUCT_VIDEO[lang];
 
@@ -169,25 +142,62 @@ export function MobileEditorGate({ lang, setLang }: Props) {
           </h1>
           <p className="mt-3 text-base leading-7 text-fg-muted">{c.lead}</p>
 
-          <section className="mt-7">
-            <div className="mb-3 flex items-end justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-fg">
-                  {c.mediaTitle}
-                </h2>
-                <p className="mt-1 text-sm leading-6 text-fg-muted">
-                  {c.mediaLead}
-                </p>
-              </div>
-              <a
-                href={video.mp4}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mb-0.5 inline-flex shrink-0 items-center gap-1.5 rounded border border-line bg-surface px-2.5 py-1.5 text-xs font-semibold text-fg-secondary transition-colors hover:bg-surface-muted"
-              >
-                <ExternalLink size={14} />
-                <span>{c.mediaLink}</span>
-              </a>
+          <section className="mt-6">
+            <h2 className="text-sm font-semibold text-fg">{c.reasonTitle}</h2>
+            <p className="mt-2 text-sm leading-6 text-fg-muted">{c.reason}</p>
+          </section>
+
+          <section className="mt-6">
+            <h2 className="text-sm font-semibold text-fg">{c.previewTitle}</h2>
+            <ul className="mt-3 space-y-2">
+              {c.bullets.map((bullet) => (
+                <li
+                  key={bullet}
+                  className="flex gap-2 text-sm leading-6 text-fg-muted"
+                >
+                  <CheckCircle2
+                    size={16}
+                    className="mt-1 shrink-0 text-success-fg"
+                  />
+                  <span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <div className="mt-7 grid gap-3">
+            <button
+              type="button"
+              onClick={() => void copyCurrentUrl()}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded bg-brand px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-strong"
+            >
+              <Copy size={17} />
+              <span>{c.copyLink}</span>
+            </button>
+            <a
+              href="/docs/introduction"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded border border-line bg-surface px-4 text-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-muted"
+            >
+              <ExternalLink size={17} />
+              <span>{c.docs}</span>
+            </a>
+          </div>
+
+          <button
+            type="button"
+            onClick={onContinueAnyway}
+            className="mt-4 inline-flex items-center justify-center gap-1 self-center text-xs font-medium text-fg-subtle underline decoration-line underline-offset-2 transition-colors hover:text-fg-secondary"
+          >
+            <span>{c.continueAnyway}</span>
+            <ChevronRight size={13} />
+          </button>
+
+          <section className="mt-8 border-t border-line pt-6">
+            <div className="mb-3">
+              <h2 className="text-sm font-semibold text-fg">{c.mediaTitle}</h2>
+              <p className="mt-1 text-sm leading-6 text-fg-muted">
+                {c.mediaLead}
+              </p>
             </div>
             <div className="overflow-hidden rounded border border-line bg-surface shadow-sm">
               <video
@@ -197,6 +207,7 @@ export function MobileEditorGate({ lang, setLang }: Props) {
                 muted
                 playsInline
                 preload="metadata"
+                poster={video.poster}
               >
                 <source src={video.webm} type="video/webm" />
                 <source src={video.mp4} type="video/mp4" />
@@ -239,51 +250,6 @@ export function MobileEditorGate({ lang, setLang }: Props) {
               })}
             </div>
           </section>
-
-          <section className="mt-7 border-t border-line pt-5">
-            <h2 className="text-sm font-semibold text-fg">{c.reasonTitle}</h2>
-            <p className="mt-2 text-sm leading-6 text-fg-muted">{c.reason}</p>
-          </section>
-
-          <section className="mt-5">
-            <h2 className="text-sm font-semibold text-fg">{c.previewTitle}</h2>
-            <ul className="mt-3 space-y-2">
-              {c.bullets.map((bullet) => (
-                <li
-                  key={bullet}
-                  className="flex gap-2 text-sm leading-6 text-fg-muted"
-                >
-                  <CheckCircle2
-                    size={16}
-                    className="mt-1 shrink-0 text-success-fg"
-                  />
-                  <span>{bullet}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <div className="mt-7 grid gap-3">
-            <button
-              type="button"
-              onClick={() => void copyCurrentUrl()}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded bg-brand px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-strong"
-            >
-              <Copy size={17} />
-              <span>{c.copyLink}</span>
-            </button>
-            <a
-              href="/docs/introduction"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded border border-line bg-surface px-4 text-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-muted"
-            >
-              <ExternalLink size={17} />
-              <span>{c.docs}</span>
-            </a>
-          </div>
-
-          <p className="mt-4 text-center text-xs leading-5 text-fg-subtle">
-            {c.note}
-          </p>
         </section>
       </div>
     </main>

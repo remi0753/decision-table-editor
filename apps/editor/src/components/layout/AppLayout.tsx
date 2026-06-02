@@ -112,9 +112,13 @@ export function AppLayout({
   const [newLogicStash, setNewLogicStash] = useState<Logic | null>(null);
   const [newLogicFromLocal, setNewLogicFromLocal] = useState(false);
   const editorViewportSupported = useEditorViewportSupported();
+  // Lets a mobile visitor dismiss the gate and use the editor anyway for the
+  // current session (large phones, landscape, foldables, power users).
+  const [forceEditor, setForceEditor] = useState(false);
+  const editorActive = editorViewportSupported || forceEditor;
 
-  useAutoSave(logic, editorViewportSupported && cloudMode === 'local');
-  useCloudAutoSave(logic, editorViewportSupported);
+  useAutoSave(logic, editorActive && cloudMode === 'local');
+  useCloudAutoSave(logic, editorActive);
 
   const prefillNewLogicFrom = (base: Logic) => {
     setNewLogicName(base.name);
@@ -221,11 +225,15 @@ export function AppLayout({
     setEvalDrawerOpen(true);
   };
 
-  if (!editorViewportSupported) {
+  if (!editorActive) {
     return (
       <>
         <Toaster position="top-right" richColors />
-        <MobileEditorGate lang={lang} setLang={setLang} />
+        <MobileEditorGate
+          lang={lang}
+          setLang={setLang}
+          onContinueAnyway={() => setForceEditor(true)}
+        />
       </>
     );
   }
