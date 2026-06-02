@@ -52,18 +52,20 @@ export function EvaluationPanel() {
 
   return (
     <aside className="w-[360px] shrink-0 border-l bg-surface flex flex-col">
-      <div className="flex items-center justify-between px-4 h-10 border-b shrink-0">
-        <span className="font-medium text-sm text-fg-secondary">
-          {t.evaluationPanel}
-        </span>
-        <button
-          type="button"
-          onClick={toggleDrawer}
-          aria-label={t.evaluationPanel}
-          className="p-1 -mr-1 rounded text-fg-faint hover:text-fg-muted hover:bg-surface-subtle"
-        >
-          <PanelRightClose size={16} />
-        </button>
+      <div className="border-b border-brand-border-subtle shrink-0">
+        <div className="flex min-h-11 items-center justify-between bg-brand-subtle/50 px-4">
+          <span className="font-medium text-sm text-fg-secondary">
+            {t.evaluationPanel}
+          </span>
+          <button
+            type="button"
+            onClick={toggleDrawer}
+            aria-label={t.evaluationPanel}
+            className="p-1 -mr-1 rounded text-fg-faint hover:text-fg-muted hover:bg-surface-subtle"
+          >
+            <PanelRightClose size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">

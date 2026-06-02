@@ -159,7 +159,7 @@ export function DecisionTable({ tableId, onOpenSampleGallery }: Props) {
           <>
             <div ref={tableContainerRef} className="overflow-x-auto pb-3">
               <table
-                className="border-collapse text-sm"
+                className="min-w-full border-collapse text-sm"
                 style={{ tableLayout: 'fixed' }}
               >
                 <thead>

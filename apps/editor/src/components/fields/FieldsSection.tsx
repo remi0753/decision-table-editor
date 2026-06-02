@@ -162,7 +162,7 @@ export function FieldsSection() {
 
   return (
     <div className="border-b last:border-b-0 bg-surface">
-      <div className="flex min-h-11 items-center gap-2 border-l-2 border-brand-border bg-brand-subtle/50 py-2 pl-2.5 pr-3">
+      <div className="flex min-h-11 items-center gap-2 border-b border-brand-border-subtle bg-brand-subtle/50 py-2 px-3">
         <div className="min-w-0 flex-1 truncate text-xs font-medium tracking-wide text-brand-fg uppercase">
           {t.fieldDefinitions}
         </div>

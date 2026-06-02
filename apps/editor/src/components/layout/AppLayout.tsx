@@ -375,10 +375,10 @@ export function AppLayout({
           </header>
 
           <div className="relative flex flex-1 overflow-hidden">
-            <aside className="w-80 border-r bg-surface-muted overflow-hidden flex flex-col shrink-0">
+            <aside className="w-80 border-r bg-surface overflow-hidden flex flex-col shrink-0">
               <LeftPane />
             </aside>
-            <main className="flex-1 min-w-0 overflow-hidden bg-surface-muted">
+            <main className="flex-1 min-w-0 overflow-hidden bg-surface">
               <RightPane
                 onOpenSampleGallery={() => setSampleGalleryOpen(true)}
               />
