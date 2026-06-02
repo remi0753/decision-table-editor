@@ -2,7 +2,7 @@ import type { Logic } from '@leverie/engine';
 import { useEffect, useRef } from 'react';
 import { useCloudStore } from '@/store/cloudStore';
 
-export function useCloudAutoSave(logic: Logic) {
+export function useCloudAutoSave(logic: Logic, enabled = true) {
   const mode = useCloudStore((s) => s.mode);
   const logicId = useCloudStore((s) => s.logicId);
   const saveCloudDraft = useCloudStore((s) => s.saveCloudDraft);
@@ -12,6 +12,7 @@ export function useCloudAutoSave(logic: Logic) {
   } | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     if (mode !== 'cloud' || !logicId) return;
 
     const serialized = JSON.stringify(logic);
@@ -25,5 +26,5 @@ export function useCloudAutoSave(logic: Logic) {
     }, 900);
 
     return () => window.clearTimeout(timer);
-  }, [logic, logicId, mode, saveCloudDraft]);
+  }, [enabled, logic, logicId, mode, saveCloudDraft]);
 }

@@ -3,6 +3,7 @@ import {
   HardDrive,
   LayoutPanelLeft,
   MousePointer2,
+  Smartphone,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -32,6 +33,13 @@ export function EditorPage() {
           the team setup, and <a href={pageHref('publishing')}>Publishing</a>{' '}
           for the draft to production loop.
         </p>
+        <Callout icon={Smartphone} title="Built for larger screens">
+          The editor is a fixed three-column layout, so on a phone a short
+          guidance page appears instead of the editor. You can still continue to
+          the editor anyway: it then renders at its full width and you scroll
+          horizontally to reach every pane. For real authoring a desktop or
+          tablet is recommended.
+        </Callout>
       </DocSection>
 
       <DocSection title="Workspace layout">

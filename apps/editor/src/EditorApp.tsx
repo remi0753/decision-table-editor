@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { loadFromStorage } from '@/hooks/useLocalStorage';
 import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
 import { useT } from '@/i18n/useT';
+import { isEditorViewportSupported } from '@/lib/editorViewport';
 import { useCloudStore } from '@/store/cloudStore';
 import { clearHistory } from '@/store/historyStore';
 import { useLogicStore } from '@/store/logicStore';
@@ -33,7 +34,7 @@ export default function EditorApp({
       const saved = loadFromStorage();
       if (saved) {
         importLogic(saved);
-      } else {
+      } else if (isEditorViewportSupported()) {
         // `id` dedupes the toast so a re-run of this mount effect (e.g. React
         // StrictMode's double invocation) shows a single banner, not two.
         toast.info(t.newLogicCreated, { id: 'new-logic-created' });
@@ -56,7 +57,9 @@ export default function EditorApp({
     // opens the existing logic (or the new-logic screen for first-time users).
     // A local draft preserved at sign-in time is surfaced as an opt-in source
     // on the new-logic screen itself, not forced here.
-    toast.info(t.cloudChecking, { id: 'cloud-session-checking' });
+    if (isEditorViewportSupported()) {
+      toast.info(t.cloudChecking, { id: 'cloud-session-checking' });
+    }
     void initializeCloud(logic, importLogic, {
       requireAuth: true,
     }).finally(() => {
