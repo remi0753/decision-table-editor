@@ -11,7 +11,7 @@ import {
   Undo2,
   Upload,
 } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
 import { CloudMenu } from '@/components/cloud/CloudMenu';
@@ -31,6 +31,10 @@ import {
 } from '@/hooks/useLocalStorage';
 import type { Lang } from '@/i18n/translations';
 import { useT } from '@/i18n/useT';
+import {
+  EDITOR_VIEWPORT_QUERY,
+  isEditorViewportSupported,
+} from '@/lib/editorViewport';
 import { useCloudStore } from '@/store/cloudStore';
 import {
   clearHistory,
@@ -41,6 +45,7 @@ import {
 import { createInitialLogic, useLogicStore } from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { LeftPane } from './LeftPane';
+import { MobileEditorGate } from './MobileEditorGate';
 import { RightPane } from './RightPane';
 
 const LOGIC_ID_PATTERN = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
@@ -55,6 +60,20 @@ function logicIdFromName(name: string) {
       .slice(0, 63)
       .replace(/-+$/g, '') || 'logic'
   );
+}
+
+function useEditorViewportSupported() {
+  const [supported, setSupported] = useState(isEditorViewportSupported);
+
+  useEffect(() => {
+    const query = window.matchMedia(EDITOR_VIEWPORT_QUERY);
+    const update = () => setSupported(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  return supported;
 }
 
 export function AppLayout({
@@ -92,9 +111,10 @@ export function AppLayout({
   // the new-logic dialog offers starting the new cloud logic from it.
   const [newLogicStash, setNewLogicStash] = useState<Logic | null>(null);
   const [newLogicFromLocal, setNewLogicFromLocal] = useState(false);
+  const editorViewportSupported = useEditorViewportSupported();
 
-  useAutoSave(logic, cloudMode === 'local');
-  useCloudAutoSave(logic);
+  useAutoSave(logic, editorViewportSupported && cloudMode === 'local');
+  useCloudAutoSave(logic, editorViewportSupported);
 
   const prefillNewLogicFrom = (base: Logic) => {
     setNewLogicName(base.name);
@@ -200,6 +220,15 @@ export function AppLayout({
     clearHistory();
     setEvalDrawerOpen(true);
   };
+
+  if (!editorViewportSupported) {
+    return (
+      <>
+        <Toaster position="top-right" richColors />
+        <MobileEditorGate lang={lang} setLang={setLang} />
+      </>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
