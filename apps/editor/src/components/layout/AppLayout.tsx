@@ -207,134 +207,151 @@ export function AppLayout({
     <div className="h-screen flex flex-col overflow-hidden">
       <Toaster position="top-right" richColors />
 
-      <header className="h-12 border-b border-brand-border bg-gradient-to-r from-brand-subtle to-surface flex items-center justify-between px-3 shrink-0 gap-4">
-        <div className="flex min-w-0 items-center">
-          <img src={logoUrl} alt="LEVERIE" height={34} className="h-[34px]" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Tooltip content={t.undo}>
-            <IconButton
-              size="md"
-              tone="primary"
-              onClick={undo}
-              disabled={!canUndo}
-              aria-label={t.undo}
-            >
-              <Undo2 />
-            </IconButton>
-          </Tooltip>
-          <Tooltip content={t.redo}>
-            <IconButton
-              size="md"
-              tone="primary"
-              onClick={redo}
-              disabled={!canRedo}
-              aria-label={t.redo}
-            >
-              <Redo2 />
-            </IconButton>
-          </Tooltip>
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <IconButton
-                size="md"
-                tone="primary"
-                aria-label={t.moreActions}
-                title={t.moreActions}
-              >
-                <Menu />
-              </IconButton>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="end"
-                sideOffset={6}
-                className="z-50 min-w-[220px] rounded-md border border-line bg-surface p-1 shadow-lg"
-              >
-                <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
-                  {t.fileActions}
-                </DropdownMenu.Label>
-                <DropdownMenu.Item
-                  onSelect={handleNew}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+      {/* Header and body share one horizontal scroll so they stay aligned and
+          the full editor — including the header controls — stays reachable on
+          narrow viewports (phones past the mobile gate, small desktop windows)
+          instead of being squeezed to the device width. The min-width is the
+          editor's natural floor: left pane (320) + table (≥360) + evaluation
+          panel (360). */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="flex h-full min-w-[1040px] flex-col">
+          <header className="h-12 border-b border-brand-border bg-gradient-to-r from-brand-subtle to-surface flex items-center justify-between px-3 shrink-0 gap-4">
+            <div className="flex min-w-0 items-center">
+              <img
+                src={logoUrl}
+                alt="LEVERIE"
+                height={34}
+                className="h-[34px]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Tooltip content={t.undo}>
+                <IconButton
+                  size="md"
+                  tone="primary"
+                  onClick={undo}
+                  disabled={!canUndo}
+                  aria-label={t.undo}
                 >
-                  <FilePlus className="h-4 w-4 text-fg-faint" />
-                  <span>{t.newCreate}</span>
-                </DropdownMenu.Item>
-                {/* File-based backup/restore is the local-mode safety net;
+                  <Undo2 />
+                </IconButton>
+              </Tooltip>
+              <Tooltip content={t.redo}>
+                <IconButton
+                  size="md"
+                  tone="primary"
+                  onClick={redo}
+                  disabled={!canRedo}
+                  aria-label={t.redo}
+                >
+                  <Redo2 />
+                </IconButton>
+              </Tooltip>
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <IconButton
+                    size="md"
+                    tone="primary"
+                    aria-label={t.moreActions}
+                    title={t.moreActions}
+                  >
+                    <Menu />
+                  </IconButton>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    align="end"
+                    sideOffset={6}
+                    className="z-50 min-w-[220px] rounded-md border border-line bg-surface p-1 shadow-lg"
+                  >
+                    <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
+                      {t.fileActions}
+                    </DropdownMenu.Label>
+                    <DropdownMenu.Item
+                      onSelect={handleNew}
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                    >
+                      <FilePlus className="h-4 w-4 text-fg-faint" />
+                      <span>{t.newCreate}</span>
+                    </DropdownMenu.Item>
+                    {/* File-based backup/restore is the local-mode safety net;
                     cloud mode persists via autosave + publish, so it's hidden
                     there. */}
-                {cloudMode === 'local' ? (
-                  <>
+                    {cloudMode === 'local' ? (
+                      <>
+                        <DropdownMenu.Item
+                          onSelect={importFn}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                        >
+                          <Upload className="h-4 w-4 text-fg-faint" />
+                          <span>{t.importBtn}</span>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onSelect={() => exportLogic(logic)}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                        >
+                          <Download className="h-4 w-4 text-fg-faint" />
+                          <span>{t.exportBtn}</span>
+                        </DropdownMenu.Item>
+                      </>
+                    ) : null}
+                    <DropdownMenu.Separator className="my-1 h-px bg-surface-subtle" />
+                    <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
+                      {t.toolActions}
+                    </DropdownMenu.Label>
                     <DropdownMenu.Item
-                      onSelect={importFn}
+                      onSelect={() => setBatchDialogOpen(true)}
                       className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                     >
-                      <Upload className="h-4 w-4 text-fg-faint" />
-                      <span>{t.importBtn}</span>
+                      <FlaskConical className="h-4 w-4 text-fg-faint" />
+                      <span>{t.batchTest}</span>
                     </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onSelect={() => exportLogic(logic)}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
-                    >
-                      <Download className="h-4 w-4 text-fg-faint" />
-                      <span>{t.exportBtn}</span>
-                    </DropdownMenu.Item>
-                  </>
-                ) : null}
-                <DropdownMenu.Separator className="my-1 h-px bg-surface-subtle" />
-                <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
-                  {t.toolActions}
-                </DropdownMenu.Label>
-                <DropdownMenu.Item
-                  onSelect={() => setBatchDialogOpen(true)}
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
-                >
-                  <FlaskConical className="h-4 w-4 text-fg-faint" />
-                  <span>{t.batchTest}</span>
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-          <div className="w-px h-5 bg-surface-strong" />
-          <a
-            href="/docs/introduction"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-medium text-fg-subtle hover:bg-brand-subtle hover:text-brand-fg focus:outline-none focus:ring-1 focus:ring-brand-ring"
-          >
-            <BookOpen className="h-4 w-4" />
-            <span>{t.docsLink}</span>
-          </a>
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value as Lang)}
-            className="text-xs border border-line rounded px-2 py-1.5 bg-surface hover:bg-brand-subtle hover:border-brand-border text-fg-subtle font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-ring"
-          >
-            <option value="en">EN</option>
-            <option value="ja">日本語</option>
-          </select>
-          <ThemeToggle />
-          <div className="w-px h-5 bg-surface-strong" />
-          <CloudMenu />
-        </div>
-      </header>
-
-      <div className="relative flex flex-1 overflow-hidden">
-        <aside className="w-80 border-r bg-surface-muted overflow-hidden flex flex-col shrink-0">
-          <LeftPane />
-        </aside>
-        <main className="flex-1 overflow-hidden bg-surface-muted">
-          <RightPane onOpenSampleGallery={() => setSampleGalleryOpen(true)} />
-        </main>
-        {cloudMode === 'checking' ? (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-surface/90 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-3 text-fg-secondary">
-              <Loader2 className="h-7 w-7 animate-spin text-brand-fg" />
-              <div className="text-sm font-medium">{t.cloudChecking}</div>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+              <div className="w-px h-5 bg-surface-strong" />
+              <a
+                href="/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-medium text-fg-subtle hover:bg-brand-subtle hover:text-brand-fg focus:outline-none focus:ring-1 focus:ring-brand-ring"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span>{t.docsLink}</span>
+              </a>
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value as Lang)}
+                className="text-xs border border-line rounded px-2 py-1.5 bg-surface hover:bg-brand-subtle hover:border-brand-border text-fg-subtle font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-ring"
+              >
+                <option value="en">EN</option>
+                <option value="ja">日本語</option>
+              </select>
+              <ThemeToggle />
+              <div className="w-px h-5 bg-surface-strong" />
+              <CloudMenu />
             </div>
+          </header>
+
+          <div className="relative flex flex-1 overflow-hidden">
+            <aside className="w-80 border-r bg-surface-muted overflow-hidden flex flex-col shrink-0">
+              <LeftPane />
+            </aside>
+            <main className="flex-1 min-w-0 overflow-hidden bg-surface-muted">
+              <RightPane
+                onOpenSampleGallery={() => setSampleGalleryOpen(true)}
+              />
+            </main>
+            {cloudMode === 'checking' ? (
+              <div className="absolute inset-0 z-40 flex items-center justify-center bg-surface/90 backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-3 text-fg-secondary">
+                  <Loader2 className="h-7 w-7 animate-spin text-brand-fg" />
+                  <div className="text-sm font-medium">{t.cloudChecking}</div>
+                </div>
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        </div>
       </div>
 
       <SampleGalleryDialog
