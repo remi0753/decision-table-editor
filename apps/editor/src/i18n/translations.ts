@@ -161,6 +161,12 @@ export type TranslationSet = {
 
   // FieldsSection
   fieldDefinitions: string;
+  addField: string;
+  createFieldTitle: string;
+  editFieldTitle: string;
+  fieldNameLabel: string;
+  fieldTypeLabel: string;
+  enumValuesLabel: string;
   fieldNameRequired: string;
   fieldTypes: {
     string: string;
@@ -555,6 +561,12 @@ export const translations: Record<Lang, TranslationSet> = {
     selectTable: 'Select a table.',
 
     fieldDefinitions: 'Field Definitions',
+    addField: 'Add field',
+    createFieldTitle: 'Add field',
+    editFieldTitle: 'Edit field',
+    fieldNameLabel: 'Field name',
+    fieldTypeLabel: 'Field type',
+    enumValuesLabel: 'Enum values',
     fieldNameRequired: 'Please enter a field name.',
     fieldTypes: {
       string: 'Text',
@@ -964,6 +976,12 @@ export const translations: Record<Lang, TranslationSet> = {
     selectTable: 'テーブルを選択してください。',
 
     fieldDefinitions: 'フィールド定義',
+    addField: 'フィールドを追加',
+    createFieldTitle: 'フィールドを追加',
+    editFieldTitle: 'フィールドを編集',
+    fieldNameLabel: 'フィールド名',
+    fieldTypeLabel: 'フィールド型',
+    enumValuesLabel: '選択肢',
     fieldNameRequired: 'フィールド名を入力してください。',
     fieldTypes: {
       string: 'テキスト',
