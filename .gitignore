@@ -25,3 +25,6 @@ AGENTS.md
 .env*
 !.env.example
 !.env.bundled
+
+# Local video/render artifacts (not tracked)
+artifacts/
