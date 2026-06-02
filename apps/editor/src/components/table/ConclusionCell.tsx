@@ -64,19 +64,42 @@ export function ConclusionCell({
     setOpen(false);
   };
 
-  const summaryText = () => {
-    if (conclusion.type === 'terminal') {
-      const entries = Object.entries(conclusion.outputs);
-      if (entries.length === 0) return t.noOutput;
-      return entries
-        .map(([id, v]) => {
-          const col = outputCols.find((oc) => oc.id === id);
-          return `${col?.name ?? id}: ${v}`;
-        })
-        .join(' / ');
+  const renderSummary = () => {
+    if (conclusion.type === 'continue') {
+      const tb = logic.tables[conclusion.tableId];
+      return <span>→ {tb?.name ?? conclusion.tableId}</span>;
     }
-    const tb = logic.tables[conclusion.tableId];
-    return `→ ${tb?.name ?? conclusion.tableId}`;
+
+    const entries = Object.entries(conclusion.outputs).filter(
+      ([, v]) => v !== '',
+    );
+    if (entries.length === 0) {
+      return <span className="text-fg-faint italic">{t.noOutput}</span>;
+    }
+
+    const showLabels = outputCols.length > 1;
+    return (
+      <span className="flex flex-wrap items-center gap-1">
+        {entries.map(([id, v]) => {
+          const col = outputCols.find((oc) => oc.id === id);
+          return (
+            <span
+              key={id}
+              className="inline-flex max-w-full items-baseline gap-1 rounded border border-line bg-surface-muted px-1.5 py-0.5 leading-tight"
+            >
+              {showLabels && (
+                <span className="text-[10px] text-fg-faint">
+                  {col?.name ?? id}
+                </span>
+              )}
+              <span className="truncate font-medium text-fg-secondary">
+                {v}
+              </span>
+            </span>
+          );
+        })}
+      </span>
+    );
   };
 
   return (
@@ -104,7 +127,7 @@ export function ConclusionCell({
               : 'text-fg-secondary',
           )}
         >
-          {summaryText()}
+          {renderSummary()}
         </button>
       </Popover.Trigger>
       <Popover.Portal>
