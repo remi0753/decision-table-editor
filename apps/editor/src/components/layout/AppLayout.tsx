@@ -202,7 +202,20 @@ export function AppLayout({
                 height={34}
                 className="h-[34px]"
               />
-              <Tooltip content={logic.name}>
+              <Tooltip
+                content={
+                  <span className="flex max-w-64 flex-col gap-0.5">
+                    <span className="truncate">{logic.name}</span>
+                    <span className="text-[11px] text-white/75">
+                      {productionVersion
+                        ? t.productionVersionLabel(
+                            productionVersion.versionNumber,
+                          )
+                        : t.draftOnly}
+                    </span>
+                  </span>
+                }
+              >
                 <button
                   type="button"
                   onClick={() => setLogicDialogOpen(true)}

@@ -256,10 +256,11 @@ export function LogicSwitcherDialog({
                           {cloudLogic.name}
                         </span>
                         <span className="block truncate text-xs text-fg-subtle">
-                          {cloudLogic.productionVersionId
-                            ? t.publishedStatus
-                            : t.draftOnly}{' '}
-                          · {t.draftRevisionLabel(cloudLogic.draftRevision)}
+                          {cloudLogic.productionVersionNumber
+                            ? t.productionVersionLabel(
+                                cloudLogic.productionVersionNumber,
+                              )
+                            : t.draftOnly}
                         </span>
                       </span>
                       {editable ? (

@@ -137,8 +137,6 @@ export type TranslationSet = {
   createNewLogic: string;
   backToLogicList: string;
   logicListEmpty: string;
-  draftRevisionLabel: (revision: number) => string;
-  publishedStatus: string;
   thisLogicActions: string;
   duplicateLogic: string;
   deleteLogic: string;
@@ -536,8 +534,6 @@ export const translations: Record<Lang, TranslationSet> = {
     createNewLogic: 'Create new logic',
     backToLogicList: 'Back to logics',
     logicListEmpty: 'No logics found.',
-    draftRevisionLabel: (revision) => `Draft r${revision}`,
-    publishedStatus: 'Published',
     thisLogicActions: 'This logic',
     duplicateLogic: 'Duplicate',
     deleteLogic: 'Delete',
@@ -947,8 +943,6 @@ export const translations: Record<Lang, TranslationSet> = {
     createNewLogic: '新規ロジック作成',
     backToLogicList: '一覧へ戻る',
     logicListEmpty: 'ロジックが見つかりません。',
-    draftRevisionLabel: (revision) => `下書き r${revision}`,
-    publishedStatus: '公開済み',
     thisLogicActions: 'このロジック',
     duplicateLogic: '複製',
     deleteLogic: '削除',
