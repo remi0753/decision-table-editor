@@ -123,12 +123,27 @@ export type TranslationSet = {
   logicIdInvalid: string;
   createCloudLogicSubmit: string;
   cancel: string;
+  save: string;
   useSelectedWorkspace: string;
   connecting: string;
   newLogicSourceLabel: string;
   newLogicFromLocalDraft: string;
   newLogicBlank: string;
   newLogicFromLocalDraftHint: string;
+  logicDialogTitle: string;
+  logicEditTitle: string;
+  logicSearchPlaceholder: string;
+  editLogic: string;
+  createNewLogic: string;
+  backToLogicList: string;
+  logicListEmpty: string;
+  draftRevisionLabel: (revision: number) => string;
+  publishedStatus: string;
+  thisLogicActions: string;
+  duplicateLogic: string;
+  deleteLogic: string;
+  flowchartAction: string;
+  actionNotImplemented: string;
 
   // LeftPane
   logicNameLabel: string;
@@ -506,6 +521,7 @@ export const translations: Record<Lang, TranslationSet> = {
     logicIdInvalid: 'Logic ID is not in an allowed format.',
     createCloudLogicSubmit: 'Create',
     cancel: 'Cancel',
+    save: 'Save',
     useSelectedWorkspace: 'Use selected workspace',
     connecting: 'Connecting...',
     newLogicSourceLabel: 'Start this logic from',
@@ -513,6 +529,20 @@ export const translations: Record<Lang, TranslationSet> = {
     newLogicBlank: 'A blank logic',
     newLogicFromLocalDraftHint:
       'Carry over the work from your local session as a new cloud logic.',
+    logicDialogTitle: 'Logics',
+    logicEditTitle: 'Edit logic',
+    logicSearchPlaceholder: 'Search logics...',
+    editLogic: 'Edit logic',
+    createNewLogic: 'Create new logic',
+    backToLogicList: 'Back to logics',
+    logicListEmpty: 'No logics found.',
+    draftRevisionLabel: (revision) => `Draft r${revision}`,
+    publishedStatus: 'Published',
+    thisLogicActions: 'This logic',
+    duplicateLogic: 'Duplicate',
+    deleteLogic: 'Delete',
+    flowchartAction: 'Show flowchart',
+    actionNotImplemented: 'This action is not implemented yet.',
 
     logicNameLabel: 'Logic Name',
     logicNamePlaceholder: 'Logic name',
@@ -902,6 +932,7 @@ export const translations: Record<Lang, TranslationSet> = {
     logicIdInvalid: 'ロジックIDの形式が正しくありません。',
     createCloudLogicSubmit: '作成',
     cancel: 'キャンセル',
+    save: '保存',
     useSelectedWorkspace: '選択したワークスペースを使う',
     connecting: '接続中...',
     newLogicSourceLabel: 'このロジックの開始元',
@@ -909,6 +940,20 @@ export const translations: Record<Lang, TranslationSet> = {
     newLogicBlank: '空のロジック',
     newLogicFromLocalDraftHint:
       'ローカルで作業していた内容を新しいクラウドロジックとして引き継ぎます。',
+    logicDialogTitle: 'ロジック',
+    logicEditTitle: 'ロジック編集',
+    logicSearchPlaceholder: 'ロジックを検索...',
+    editLogic: 'ロジックを編集',
+    createNewLogic: '新規ロジック作成',
+    backToLogicList: '一覧へ戻る',
+    logicListEmpty: 'ロジックが見つかりません。',
+    draftRevisionLabel: (revision) => `下書き r${revision}`,
+    publishedStatus: '公開済み',
+    thisLogicActions: 'このロジック',
+    duplicateLogic: '複製',
+    deleteLogic: '削除',
+    flowchartAction: 'フローチャート表示',
+    actionNotImplemented: 'この操作はまだ未実装です。',
 
     logicNameLabel: 'ロジック名',
     logicNamePlaceholder: 'ロジック名',
