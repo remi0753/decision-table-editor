@@ -45,6 +45,7 @@ export type CloudLogic = {
   draftData: Logic;
   draftRevision: number;
   productionVersionId?: string | null;
+  productionVersionNumber?: number | null;
 };
 
 export type CloudVersion = {

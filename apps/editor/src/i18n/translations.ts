@@ -123,12 +123,25 @@ export type TranslationSet = {
   logicIdInvalid: string;
   createCloudLogicSubmit: string;
   cancel: string;
+  save: string;
   useSelectedWorkspace: string;
   connecting: string;
   newLogicSourceLabel: string;
   newLogicFromLocalDraft: string;
   newLogicBlank: string;
   newLogicFromLocalDraftHint: string;
+  logicDialogTitle: string;
+  logicEditTitle: string;
+  logicSearchPlaceholder: string;
+  editLogic: string;
+  createNewLogic: string;
+  backToLogicList: string;
+  logicListEmpty: string;
+  thisLogicActions: string;
+  duplicateLogic: string;
+  deleteLogic: string;
+  flowchartAction: string;
+  actionNotImplemented: string;
 
   // LeftPane
   logicNameLabel: string;
@@ -148,6 +161,12 @@ export type TranslationSet = {
 
   // FieldsSection
   fieldDefinitions: string;
+  addField: string;
+  createFieldTitle: string;
+  editFieldTitle: string;
+  fieldNameLabel: string;
+  fieldTypeLabel: string;
+  enumValuesLabel: string;
   fieldNameRequired: string;
   fieldTypes: {
     string: string;
@@ -506,6 +525,7 @@ export const translations: Record<Lang, TranslationSet> = {
     logicIdInvalid: 'Logic ID is not in an allowed format.',
     createCloudLogicSubmit: 'Create',
     cancel: 'Cancel',
+    save: 'Save',
     useSelectedWorkspace: 'Use selected workspace',
     connecting: 'Connecting...',
     newLogicSourceLabel: 'Start this logic from',
@@ -513,6 +533,18 @@ export const translations: Record<Lang, TranslationSet> = {
     newLogicBlank: 'A blank logic',
     newLogicFromLocalDraftHint:
       'Carry over the work from your local session as a new cloud logic.',
+    logicDialogTitle: 'Logics',
+    logicEditTitle: 'Edit logic',
+    logicSearchPlaceholder: 'Search logics...',
+    editLogic: 'Edit logic',
+    createNewLogic: 'Create new logic',
+    backToLogicList: 'Back to logics',
+    logicListEmpty: 'No logics found.',
+    thisLogicActions: 'This logic',
+    duplicateLogic: 'Duplicate',
+    deleteLogic: 'Delete',
+    flowchartAction: 'Show flowchart',
+    actionNotImplemented: 'This action is not implemented yet.',
 
     logicNameLabel: 'Logic Name',
     logicNamePlaceholder: 'Logic name',
@@ -529,6 +561,12 @@ export const translations: Record<Lang, TranslationSet> = {
     selectTable: 'Select a table.',
 
     fieldDefinitions: 'Field Definitions',
+    addField: 'Add field',
+    createFieldTitle: 'Add field',
+    editFieldTitle: 'Edit field',
+    fieldNameLabel: 'Field name',
+    fieldTypeLabel: 'Field type',
+    enumValuesLabel: 'Enum values',
     fieldNameRequired: 'Please enter a field name.',
     fieldTypes: {
       string: 'Text',
@@ -902,6 +940,7 @@ export const translations: Record<Lang, TranslationSet> = {
     logicIdInvalid: 'ロジックIDの形式が正しくありません。',
     createCloudLogicSubmit: '作成',
     cancel: 'キャンセル',
+    save: '保存',
     useSelectedWorkspace: '選択したワークスペースを使う',
     connecting: '接続中...',
     newLogicSourceLabel: 'このロジックの開始元',
@@ -909,6 +948,18 @@ export const translations: Record<Lang, TranslationSet> = {
     newLogicBlank: '空のロジック',
     newLogicFromLocalDraftHint:
       'ローカルで作業していた内容を新しいクラウドロジックとして引き継ぎます。',
+    logicDialogTitle: 'ロジック',
+    logicEditTitle: 'ロジック編集',
+    logicSearchPlaceholder: 'ロジックを検索...',
+    editLogic: 'ロジックを編集',
+    createNewLogic: '新規ロジック作成',
+    backToLogicList: '一覧へ戻る',
+    logicListEmpty: 'ロジックが見つかりません。',
+    thisLogicActions: 'このロジック',
+    duplicateLogic: '複製',
+    deleteLogic: '削除',
+    flowchartAction: 'フローチャート表示',
+    actionNotImplemented: 'この操作はまだ未実装です。',
 
     logicNameLabel: 'ロジック名',
     logicNamePlaceholder: 'ロジック名',
@@ -925,6 +976,12 @@ export const translations: Record<Lang, TranslationSet> = {
     selectTable: 'テーブルを選択してください。',
 
     fieldDefinitions: 'フィールド定義',
+    addField: 'フィールドを追加',
+    createFieldTitle: 'フィールドを追加',
+    editFieldTitle: 'フィールドを編集',
+    fieldNameLabel: 'フィールド名',
+    fieldTypeLabel: 'フィールド型',
+    enumValuesLabel: '選択肢',
     fieldNameRequired: 'フィールド名を入力してください。',
     fieldTypes: {
       string: 'テキスト',

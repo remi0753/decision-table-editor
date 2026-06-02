@@ -19,16 +19,14 @@ export function RightPane({ onOpenSampleGallery }: Props) {
   return (
     <div className="h-full flex">
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {tableId && logic.tables[tableId] ? (
             <>
               <LogicInsightBar />
-              <div className="border rounded-lg bg-surface overflow-hidden">
-                <DecisionTable
-                  tableId={tableId}
-                  onOpenSampleGallery={onOpenSampleGallery}
-                />
-              </div>
+              <DecisionTable
+                tableId={tableId}
+                onOpenSampleGallery={onOpenSampleGallery}
+              />
             </>
           ) : (
             <div className="text-fg-faint text-sm p-4">{t.selectTable}</div>

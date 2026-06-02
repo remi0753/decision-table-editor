@@ -452,12 +452,21 @@ logicRoutes.get('/api/workspaces/:workspaceId/logics', async (c) => {
   if ('error' in access) return access.error;
 
   const rows = await db
-    .select()
+    .select({
+      logic,
+      productionVersionNumber: logicVersion.versionNumber,
+    })
     .from(logic)
+    .leftJoin(logicVersion, eq(logic.productionVersionId, logicVersion.id))
     .where(and(eq(logic.workspaceId, workspaceId), isNull(logic.deletedAt)))
     .orderBy(desc(logic.draftUpdatedAt));
 
-  return c.json({ logics: rows.map(serializeLogic) });
+  return c.json({
+    logics: rows.map((row) => ({
+      ...serializeLogic(row.logic),
+      productionVersionNumber: row.productionVersionNumber,
+    })),
+  });
 });
 
 logicRoutes.get('/api/run/:workspaceId/:logicRef', async (c) => {
