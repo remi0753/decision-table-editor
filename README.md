@@ -8,6 +8,14 @@
 
 ---
 
+## See LEVERIE in Action
+
+<p align="center">
+  <img src="docs/media/leverie-build-logic-30s-en.gif" alt="Building and verifying a decision logic in LEVERIE" width="1000" />
+</p>
+
+---
+
 ## Name
 
 **Pronunciation:** /lɛvəˈrie/ · レヴァリエ
