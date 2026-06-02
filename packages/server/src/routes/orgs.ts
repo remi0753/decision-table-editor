@@ -285,11 +285,28 @@ orgRoutes.patch('/api/orgs/:orgId', async (c) => {
     update.slug = slug;
   }
 
-  const [updated] = await db
-    .update(org)
-    .set(update)
-    .where(and(eq(org.id, orgId), isNull(org.deletedAt)))
-    .returning();
+  let updated: typeof org.$inferSelect | undefined;
+  try {
+    [updated] = await db
+      .update(org)
+      .set(update)
+      .where(and(eq(org.id, orgId), isNull(org.deletedAt)))
+      .returning();
+  } catch (error) {
+    const maybeError = error as { code?: string; constraint?: string };
+    if (
+      maybeError.code === '23505' &&
+      maybeError.constraint === 'org_slug_not_purged_uniq'
+    ) {
+      return jsonError(
+        c,
+        409,
+        'slug_conflict',
+        'An organization with this slug already exists.',
+      );
+    }
+    throw error;
+  }
 
   if (!updated) return jsonError(c, 404, 'not_found', 'Org not found.');
 

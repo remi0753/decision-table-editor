@@ -1,11 +1,13 @@
 import {
   ArrowLeft,
   Ban,
+  Boxes,
   Check,
   Clipboard,
   Copy,
   KeyRound,
   Loader2,
+  Save,
   Shield,
   SlidersHorizontal,
 } from 'lucide-react';
@@ -34,6 +36,7 @@ import {
   listLogics,
   listWorkspaces,
   revokeApiKey,
+  updateWorkspace,
 } from '@/lib/cloudApi';
 
 type ManageableOrg = {
@@ -73,9 +76,12 @@ function formatRelativeUse(value?: string | null) {
   return `Last used ${formatDate(value)}`;
 }
 
+type WorkspaceTab = 'general' | 'apiKeys';
+
 export function WorkspaceSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('general');
   const [orgs, setOrgs] = useState<ManageableOrg[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState('');
   const [workspaces, setWorkspaces] = useState<CloudWorkspace[]>([]);
@@ -186,7 +192,12 @@ export function WorkspaceSettingsPage() {
         setOrgs(manageable);
         const firstOrgId = manageable[0]?.org.id ?? '';
         setSelectedOrgId(firstOrgId);
-        if (firstOrgId) await loadOrgWorkspaces(firstOrgId, false);
+        const preferredWorkspaceId =
+          new URLSearchParams(window.location.search).get('workspaceId') ??
+          undefined;
+        if (firstOrgId) {
+          await loadOrgWorkspaces(firstOrgId, false, preferredWorkspaceId);
+        }
       } catch (error) {
         toast.error(errorMessage(error));
         if (error instanceof CloudApiError && error.status === 401) {
@@ -281,6 +292,19 @@ export function WorkspaceSettingsPage() {
     }
   };
 
+  const handleWorkspaceDetailsSave = async (values: {
+    name: string;
+    description: string;
+  }) => {
+    if (!selectedOrg || !selectedWorkspace) return;
+    await updateWorkspace(selectedWorkspace.id, {
+      name: values.name.trim(),
+      description: values.description.trim() || null,
+    });
+    toast.success('Workspace updated.');
+    await loadOrgWorkspaces(selectedOrg.org.id, true, selectedWorkspace.id);
+  };
+
   return (
     <div className="min-h-screen bg-surface-muted text-fg">
       <Toaster position="top-right" richColors />
@@ -304,13 +328,13 @@ export function WorkspaceSettingsPage() {
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-brand-border bg-brand-subtle text-brand-fg">
-              <KeyRound className="h-5 w-5" />
+              <Boxes className="h-5 w-5" />
             </div>
             <h1 className="text-2xl font-semibold text-fg">
               Workspace settings
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-muted">
-              Manage API keys and logic access for a single workspace.
+              Manage workspace details, API keys, and logic access.
             </p>
           </div>
 
@@ -379,243 +403,288 @@ export function WorkspaceSettingsPage() {
             </p>
           </section>
         ) : selectedOrg && selectedWorkspace ? (
-          <section className="rounded border border-line bg-surface">
-            <div className="flex flex-col gap-3 border-b border-line-subtle px-4 py-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-fg-faint" />
-                <div>
-                  <h2 className="text-sm font-semibold text-fg">API keys</h2>
-                  <p className="mt-0.5 text-xs text-fg-subtle">
-                    Credentials for hosted API and MCP access in{' '}
-                    {selectedWorkspace.name}.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-fg-faint" />
-                ) : (
-                  <span className="rounded bg-success-bg px-2 py-0.5 text-xs font-medium text-success-fg">
-                    {activeApiKeys.length} active
-                  </span>
-                )}
-              </div>
+          <>
+            <div className="mb-5 inline-flex rounded border border-line bg-surface p-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('general')}
+                className={`inline-flex h-8 items-center gap-2 rounded px-3 text-sm font-medium ${
+                  activeTab === 'general'
+                    ? 'bg-brand text-white'
+                    : 'text-fg-muted hover:bg-surface-muted'
+                }`}
+              >
+                <Boxes className="h-4 w-4" />
+                General
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('apiKeys')}
+                className={`inline-flex h-8 items-center gap-2 rounded px-3 text-sm font-medium ${
+                  activeTab === 'apiKeys'
+                    ? 'bg-brand text-white'
+                    : 'text-fg-muted hover:bg-surface-muted'
+                }`}
+              >
+                <KeyRound className="h-4 w-4" />
+                API keys
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-line-subtle bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
-                      <th className="px-4 py-2">Key</th>
-                      <th className="px-4 py-2">Role</th>
-                      <th className="px-4 py-2">Scope</th>
-                      <th className="px-4 py-2">Usage</th>
-                      <th className="px-4 py-2">Status</th>
-                      <th className="w-16 px-4 py-2 text-right">Revoke</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {apiKeys.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-4 py-8 text-center text-sm text-fg-subtle"
-                        >
-                          No API keys for this workspace yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      apiKeys.map((key) => {
-                        const status = apiKeyStatus(key);
-                        const scopedNames =
-                          key.scopeMode === 'all'
-                            ? 'All logics'
-                            : key.logicIds
-                                .map(
-                                  (logicId) =>
-                                    workspaceLogics.find(
-                                      (logic) => logic.id === logicId,
-                                    )?.name ?? 'Unknown logic',
-                                )
-                                .join(', ');
-                        return (
-                          <tr
-                            key={key.id}
-                            className="border-b border-line-subtle last:border-0"
-                          >
-                            <td className="px-4 py-3">
-                              <div className="font-medium text-fg">
-                                {key.name}
-                              </div>
-                              <div className="mt-1 font-mono text-xs text-fg-subtle">
-                                {key.keyPrefix}...
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="rounded bg-surface-subtle px-2 py-1 text-xs font-medium text-fg-secondary">
-                                {roleLabel(key.role)}
-                              </span>
-                            </td>
-                            <td className="max-w-64 px-4 py-3 text-fg-muted">
-                              <div className="truncate" title={scopedNames}>
-                                {scopedNames || 'No logics selected'}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-fg-subtle">
-                              {formatRelativeUse(key.lastUsedAt)}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span
-                                className={`rounded px-2 py-1 text-xs font-medium ${
-                                  status === 'Active'
-                                    ? 'bg-success-bg text-success-fg'
-                                    : 'bg-surface-subtle text-fg-subtle'
-                                }`}
-                              >
-                                {status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <button
-                                type="button"
-                                onClick={() => void handleRevokeApiKey(key)}
-                                disabled={status !== 'Active'}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:border-danger-border hover:bg-danger-bg hover:text-danger-fg disabled:cursor-not-allowed disabled:opacity-40"
-                                aria-label={`Revoke API key ${key.name}`}
-                              >
-                                <Ban className="h-4 w-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <form
-                onSubmit={handleIssueApiKey}
-                className="border-t border-line-subtle p-4 lg:border-l lg:border-t-0"
-              >
-                <div className="mb-4 flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-fg-faint" />
-                  <h3 className="text-sm font-semibold text-fg">Issue key</h3>
-                </div>
-                <div className="space-y-3">
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-fg-muted">
-                      Name
-                    </span>
-                    <input
-                      value={apiKeyName}
-                      onChange={(event) => setApiKeyName(event.target.value)}
-                      placeholder="Production MCP"
-                      required
-                      className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-fg-muted">
-                      Role
-                    </span>
-                    <select
-                      value={apiKeyRole}
-                      onChange={(event) =>
-                        setApiKeyRole(event.target.value as CloudApiKeyRole)
-                      }
-                      className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
-                    >
-                      {apiKeyRoles.map((candidateRole) => (
-                        <option key={candidateRole} value={candidateRole}>
-                          {roleLabel(candidateRole)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div>
-                    <span className="mb-1 block text-xs font-medium text-fg-muted">
-                      Scope
-                    </span>
-                    <div className="grid grid-cols-2 overflow-hidden rounded border border-line">
-                      {(['all', 'allowlist'] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => setApiKeyScopeMode(mode)}
-                          className={`h-9 text-xs font-medium ${
-                            apiKeyScopeMode === mode
-                              ? 'bg-brand text-white'
-                              : 'bg-surface text-fg-muted hover:bg-surface-muted'
-                          }`}
-                        >
-                          {mode === 'all' ? 'All logics' : 'Pick logics'}
-                        </button>
-                      ))}
+            {activeTab === 'general' ? (
+              <WorkspaceDetailsCard
+                key={selectedWorkspace.id}
+                workspace={selectedWorkspace}
+                onSave={handleWorkspaceDetailsSave}
+              />
+            ) : (
+              <section className="rounded border border-line bg-surface">
+                <div className="flex flex-col gap-3 border-b border-line-subtle px-4 py-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-fg-faint" />
+                    <div>
+                      <h2 className="text-sm font-semibold text-fg">
+                        API keys
+                      </h2>
+                      <p className="mt-0.5 text-xs text-fg-subtle">
+                        Credentials for hosted API and MCP access in{' '}
+                        {selectedWorkspace.name}.
+                      </p>
                     </div>
                   </div>
-
-                  {apiKeyScopeMode === 'allowlist' ? (
-                    <div>
-                      <span className="mb-1 block text-xs font-medium text-fg-muted">
-                        Allowed logics
-                      </span>
-                      <div className="max-h-40 overflow-auto rounded border border-line">
-                        {workspaceLogics.length === 0 ? (
-                          <div className="px-3 py-4 text-sm text-fg-subtle">
-                            Publish or create a logic in this workspace before
-                            using an allow-list.
-                          </div>
-                        ) : (
-                          workspaceLogics.map((logic) => (
-                            <label
-                              key={logic.id}
-                              className="flex items-start gap-2 border-b border-line-subtle px-3 py-2 text-sm last:border-0"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedLogicIds.includes(logic.id)}
-                                onChange={(event) =>
-                                  handleLogicToggle(
-                                    logic.id,
-                                    event.target.checked,
-                                  )
-                                }
-                                className="mt-1"
-                              />
-                              <span className="min-w-0">
-                                <span className="block truncate font-medium text-fg-secondary">
-                                  {logic.name}
-                                </span>
-                                <span className="block truncate text-xs text-fg-subtle">
-                                  {logic.slug}
-                                </span>
-                              </span>
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <button
-                    type="submit"
-                    disabled={issuingApiKey || !selectedWorkspace}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-ink px-3 text-sm font-medium text-white hover:bg-ink disabled:opacity-50"
-                  >
-                    {issuingApiKey ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="flex items-center gap-2">
+                    {refreshing ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-fg-faint" />
                     ) : (
-                      <KeyRound className="h-4 w-4" />
+                      <span className="rounded bg-success-bg px-2 py-0.5 text-xs font-medium text-success-fg">
+                        {activeApiKeys.length} active
+                      </span>
                     )}
-                    Issue API key
-                  </button>
+                  </div>
                 </div>
-              </form>
-            </div>
-          </section>
+
+                <div className="grid grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[720px] border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b border-line-subtle bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                          <th className="px-4 py-2">Key</th>
+                          <th className="px-4 py-2">Role</th>
+                          <th className="px-4 py-2">Scope</th>
+                          <th className="px-4 py-2">Usage</th>
+                          <th className="px-4 py-2">Status</th>
+                          <th className="w-16 px-4 py-2 text-right">Revoke</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {apiKeys.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="px-4 py-8 text-center text-sm text-fg-subtle"
+                            >
+                              No API keys for this workspace yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          apiKeys.map((key) => {
+                            const status = apiKeyStatus(key);
+                            const scopedNames =
+                              key.scopeMode === 'all'
+                                ? 'All logics'
+                                : key.logicIds
+                                    .map(
+                                      (logicId) =>
+                                        workspaceLogics.find(
+                                          (logic) => logic.id === logicId,
+                                        )?.name ?? 'Unknown logic',
+                                    )
+                                    .join(', ');
+                            return (
+                              <tr
+                                key={key.id}
+                                className="border-b border-line-subtle last:border-0"
+                              >
+                                <td className="px-4 py-3">
+                                  <div className="font-medium text-fg">
+                                    {key.name}
+                                  </div>
+                                  <div className="mt-1 font-mono text-xs text-fg-subtle">
+                                    {key.keyPrefix}...
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className="rounded bg-surface-subtle px-2 py-1 text-xs font-medium text-fg-secondary">
+                                    {roleLabel(key.role)}
+                                  </span>
+                                </td>
+                                <td className="max-w-64 px-4 py-3 text-fg-muted">
+                                  <div className="truncate" title={scopedNames}>
+                                    {scopedNames || 'No logics selected'}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-fg-subtle">
+                                  {formatRelativeUse(key.lastUsedAt)}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span
+                                    className={`rounded px-2 py-1 text-xs font-medium ${
+                                      status === 'Active'
+                                        ? 'bg-success-bg text-success-fg'
+                                        : 'bg-surface-subtle text-fg-subtle'
+                                    }`}
+                                  >
+                                    {status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleRevokeApiKey(key)}
+                                    disabled={status !== 'Active'}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:border-danger-border hover:bg-danger-bg hover:text-danger-fg disabled:cursor-not-allowed disabled:opacity-40"
+                                    aria-label={`Revoke API key ${key.name}`}
+                                  >
+                                    <Ban className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <form
+                    onSubmit={handleIssueApiKey}
+                    className="border-t border-line-subtle p-4 lg:border-l lg:border-t-0"
+                  >
+                    <div className="mb-4 flex items-center gap-2">
+                      <SlidersHorizontal className="h-4 w-4 text-fg-faint" />
+                      <h3 className="text-sm font-semibold text-fg">
+                        Issue key
+                      </h3>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-medium text-fg-muted">
+                          Name
+                        </span>
+                        <input
+                          value={apiKeyName}
+                          onChange={(event) =>
+                            setApiKeyName(event.target.value)
+                          }
+                          placeholder="Production MCP"
+                          required
+                          className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-medium text-fg-muted">
+                          Role
+                        </span>
+                        <select
+                          value={apiKeyRole}
+                          onChange={(event) =>
+                            setApiKeyRole(event.target.value as CloudApiKeyRole)
+                          }
+                          className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
+                        >
+                          {apiKeyRoles.map((candidateRole) => (
+                            <option key={candidateRole} value={candidateRole}>
+                              {roleLabel(candidateRole)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <div>
+                        <span className="mb-1 block text-xs font-medium text-fg-muted">
+                          Scope
+                        </span>
+                        <div className="grid grid-cols-2 overflow-hidden rounded border border-line">
+                          {(['all', 'allowlist'] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => setApiKeyScopeMode(mode)}
+                              className={`h-9 text-xs font-medium ${
+                                apiKeyScopeMode === mode
+                                  ? 'bg-brand text-white'
+                                  : 'bg-surface text-fg-muted hover:bg-surface-muted'
+                              }`}
+                            >
+                              {mode === 'all' ? 'All logics' : 'Pick logics'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {apiKeyScopeMode === 'allowlist' ? (
+                        <div>
+                          <span className="mb-1 block text-xs font-medium text-fg-muted">
+                            Allowed logics
+                          </span>
+                          <div className="max-h-40 overflow-auto rounded border border-line">
+                            {workspaceLogics.length === 0 ? (
+                              <div className="px-3 py-4 text-sm text-fg-subtle">
+                                Publish or create a logic in this workspace
+                                before using an allow-list.
+                              </div>
+                            ) : (
+                              workspaceLogics.map((logic) => (
+                                <label
+                                  key={logic.id}
+                                  className="flex items-start gap-2 border-b border-line-subtle px-3 py-2 text-sm last:border-0"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedLogicIds.includes(
+                                      logic.id,
+                                    )}
+                                    onChange={(event) =>
+                                      handleLogicToggle(
+                                        logic.id,
+                                        event.target.checked,
+                                      )
+                                    }
+                                    className="mt-1"
+                                  />
+                                  <span className="min-w-0">
+                                    <span className="block truncate font-medium text-fg-secondary">
+                                      {logic.name}
+                                    </span>
+                                    <span className="block truncate text-xs text-fg-subtle">
+                                      {logic.slug}
+                                    </span>
+                                  </span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <button
+                        type="submit"
+                        disabled={issuingApiKey || !selectedWorkspace}
+                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-ink px-3 text-sm font-medium text-white hover:bg-ink disabled:opacity-50"
+                      >
+                        {issuingApiKey ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <KeyRound className="h-4 w-4" />
+                        )}
+                        Issue API key
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </section>
+            )}
+          </>
         ) : null}
       </main>
 
@@ -674,5 +743,101 @@ export function WorkspaceSettingsPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function WorkspaceDetailsCard({
+  workspace,
+  onSave,
+}: {
+  workspace: CloudWorkspace;
+  onSave: (values: { name: string; description: string }) => Promise<void>;
+}) {
+  const [name, setName] = useState(workspace.name);
+  const [description, setDescription] = useState(workspace.description ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const dirty =
+    name.trim() !== workspace.name ||
+    description.trim() !== (workspace.description ?? '');
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!name.trim() || !dirty) return;
+    setSaving(true);
+    try {
+      await onSave({ name, description });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="rounded border border-line bg-surface">
+      <div className="flex items-center gap-2 border-b border-line-subtle px-4 py-3">
+        <Boxes className="h-4 w-4 text-fg-faint" />
+        <div>
+          <h2 className="text-sm font-semibold text-fg">Workspace details</h2>
+          <p className="mt-0.5 text-xs text-fg-subtle">
+            Name and description for this workspace.
+          </p>
+        </div>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-3 px-4 py-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-fg-muted">
+              Name
+            </span>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              required
+              maxLength={120}
+              className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-fg-muted">
+              Slug
+            </span>
+            <input
+              value={workspace.slug}
+              disabled
+              className="h-10 w-full rounded border border-line bg-surface-muted px-3 font-mono text-sm text-fg-subtle"
+            />
+          </label>
+        </div>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-fg-muted">
+            Description
+          </span>
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="What is this workspace for?"
+            className="w-full rounded border border-line px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
+          />
+        </label>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={saving || !dirty || !name.trim()}
+            className="inline-flex h-9 items-center justify-center gap-2 rounded bg-brand px-4 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save changes
+          </button>
+        </div>
+      </form>
+    </section>
   );
 }

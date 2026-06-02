@@ -310,10 +310,30 @@ export async function createOrg(name: string) {
   });
 }
 
+export async function updateOrg(
+  orgId: string,
+  input: { name?: string; slug?: string },
+) {
+  return api<{ org: CloudOrg }>(`/api/orgs/${orgId}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
 export async function createWorkspace(orgId: string, name: string) {
   return api<{ workspace: CloudWorkspace }>(`/api/orgs/${orgId}/workspaces`, {
     method: 'POST',
     body: { name },
+  });
+}
+
+export async function updateWorkspace(
+  workspaceId: string,
+  input: { name?: string; description?: string | null },
+) {
+  return api<{ workspace: CloudWorkspace }>(`/api/workspaces/${workspaceId}`, {
+    method: 'PATCH',
+    body: input,
   });
 }
 
