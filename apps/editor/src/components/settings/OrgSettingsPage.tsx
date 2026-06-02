@@ -145,9 +145,14 @@ export function OrgSettingsPage() {
             role: membership.role,
           }));
         setOrgs(manageable);
-        const firstOrgId = manageable[0]?.org.id ?? '';
-        setSelectedOrgId(firstOrgId);
-        if (firstOrgId) await loadOrgData(firstOrgId, false);
+        const preferredOrgId =
+          new URLSearchParams(window.location.search).get('orgId') ?? undefined;
+        const initialOrgId =
+          manageable.find((entry) => entry.org.id === preferredOrgId)?.org.id ??
+          manageable[0]?.org.id ??
+          '';
+        setSelectedOrgId(initialOrgId);
+        if (initialOrgId) await loadOrgData(initialOrgId, false);
       } catch (error) {
         toast.error(errorMessage(error));
         if (error instanceof CloudApiError && error.status === 401) {

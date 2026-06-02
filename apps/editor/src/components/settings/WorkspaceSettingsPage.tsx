@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   Ban,
   Boxes,
+  Building2,
   Check,
   Clipboard,
   Copy,
@@ -314,6 +315,17 @@ export function WorkspaceSettingsPage() {
         </a>
         <div className="inline-flex items-center gap-3">
           <ThemeToggle />
+          <a
+            href={
+              selectedOrgId
+                ? `/settings/org?orgId=${selectedOrgId}`
+                : '/settings/org'
+            }
+            className="inline-flex h-8 items-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
+          >
+            <Building2 className="h-4 w-4" />
+            Organization settings
+          </a>
           <a
             href="/edit"
             className="inline-flex h-8 items-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
