@@ -7,6 +7,7 @@ import {
   invitation,
   logic,
   logicVersion,
+  membership,
   org,
   workspace,
 } from '../db/schema.js';
@@ -15,6 +16,7 @@ import type { Env } from '../env.js';
 import {
   type AppContext,
   assertSlug,
+  canDeleteLogic,
   canEditLogics,
   enforceInvitationEmailRateLimit,
   fallbackSlug,
@@ -29,6 +31,7 @@ import {
   type RouteError,
   randomToken,
   requireMembership,
+  requireUser,
   rolePersona,
   sha256Base64Url,
   slugWithRandomSuffix,
@@ -465,6 +468,79 @@ logicRoutes.get('/api/workspaces/:workspaceId/logics', async (c) => {
     logics: rows.map((row) => ({
       ...serializeLogic(row.logic),
       productionVersionNumber: row.productionVersionNumber,
+      // Per-row deletion right, so the list can show a delete affordance only
+      // where this caller may actually remove it (own logics for editors; any
+      // for admins/owners).
+      canDelete: canDeleteLogic(access.member.role, row.logic, access.user.id),
+    })),
+  });
+});
+
+// Lists every logic the current user created, across all of their workspaces,
+// with the cap usage. This backs the per-user logic cap surfaced in the logic
+// list: the cap counts a user's own creations globally, so the usage shown must
+// span workspaces too. Left joins keep a row even when its workspace/org was
+// deleted or the user's membership was removed (those still count against the
+// cap); canDelete then reflects whether this endpoint's caller may actually
+// remove it.
+logicRoutes.get('/api/me/logics', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const user = await requireUser(c, db);
+  if (!user) return jsonError(c, 401, 'unauthorized', 'Sign in first.');
+
+  const rows = await db
+    .select({
+      id: logic.id,
+      name: logic.name,
+      slug: logic.slug,
+      workspaceId: logic.workspaceId,
+      workspaceName: workspace.name,
+      orgId: org.id,
+      orgName: org.name,
+      role: membership.role,
+      productionVersionId: logic.productionVersionId,
+      draftUpdatedAt: logic.draftUpdatedAt,
+    })
+    .from(logic)
+    .leftJoin(workspace, eq(logic.workspaceId, workspace.id))
+    .leftJoin(org, eq(workspace.orgId, org.id))
+    .leftJoin(
+      membership,
+      and(
+        eq(membership.orgId, org.id),
+        eq(membership.userId, user.id),
+        isNull(membership.removedAt),
+      ),
+    )
+    .where(
+      and(
+        eq(logic.createdActorType, 'user'),
+        eq(logic.createdActorId, user.id),
+        isNull(logic.deletedAt),
+      ),
+    )
+    .orderBy(desc(logic.draftUpdatedAt));
+
+  return c.json({
+    used: rows.length,
+    limit: MAX_LOGICS_PER_USER,
+    logics: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      workspaceId: row.workspaceId,
+      workspaceName: row.workspaceName,
+      orgId: row.orgId,
+      orgName: row.orgName,
+      productionVersionId: row.productionVersionId,
+      draftUpdatedAt: row.draftUpdatedAt,
+      canDelete: row.role
+        ? canDeleteLogic(
+            row.role as Role,
+            { createdActorType: 'user', createdActorId: user.id },
+            user.id,
+          )
+        : false,
     })),
   });
 });
@@ -642,7 +718,16 @@ logicRoutes.get('/api/logics/:logicId', async (c) => {
   ]);
 
   return c.json({
-    logic: serializeLogic(access.logic),
+    logic: {
+      ...serializeLogic(access.logic),
+      // Lets the editor gate its delete affordance on the same rule the DELETE
+      // route enforces, without a second round-trip.
+      canDelete: canDeleteLogic(
+        access.member.role,
+        access.logic,
+        access.user.id,
+      ),
+    },
     latestVersion: latest ?? null,
     productionVersion: production ?? null,
   });
@@ -922,8 +1007,13 @@ logicRoutes.delete('/api/logics/:logicId', async (c) => {
   const logicId = c.req.param('logicId');
   const access = await loadLogicAccess(c, db, logicId);
   if ('error' in access) return access.error;
-  if (!canEditLogics(access.member.role)) {
-    return jsonError(c, 403, 'forbidden', 'Editor role or higher required.');
+  if (!canDeleteLogic(access.member.role, access.logic, access.user.id)) {
+    return jsonError(
+      c,
+      403,
+      'forbidden',
+      'Admins and owners can delete any logic; editors can delete only logics they created.',
+    );
   }
 
   const [deleted] = await db

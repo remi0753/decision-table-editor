@@ -46,6 +46,16 @@ export type CloudLogic = {
   draftRevision: number;
   productionVersionId?: string | null;
   productionVersionNumber?: number | null;
+  // Whether the requesting member may delete this logic. Present on list
+  // responses so the UI can show a delete affordance only where allowed.
+  canDelete?: boolean;
+};
+
+// The per-user logic cap usage, as returned by GET /api/me/logics. Backs the
+// "X of N slots used" indicator and counts the user's own creations globally.
+export type CloudMyLogics = {
+  used: number;
+  limit: number;
 };
 
 export type CloudVersion = {
@@ -398,6 +408,20 @@ export async function getLogic(logicId: string) {
     latestVersion: CloudVersion | null;
     productionVersion: CloudVersion | null;
   }>(`/api/logics/${logicId}`);
+}
+
+export async function getMyLogics() {
+  return api<CloudMyLogics>('/api/me/logics');
+}
+
+export async function deleteLogic(logicId: string) {
+  // Send an empty JSON body so the request carries Content-Type: application/json.
+  // The CSRF guard rejects state-changing requests that have a body (browsers
+  // send Content-Length: 0 on DELETE) without a JSON content type (415).
+  return api<{ logic: CloudLogic }>(`/api/logics/${logicId}`, {
+    method: 'DELETE',
+    body: {},
+  });
 }
 
 export async function getRunnerLogic(

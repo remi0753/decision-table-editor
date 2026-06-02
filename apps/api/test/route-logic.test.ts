@@ -114,6 +114,7 @@ function queryBuilder(result: unknown[]) {
   const builder = {
     from: vi.fn(() => builder),
     innerJoin: vi.fn(() => builder),
+    leftJoin: vi.fn(() => builder),
     where: vi.fn(() => builder),
     orderBy: vi.fn(() => builder),
     limit: vi.fn(() => builder),
@@ -247,7 +248,10 @@ function makeLogic(overrides: Partial<Logic> = {}): Logic {
   };
 }
 
-function makeLogicRow(data = makeLogic()) {
+function makeLogicRow(
+  data = makeLogic(),
+  overrides: Record<string, unknown> = {},
+) {
   return {
     id: 'logic-1',
     workspaceId: 'workspace-1',
@@ -261,7 +265,10 @@ function makeLogicRow(data = makeLogic()) {
     draftUpdatedAt: new Date('2026-05-22T00:00:00.000Z'),
     createdAt: new Date('2026-05-22T00:00:00.000Z'),
     updatedAt: new Date('2026-05-22T00:00:00.000Z'),
+    createdActorType: 'user',
+    createdActorId: ownerUser.id,
     deletedAt: null,
+    ...overrides,
   };
 }
 
@@ -1352,6 +1359,168 @@ describe('logic route behavior', () => {
       targetId: body.version.id,
       metadata: { logicId: 'logic-1', versionNumber: 2 },
     });
+  });
+
+  it('lets an editor delete a logic they created', async () => {
+    currentUser = editorUser;
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            logic: makeLogicRow(makeLogic(), { createdActorId: editorUser.id }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [membership('editor')],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/logics/logic-1', undefined, { method: 'DELETE' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    expect(currentDb.writes[0]?.set).toMatchObject({
+      deletedAt: expect.any(Date),
+    });
+    expect(currentDb.writes[1]?.values).toMatchObject({
+      orgId: 'org-1',
+      workspaceId: 'workspace-1',
+      action: 'logic.deleted',
+      targetType: 'logic',
+      targetId: 'logic-1',
+    });
+  });
+
+  it('forbids an editor from deleting a logic created by someone else', async () => {
+    currentUser = editorUser;
+    currentDb = createFakeDb({
+      select: [
+        // makeLogicRow defaults to createdActorId = ownerUser.id.
+        [{ logic: makeLogicRow(), workspace: makeWorkspaceRow() }],
+        [membership('editor')],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/logics/logic-1', undefined, { method: 'DELETE' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: 'forbidden' },
+    });
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('lets an admin delete a logic created by another user', async () => {
+    currentUser = editorUser; // membership role, not the user record, drives authz
+    currentDb = createFakeDb({
+      select: [
+        [{ logic: makeLogicRow(), workspace: makeWorkspaceRow() }],
+        [membership('admin')],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest('/api/logics/logic-1', undefined, { method: 'DELETE' }),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    expect(currentDb.writes[1]?.values).toMatchObject({
+      action: 'logic.deleted',
+      targetType: 'logic',
+      targetId: 'logic-1',
+    });
+  });
+
+  it("lists the user's own logics with cap usage and per-row canDelete", async () => {
+    currentUser = editorUser;
+    const draftUpdatedAt = new Date('2026-05-22T00:00:00.000Z');
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            id: 'owned-owner',
+            name: 'A',
+            slug: 'a',
+            workspaceId: 'workspace-1',
+            workspaceName: 'Default workspace',
+            orgId: 'org-1',
+            orgName: 'Acme',
+            role: 'owner',
+            productionVersionId: null,
+            draftUpdatedAt,
+          },
+          {
+            id: 'owned-editor',
+            name: 'B',
+            slug: 'b',
+            workspaceId: 'workspace-2',
+            workspaceName: 'Second',
+            orgId: 'org-2',
+            orgName: 'Beta',
+            role: 'editor',
+            productionVersionId: 'version-9',
+            draftUpdatedAt,
+          },
+          {
+            id: 'owned-demoted',
+            name: 'C',
+            slug: 'c',
+            workspaceId: 'workspace-3',
+            workspaceName: 'Third',
+            orgId: 'org-3',
+            orgName: 'Gamma',
+            role: 'viewer',
+            productionVersionId: null,
+            draftUpdatedAt,
+          },
+          {
+            id: 'owned-orphan',
+            name: 'D',
+            slug: 'd',
+            workspaceId: 'workspace-4',
+            workspaceName: null,
+            orgId: null,
+            orgName: null,
+            role: null,
+            productionVersionId: null,
+            draftUpdatedAt,
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(jsonRequest('/api/me/logics'), baseEnv);
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ used: 4, limit: 3 });
+    expect(body.logics).toMatchObject([
+      { id: 'owned-owner', canDelete: true },
+      { id: 'owned-editor', canDelete: true, productionVersionId: 'version-9' },
+      { id: 'owned-demoted', canDelete: false },
+      { id: 'owned-orphan', canDelete: false, workspaceName: null },
+    ]);
+    expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('requires a session to list your own logics', async () => {
+    currentUser = null;
+    currentDb = createFakeDb();
+    const app = await loadApp();
+
+    const response = await app.fetch(jsonRequest('/api/me/logics'), baseEnv);
+
+    expect(response.status).toBe(401);
   });
 });
 

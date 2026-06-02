@@ -24,6 +24,7 @@ import { CloudMenu } from '@/components/cloud/CloudMenu';
 import { CloudWorkspacePicker } from '@/components/cloud/CloudWorkspacePicker';
 import { PublishDiffReviewDialog } from '@/components/cloud/PublishDiffReviewDialog';
 import { BatchDialog } from '@/components/evaluation/BatchDialog';
+import { DeleteLogicDialog } from '@/components/logic/DeleteLogicDialog';
 import { LogicSwitcherDialog } from '@/components/logic/LogicSwitcherDialog';
 import { LocalOnboarding } from '@/components/onboarding/LocalOnboarding';
 import { SampleGalleryDialog } from '@/components/templates/SampleGalleryDialog';
@@ -83,9 +84,11 @@ export function AppLayout({
   const cloudMode = useCloudStore((s) => s.mode);
   const orgRole = useCloudStore((s) => s.orgRole);
   const logicId = useCloudStore((s) => s.logicId);
+  const logicCanDelete = useCloudStore((s) => s.logicCanDelete);
   const productionVersion = useCloudStore((s) => s.productionVersion);
   const saveState = useCloudStore((s) => s.saveState);
   const createCloudLogicFrom = useCloudStore((s) => s.createCloudLogicFrom);
+  const deleteCloudLogic = useCloudStore((s) => s.deleteCloudLogic);
   const publishCloudLogic = useCloudStore((s) => s.publishCloudLogic);
   const t = useT();
   const [sampleGalleryOpen, setSampleGalleryOpen] = useState(false);
@@ -100,6 +103,8 @@ export function AppLayout({
   const [newLogicDescription, setNewLogicDescription] = useState('');
   const [newLogicIdEdited, setNewLogicIdEdited] = useState(false);
   const [pendingNewLogic, setPendingNewLogic] = useState<Logic | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingLogic, setDeletingLogic] = useState(false);
 
   // AppLayout only mounts once the viewport supports the editor (or the visitor
   // dismissed the mobile gate); the gate decision lives in EditorRoute.
@@ -180,7 +185,28 @@ export function AppLayout({
 
   const editableCloudLogic =
     cloudMode === 'cloud' && Boolean(logicId) && canEdit(orgRole);
+  // logicCanDelete already encodes the role + ownership rule from the server, so
+  // the menu item only needs a current cloud logic on top of it.
+  const deletableCloudLogic =
+    cloudMode === 'cloud' && Boolean(logicId) && logicCanDelete;
   const handleUnavailableAction = () => toast.info(t.actionNotImplemented);
+
+  const handleDeleteCurrentLogic = async () => {
+    if (!logicId || deletingLogic) return;
+    setDeletingLogic(true);
+    try {
+      await deleteCloudLogic(logicId, importLogic);
+      // The store loaded the next (or a blank) logic; point the editor at its
+      // entry table so the view below the dialog stays valid.
+      setSelectedTable(useLogicStore.getState().logic.entryTableId);
+      toast.success(t.deleteLogicSuccess);
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t.cloudError);
+    } finally {
+      setDeletingLogic(false);
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -322,13 +348,15 @@ export function AppLayout({
                       <Download className="h-4 w-4 text-fg-faint" />
                       <span>{t.exportBtn}</span>
                     </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onSelect={handleUnavailableAction}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-danger-fg outline-none data-[highlighted]:bg-danger-bg"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span>{t.deleteLogic}</span>
-                    </DropdownMenu.Item>
+                    {deletableCloudLogic ? (
+                      <DropdownMenu.Item
+                        onSelect={() => setDeleteDialogOpen(true)}
+                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-danger-fg outline-none data-[highlighted]:bg-danger-bg"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>{t.deleteLogic}</span>
+                      </DropdownMenu.Item>
+                    ) : null}
                     <DropdownMenu.Separator className="my-1 h-px bg-surface-subtle" />
                     <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
                       {t.toolActions}
@@ -409,6 +437,16 @@ export function AppLayout({
       <LogicSwitcherDialog
         open={logicDialogOpen}
         onOpenChange={setLogicDialogOpen}
+      />
+      <DeleteLogicDialog
+        open={deleteDialogOpen}
+        onOpenChange={(next) => {
+          if (!next && !deletingLogic) setDeleteDialogOpen(false);
+        }}
+        logicName={logic.name}
+        hasProduction={Boolean(productionVersion)}
+        deleting={deletingLogic}
+        onConfirm={handleDeleteCurrentLogic}
       />
       {publishReviewOpen && logicId ? (
         <PublishDiffReviewDialog

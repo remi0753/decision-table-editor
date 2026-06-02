@@ -140,6 +140,12 @@ export type TranslationSet = {
   thisLogicActions: string;
   duplicateLogic: string;
   deleteLogic: string;
+  deleteLogicTitle: string;
+  deleteLogicConfirm: (name: string) => string;
+  deleteLogicProductionWarning: string;
+  deleteLogicConfirmButton: string;
+  deleteLogicSuccess: string;
+  logicSlotsUsage: (used: number, limit: number) => string;
   flowchartAction: string;
   actionNotImplemented: string;
 
@@ -543,6 +549,14 @@ export const translations: Record<Lang, TranslationSet> = {
     thisLogicActions: 'This logic',
     duplicateLogic: 'Duplicate',
     deleteLogic: 'Delete',
+    deleteLogicTitle: 'Delete logic',
+    deleteLogicConfirm: (name) =>
+      `Delete "${name}"? This removes it for everyone in the workspace and cannot be undone here.`,
+    deleteLogicProductionWarning:
+      'This logic has a published version that may be in use by Runners or the API.',
+    deleteLogicConfirmButton: 'Delete logic',
+    deleteLogicSuccess: 'Logic deleted.',
+    logicSlotsUsage: (used, limit) => `${used} of ${limit} logic slots used`,
     flowchartAction: 'Show flowchart',
     actionNotImplemented: 'This action is not implemented yet.',
 
@@ -958,6 +972,15 @@ export const translations: Record<Lang, TranslationSet> = {
     thisLogicActions: 'このロジック',
     duplicateLogic: '複製',
     deleteLogic: '削除',
+    deleteLogicTitle: 'ロジックを削除',
+    deleteLogicConfirm: (name) =>
+      `「${name}」を削除しますか？ワークスペースの全員から削除され、ここから元に戻すことはできません。`,
+    deleteLogicProductionWarning:
+      'このロジックには公開済みバージョンがあり、ランナーやAPIで利用中の可能性があります。',
+    deleteLogicConfirmButton: 'ロジックを削除',
+    deleteLogicSuccess: 'ロジックを削除しました。',
+    logicSlotsUsage: (used, limit) =>
+      `ロジック作成枠 ${used} / ${limit} 使用中`,
     flowchartAction: 'フローチャート表示',
     actionNotImplemented: 'この操作はまだ未実装です。',
 
