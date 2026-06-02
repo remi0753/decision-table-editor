@@ -326,6 +326,21 @@ export function canEditLogics(role: Role) {
   return roleRank[role] >= roleRank.editor;
 }
 
+// Deletion is a workspace-governance action, but the per-user logic cap is
+// freed by removing one's own creations. So admins and owners may delete any
+// logic in the workspace, while an editor may delete only logics they created
+// themselves — they can reclaim their own cap slots without being able to
+// destroy a collaborator's shared work. Viewers and runners can never delete.
+export function canDeleteLogic(
+  role: Role,
+  logic: { createdActorType: string; createdActorId: string | null },
+  userId: string,
+) {
+  if (roleRank[role] >= roleRank.admin) return true;
+  if (role !== 'editor') return false;
+  return logic.createdActorType === 'user' && logic.createdActorId === userId;
+}
+
 export function canGrantRole(actorRole: Role, targetRole: Role) {
   if (actorRole === 'owner') return true;
   return actorRole === 'admin' && targetRole !== 'owner';

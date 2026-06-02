@@ -12,6 +12,7 @@ import {
   createLogic,
   createOrg,
   createWorkspace,
+  deleteLogic,
   getLogic,
   getMe,
   listLogics,
@@ -20,6 +21,7 @@ import {
   saveDraft,
   signOut,
 } from '@/lib/cloudApi';
+import { createInitialLogic } from '@/store/logicStore';
 
 type CloudMode = 'checking' | 'local' | 'cloud' | 'selecting';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'conflict';
@@ -43,6 +45,9 @@ type CloudStore = {
   // DB slug = the MCP tool name (unique per workspace). The REST evaluate route
   // keys on logicId; only the MCP tools/call snippet needs this.
   logicSlug: string | null;
+  // Whether the signed-in member may delete the current logic, mirroring the
+  // server's canDeleteLogic rule. Gates the editor's delete affordances.
+  logicCanDelete: boolean;
   draftRevision: number | null;
   latestVersion: CloudVersion | null;
   productionVersion: CloudVersion | null;
@@ -79,6 +84,10 @@ type CloudStore = {
     importLogic: (logic: Logic) => void,
   ) => Promise<void>;
   switchCloudLogic: (
+    logicId: string,
+    importLogic: (logic: Logic) => void,
+  ) => Promise<void>;
+  deleteCloudLogic: (
     logicId: string,
     importLogic: (logic: Logic) => void,
   ) => Promise<void>;
@@ -145,6 +154,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   workspace: null,
   logicId: null,
   logicSlug: null,
+  logicCanDelete: false,
   draftRevision: null,
   latestVersion: null,
   productionVersion: null,
@@ -257,6 +267,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
                 choices: null,
                 logicId: cloudLogic.id,
                 logicSlug: cloudLogic.slug,
+                logicCanDelete: cloudLogic.canDelete ?? false,
                 draftRevision: cloudLogic.draftRevision,
                 latestVersion: cloudResult?.latestVersion ?? null,
                 productionVersion: cloudResult?.productionVersion ?? null,
@@ -389,6 +400,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           choices: null,
           logicId: cloudLogic.id,
           logicSlug: cloudLogic.slug,
+          logicCanDelete: cloudLogic.canDelete ?? false,
           draftRevision: cloudLogic.draftRevision,
           latestVersion: cloudResult?.latestVersion ?? null,
           productionVersion: cloudResult?.productionVersion ?? null,
@@ -497,6 +509,11 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         choices: null,
         logicId: (cloudResult?.logic ?? cloudLogic).id,
         logicSlug: (cloudResult?.logic ?? cloudLogic).slug,
+        // No cloudResult means this is a logic just created here, so its creator
+        // can delete it; otherwise mirror the server's per-logic right.
+        logicCanDelete: cloudResult
+          ? (cloudResult.logic.canDelete ?? false)
+          : true,
         draftRevision: (cloudResult?.logic ?? cloudLogic).draftRevision,
         latestVersion: cloudResult?.latestVersion ?? null,
         productionVersion: cloudResult?.productionVersion ?? null,
@@ -554,6 +571,8 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         saveState: 'saved',
         logicId: result.logic.id,
         logicSlug: result.logic.slug,
+        // The signed-in user just created it, so they can always delete it.
+        logicCanDelete: true,
         draftRevision: result.logic.draftRevision,
         latestVersion: null,
         productionVersion: null,
@@ -578,6 +597,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         saveState: 'saved',
         logicId: cloudResult.logic.id,
         logicSlug: cloudResult.logic.slug,
+        logicCanDelete: cloudResult.logic.canDelete ?? false,
         draftRevision: cloudResult.logic.draftRevision,
         latestVersion: cloudResult.latestVersion,
         productionVersion: cloudResult.productionVersion,
@@ -589,6 +609,58 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       set({ saveState: 'error', error: apiErrorMessage(error) });
       toast.error(apiErrorMessage(error));
     }
+  },
+
+  // Deletes a logic and, when it was the one being edited, moves the editor off
+  // it. Stays silent on success (the caller owns the confirmation UI and the
+  // success toast); errors propagate so the caller can surface them.
+  deleteCloudLogic: async (targetId, importLogic) => {
+    const { logicId, workspace, mode } = get();
+    if (mode !== 'cloud') return;
+
+    await deleteLogic(targetId);
+    if (targetId !== logicId) return;
+
+    // The current logic was deleted — prefer switching to the newest remaining
+    // logic in the workspace; if none remain (or loading fails), fall back to a
+    // blank, unsaved editor with no cloud logic selected.
+    if (workspace) {
+      try {
+        const { logics } = await listLogics(workspace.id);
+        const next = logics.find((item) => item.id !== targetId);
+        if (next) {
+          const cloudResult = await getLogic(next.id);
+          importLogic(cloudResult.logic.draftData);
+          set({
+            mode: 'cloud',
+            saveState: 'saved',
+            logicId: cloudResult.logic.id,
+            logicSlug: cloudResult.logic.slug,
+            logicCanDelete: cloudResult.logic.canDelete ?? false,
+            draftRevision: cloudResult.logic.draftRevision,
+            latestVersion: cloudResult.latestVersion,
+            productionVersion: cloudResult.productionVersion,
+            lastSavedAt: new Date(),
+            error: null,
+          });
+          return;
+        }
+      } catch {
+        // Fall through to the blank state below.
+      }
+    }
+
+    importLogic(createInitialLogic());
+    set({
+      saveState: 'idle',
+      logicId: null,
+      logicSlug: null,
+      draftRevision: null,
+      latestVersion: null,
+      productionVersion: null,
+      lastSavedAt: null,
+      error: null,
+    });
   },
 
   saveCloudDraft: async (logic) => {
