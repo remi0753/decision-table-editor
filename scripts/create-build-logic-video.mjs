@@ -307,10 +307,14 @@ async function clickWithFocus(page, locator) {
   await locator.click();
 }
 
+// The app exposes its live store instances on window in dev (see
+// apps/editor/src/main.tsx). A page-context `import()` of the store module
+// resolves to a separate copy under the bundled dev setup, so we read the real
+// stores off window to drive the same state the UI shows.
 async function runStore(page, script, args = {}) {
   await page.evaluate(
-    async ({ script: body, args: fnArgs }) => {
-      const { useLogicStore } = await import('/src/store/logicStore.ts');
+    ({ script: body, args: fnArgs }) => {
+      const useLogicStore = window.__leverieLogicStore;
       return Function('store', 'args', body)(useLogicStore.getState(), fnArgs);
     },
     { script, args },
@@ -319,9 +323,9 @@ async function runStore(page, script, args = {}) {
 
 async function runAppStores(page, script, args = {}) {
   await page.evaluate(
-    async ({ script: body, args: fnArgs }) => {
-      const { useLogicStore } = await import('/src/store/logicStore.ts');
-      const { useUiStore } = await import('/src/store/uiStore.ts');
+    ({ script: body, args: fnArgs }) => {
+      const useLogicStore = window.__leverieLogicStore;
+      const useUiStore = window.__leverieUiStore;
       return Function(
         'logicStore',
         'uiStore',
@@ -334,6 +338,10 @@ async function runAppStores(page, script, args = {}) {
 }
 
 async function addField(page, field) {
+  // Field editing now lives in a dialog: open it from the add button, fill the
+  // type and name, then submit (which closes the dialog) before the next field.
+  await clickWithFocus(page, page.locator('[data-tour-target="field-add"]'));
+  await wait(240);
   await page
     .locator('[data-tour-target="field-type-select"]')
     .selectOption(field.type);
@@ -341,7 +349,7 @@ async function addField(page, field) {
   await input.fill('');
   await input.pressSequentially(field.name, { delay: 7 });
   await clickWithFocus(page, page.locator('[data-tour-target="field-submit"]'));
-  await wait(260);
+  await wait(300);
 }
 
 await rm(videoDir, { recursive: true, force: true });
@@ -464,7 +472,9 @@ try {
     `,
   );
   await wait(500);
-  await highlight(page, page.getByText(copy.outputCol).last());
+  // Single-output conclusions no longer render the output column name as a
+  // chip label, so highlight the evaluation inputs the caption refers to.
+  await highlight(page, page.locator('[data-tour-target="eval-inputs"]'));
   await page.locator('input#f1').fill(copy.evalCase.team);
   await wait(160);
   await page.locator('select#f2').selectOption(copy.evalCase.type);
