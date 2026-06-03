@@ -121,6 +121,9 @@ export type TranslationSet = {
   logicIdPlaceholder: string;
   logicIdHint: string;
   logicIdInvalid: string;
+  logicIdTaken: string;
+  logicNameTaken: string;
+  logicLimitReached: string;
   createCloudLogicSubmit: string;
   cancel: string;
   save: string;
@@ -146,8 +149,6 @@ export type TranslationSet = {
   deleteLogicConfirmButton: string;
   deleteLogicSuccess: string;
   logicSlotsUsage: (used: number, limit: number) => string;
-  flowchartAction: string;
-  actionNotImplemented: string;
 
   // LeftPane
   logicNameLabel: string;
@@ -529,6 +530,10 @@ export const translations: Record<Lang, TranslationSet> = {
     logicIdHint:
       'Use lowercase letters, numbers, and hyphens only. It must start and end with a letter or number, up to 63 characters.',
     logicIdInvalid: 'Logic ID is not in an allowed format.',
+    logicIdTaken: 'This logic ID is already used in this workspace.',
+    logicNameTaken: 'A logic with this name already exists in this workspace.',
+    logicLimitReached:
+      "You've reached your logic limit. Delete a logic to free a slot.",
     createCloudLogicSubmit: 'Create',
     cancel: 'Cancel',
     save: 'Save',
@@ -557,8 +562,6 @@ export const translations: Record<Lang, TranslationSet> = {
     deleteLogicConfirmButton: 'Delete logic',
     deleteLogicSuccess: 'Logic deleted.',
     logicSlotsUsage: (used, limit) => `${used} of ${limit} logic slots used`,
-    flowchartAction: 'Show flowchart',
-    actionNotImplemented: 'This action is not implemented yet.',
 
     logicNameLabel: 'Logic Name',
     logicNamePlaceholder: 'Logic name',
@@ -952,6 +955,10 @@ export const translations: Record<Lang, TranslationSet> = {
     logicIdHint:
       '半角小文字英数字とハイフンのみ使用できます。先頭と末尾は英数字、最大63文字です。',
     logicIdInvalid: 'ロジックIDの形式が正しくありません。',
+    logicIdTaken: 'このロジックIDはワークスペース内で既に使われています。',
+    logicNameTaken: 'この名前のロジックはワークスペース内に既に存在します。',
+    logicLimitReached:
+      'ロジックの作成上限に達しています。枠を空けるには既存のロジックを削除してください。',
     createCloudLogicSubmit: '作成',
     cancel: 'キャンセル',
     save: '保存',
@@ -981,8 +988,6 @@ export const translations: Record<Lang, TranslationSet> = {
     deleteLogicSuccess: 'ロジックを削除しました。',
     logicSlotsUsage: (used, limit) =>
       `ロジック作成枠 ${used} / ${limit} 使用中`,
-    flowchartAction: 'フローチャート表示',
-    actionNotImplemented: 'この操作はまだ未実装です。',
 
     logicNameLabel: 'ロジック名',
     logicNamePlaceholder: 'ロジック名',
