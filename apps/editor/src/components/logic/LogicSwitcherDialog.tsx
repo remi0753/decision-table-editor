@@ -88,6 +88,7 @@ export function LogicSwitcherDialog({
 
   const editable = mode !== 'cloud' || canEdit(orgRole);
   const isCloud = mode === 'cloud' && Boolean(workspace);
+  const limitReached = slots !== null && slots.used >= slots.limit;
 
   const loadWorkspaceLogics = useCallback(async () => {
     if (!workspace) return;
@@ -293,60 +294,69 @@ export function LogicSwitcherDialog({
                       {t.cloudChecking}
                     </div>
                   ) : (
-                    filteredLogics.map((cloudLogic) => (
-                      <button
-                        key={cloudLogic.id}
-                        type="button"
-                        onClick={() => void handleSwitch(cloudLogic)}
-                        className="flex w-full min-w-0 items-center gap-3 rounded px-3 py-2.5 text-left hover:bg-brand-subtle focus:outline-none focus:ring-1 focus:ring-brand-ring"
-                      >
-                        {cloudLogic.id === logicId ? (
-                          <Check className="h-4 w-4 shrink-0 text-success-fg" />
-                        ) : (
-                          <FileText className="h-4 w-4 shrink-0 text-fg-faint" />
-                        )}
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-fg-secondary">
-                            {cloudLogic.name}
-                          </span>
-                          <span className="block truncate text-xs text-fg-subtle">
-                            {cloudLogic.productionVersionNumber
-                              ? t.productionVersionLabel(
-                                  cloudLogic.productionVersionNumber,
-                                )
-                              : t.draftOnly}
-                          </span>
-                        </span>
-                        {editable ? (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openDetail({ type: 'cloud', logic: cloudLogic });
-                            }}
-                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-fg-faint hover:bg-surface hover:text-brand-fg"
-                            aria-label={t.editLogic}
-                            title={t.editLogic}
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </button>
-                        ) : null}
-                        {cloudLogic.canDelete ? (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setDeleteTarget(cloudLogic);
-                            }}
-                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-fg-faint hover:bg-danger-bg hover:text-danger-fg"
-                            aria-label={t.deleteLogic}
-                            title={t.deleteLogic}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        ) : null}
-                      </button>
-                    ))
+                    filteredLogics.map((cloudLogic) => {
+                      const isCurrent = cloudLogic.id === logicId;
+                      return (
+                        <div
+                          key={cloudLogic.id}
+                          className="flex w-full min-w-0 items-center gap-3 rounded px-3 py-2.5 hover:bg-surface-muted"
+                        >
+                          {isCurrent ? (
+                            <Check className="h-4 w-4 shrink-0 text-success-fg" />
+                          ) : (
+                            <FileText className="h-4 w-4 shrink-0 text-fg-faint" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void handleSwitch(cloudLogic)}
+                                className="max-w-full truncate text-left text-sm font-medium text-brand-fg hover:underline focus:underline focus:outline-none"
+                                title={t.openLogic}
+                              >
+                                {cloudLogic.name}
+                              </button>
+                              {isCurrent ? (
+                                <span className="shrink-0 rounded-full bg-success-bg px-1.5 py-0.5 text-[10px] font-medium leading-none text-success-fg">
+                                  {t.currentLogicBadge}
+                                </span>
+                              ) : null}
+                            </div>
+                            <span className="block truncate text-xs text-fg-subtle">
+                              {cloudLogic.productionVersionNumber
+                                ? t.productionVersionLabel(
+                                    cloudLogic.productionVersionNumber,
+                                  )
+                                : t.draftOnly}
+                            </span>
+                          </div>
+                          {editable ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDetail({ type: 'cloud', logic: cloudLogic })
+                              }
+                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-fg-faint hover:bg-surface hover:text-brand-fg"
+                              aria-label={t.editLogic}
+                              title={t.editLogic}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </button>
+                          ) : null}
+                          {cloudLogic.canDelete ? (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(cloudLogic)}
+                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-fg-faint hover:bg-danger-bg hover:text-danger-fg"
+                              aria-label={t.deleteLogic}
+                              title={t.deleteLogic}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          ) : null}
+                        </div>
+                      );
+                    })
                   )}
                   {!loading && filteredLogics.length === 0 ? (
                     <div className="px-3 py-6 text-sm text-fg-subtle">
@@ -359,11 +369,17 @@ export function LogicSwitcherDialog({
                     <button
                       type="button"
                       onClick={() => openDetail({ type: 'new' })}
-                      className="inline-flex h-9 w-full items-center justify-center gap-2 rounded border border-brand-border-strong bg-brand-subtle px-3 text-sm font-medium text-brand-fg-strong hover:bg-brand-subtle"
+                      disabled={limitReached}
+                      className="inline-flex h-9 w-full items-center justify-center gap-2 rounded border border-brand-border-strong bg-brand-subtle px-3 text-sm font-medium text-brand-fg-strong hover:bg-brand-subtle disabled:cursor-not-allowed disabled:border-line disabled:bg-surface-muted disabled:text-fg-faint"
                     >
                       <Plus className="h-4 w-4" />
                       {t.createNewLogic}
                     </button>
+                    {limitReached ? (
+                      <p className="mt-2 text-center text-xs text-fg-subtle">
+                        {t.logicLimitReached}
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
               </>

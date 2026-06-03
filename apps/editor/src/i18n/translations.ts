@@ -136,6 +136,8 @@ export type TranslationSet = {
   logicDialogTitle: string;
   logicEditTitle: string;
   logicSearchPlaceholder: string;
+  openLogic: string;
+  currentLogicBadge: string;
   editLogic: string;
   createNewLogic: string;
   backToLogicList: string;
@@ -547,6 +549,8 @@ export const translations: Record<Lang, TranslationSet> = {
     logicDialogTitle: 'Logics',
     logicEditTitle: 'Edit logic',
     logicSearchPlaceholder: 'Search logics...',
+    openLogic: 'Open',
+    currentLogicBadge: 'Current',
     editLogic: 'Edit logic',
     createNewLogic: 'Create new logic',
     backToLogicList: 'Back to logics',
@@ -972,6 +976,8 @@ export const translations: Record<Lang, TranslationSet> = {
     logicDialogTitle: 'ロジック',
     logicEditTitle: 'ロジック編集',
     logicSearchPlaceholder: 'ロジックを検索...',
+    openLogic: '開く',
+    currentLogicBadge: '使用中',
     editLogic: 'ロジックを編集',
     createNewLogic: '新規ロジック作成',
     backToLogicList: '一覧へ戻る',
