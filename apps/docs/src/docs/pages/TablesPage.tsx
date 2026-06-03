@@ -47,8 +47,10 @@ export function TablesPage() {
       <DocSection title="Fields and output columns">
         <p>
           Fields are the typed inputs the logic understands. They are defined
-          once in the left sidebar (Field Definitions) and reused across tables.
-          The field name is the key that external callers will send through{' '}
+          once in the left sidebar (Field Definitions) — add one with the +
+          button, or click a field to edit its name, type, and enum values in a
+          dialog — and reused across tables. The field name is the key that
+          external callers will send through{' '}
           <a href={pageHref('hosted-api')}>Hosted API</a> and{' '}
           <a href={pageHref('hosted-mcp')}>Hosted MCP</a>.
         </p>
@@ -80,8 +82,10 @@ export function TablesPage() {
           Output columns sit on the right side of every table. Instead of a
           single opaque answer like &quot;rejected,&quot; a row can return
           several named values, for example <code>decision</code>,{' '}
-          <code>queue</code>, <code>sla</code>, <code>reviewer</code>. External
-          callers receive these as a structured response.
+          <code>queue</code>, <code>sla</code>, <code>reviewer</code>. In the
+          table each output shows as a labeled chip (column name plus value) in
+          the row&apos;s conclusion cell, and external callers receive them as a
+          structured response.
         </p>
         <Callout icon={FileJson2} title="Name fields and outputs deliberately">
           Field and output names are part of your API surface. Renaming them

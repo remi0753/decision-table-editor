@@ -44,8 +44,9 @@ export function EditorPage() {
 
       <DocSection title="Workspace layout">
         <p>
-          The editor is a three-part workspace. A header runs across the top, a
-          sidebar on the left holds the logic&apos;s name, description, and
+          The editor is a three-part workspace. A header runs across the top —
+          the current logic&apos;s name and switcher sit on the left, document
+          actions on the right — a sidebar on the left holds the logic&apos;s
           field definitions, and the center is the table or flowchart you are
           editing — with the table tabs and a collapsible logic overview sitting
           above it. When you are ready to try a case, the evaluation panel
@@ -54,7 +55,7 @@ export function EditorPage() {
         <figure className="media-card">
           <img
             src={asset('editor-table.png')}
-            alt="LEVERIE editor with header, left sidebar showing the logic name and field definitions, table tabs and the decision table in the center, and the evaluation panel on the right."
+            alt="LEVERIE editor with header carrying the logic switcher, a left sidebar of field definitions, table tabs and the decision table in the center, and the evaluation panel on the right."
           />
           <figcaption>
             Header (top), sidebar (left), decision table (center), and
@@ -66,7 +67,7 @@ export function EditorPage() {
             {
               icon: LayoutPanelLeft,
               title: 'Sidebar',
-              body: 'Holds the logic name, description, and field definitions — the typed inputs every table shares.',
+              body: 'Holds the field definitions — the typed inputs every table shares. Add one with the + button; click a field to edit it in a dialog.',
             },
             {
               icon: MousePointer2,
@@ -90,63 +91,77 @@ export function EditorPage() {
         <DefinitionList
           items={[
             [
-              'Language',
-              'Toggles the entire editor between English and Japanese. The choice is remembered per browser.',
-            ],
-            [
-              'Account and workspace',
-              'Shows the current mode (local or cloud), the active workspace and logic, and links to sign in or open organization settings.',
+              'Logic name and switcher',
+              'The pill next to the logo shows the current logic and its production version (or "Draft only"). Click it to rename the logic, and in cloud mode to search, switch between the workspace’s logics, and create new ones.',
             ],
             [
               'Undo and redo',
               'Reverse or re-apply the last structural edit. The shortcuts are ⌘Z and ⇧⌘Z (Ctrl on Windows or Linux).',
             ],
             [
+              'Publish',
+              'In cloud mode, an editor sees a Publish button here. It opens the diff review and promotes the current draft to a new production version.',
+            ],
+            [
               'More actions',
-              'A menu for New, Open file, Save backup, and Batch test. New is destructive in local mode; save a backup first if you want to keep your work. Open file and Save backup appear in local mode only.',
+              'A menu grouped into This logic and Tools. This logic holds Share Runner, Use via API, and Duplicate in cloud mode, Open file and Save backup in local mode, and Delete when you are allowed to remove the logic. Tools holds Batch test.',
             ],
             [
               'Docs',
               'Opens this documentation in a new tab so you can keep the editor open beside it.',
+            ],
+            [
+              'Language',
+              'Toggles the entire editor between English and Japanese. The choice is remembered per browser.',
+            ],
+            [
+              'Account and workspace',
+              'Shows the current mode (local or cloud) and the active workspace, and links to sign in or open organization settings.',
             ],
           ]}
         />
         <figure className="media-card">
           <img
             src={asset('editor-more-actions.png')}
-            alt="The More actions menu in the LEVERIE editor header with File and Tools sections."
+            alt="The More actions menu in the LEVERIE editor header with This logic and Tools sections."
           />
           <figcaption>
-            The More actions menu groups document operations (File: New, Open
-            file, Save backup) and authoring tools (Tools: Batch test).
+            The More actions menu groups logic operations (This logic: Share
+            Runner, Use via API, Duplicate, and Delete in cloud mode; Open file
+            and Save backup in local mode) and authoring tools (Tools: Batch
+            test).
           </figcaption>
         </figure>
       </DocSection>
 
       <DocSection title="Left sidebar">
         <p>
-          The sidebar holds the parts of the logic that stay constant as you
-          move between tables.
+          The sidebar is dedicated to <strong>Field Definitions</strong> — the
+          part of the logic that stays constant as you move between tables.
         </p>
         <DefinitionList
           items={[
             [
-              'Logic name and description',
-              'Name the logic and describe what it decides. In cloud mode the same area surfaces draft, publish, and workspace controls.',
-            ],
-            [
               'Field Definitions',
               'The typed inputs the logic understands. Names entered here become the keys callers send through Hosted API and Hosted MCP.',
             ],
+            [
+              'Add and edit fields',
+              'Use the + button in the Field Definitions header to add a field, or click an existing field to open its editor dialog — name, type, and, for enums, the list of allowed values.',
+            ],
           ]}
         />
-        <Callout icon={MousePointer2} title="Tables and the table graph moved">
-          The list of tables now lives as tabs across the top of the main work
-          area, and the miniature table graph is the collapsible{' '}
-          <strong>Logic overview</strong> above the table. The Field Definitions
-          header still collapses, and on narrower screens the sidebar scrolls
-          independently so a large field list does not push the table
-          off-screen.
+        <Callout
+          icon={MousePointer2}
+          title="Name, description, and tables moved"
+        >
+          The logic name and description are no longer in the sidebar — they
+          live in the header, behind the logic switcher pill. The list of tables
+          now lives as tabs across the top of the main work area, and the
+          miniature table graph is the collapsible{' '}
+          <strong>Logic overview</strong> above the table. On narrower screens
+          the sidebar scrolls independently so a large field list does not push
+          the table off-screen.
         </Callout>
       </DocSection>
 

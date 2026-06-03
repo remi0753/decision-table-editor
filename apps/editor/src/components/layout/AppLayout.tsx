@@ -2,21 +2,31 @@ import type { Logic } from '@leverie/engine';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   BookOpen,
+  Code2,
+  Copy,
   Download,
-  FilePlus,
+  FileText,
   FlaskConical,
   Loader2,
   Menu,
   Redo2,
+  Rocket,
+  Share2,
+  Trash2,
   Undo2,
   Upload,
 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
+import { ApiUsageDialog } from '@/components/cloud/ApiUsageDialog';
 import { CloudMenu } from '@/components/cloud/CloudMenu';
 import { CloudWorkspacePicker } from '@/components/cloud/CloudWorkspacePicker';
+import { PublishDiffReviewDialog } from '@/components/cloud/PublishDiffReviewDialog';
+import { RunnerShareDialog } from '@/components/cloud/RunnerShareDialog';
 import { BatchDialog } from '@/components/evaluation/BatchDialog';
+import { DeleteLogicDialog } from '@/components/logic/DeleteLogicDialog';
+import { LogicSwitcherDialog } from '@/components/logic/LogicSwitcherDialog';
 import { LocalOnboarding } from '@/components/onboarding/LocalOnboarding';
 import { SampleGalleryDialog } from '@/components/templates/SampleGalleryDialog';
 import { IconButton } from '@/components/ui/IconButton';
@@ -24,13 +34,15 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useCloudAutoSave } from '@/hooks/useCloudAutoSave';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
-import {
-  clearMigrationDraft,
-  loadMigrationDraft,
-  useAutoSave,
-} from '@/hooks/useLocalStorage';
+import { useAutoSave } from '@/hooks/useLocalStorage';
 import type { Lang } from '@/i18n/translations';
 import { useT } from '@/i18n/useT';
+import {
+  type CloudLogic,
+  type CloudMyLogics,
+  getMyLogics,
+  listLogics,
+} from '@/lib/cloudApi';
 import { useCloudStore } from '@/store/cloudStore';
 import {
   clearHistory,
@@ -57,13 +69,39 @@ function logicIdFromName(name: string) {
   );
 }
 
+function canEdit(role: string | null) {
+  return role === 'owner' || role === 'admin' || role === 'editor';
+}
+
+// Duplicating prefills the dialog from the source logic, whose name/slug already
+// exist in the workspace. Suffix both so the create call does not 409 on the
+// slug uniqueness constraint (and so two identically named logics don't appear).
+function uniqueLogicNameAmong(baseName: string, existing: CloudLogic[]) {
+  const names = new Set(existing.map((l) => l.name));
+  if (!names.has(baseName)) return baseName;
+  for (let n = 2; n < 1000; n += 1) {
+    const candidate = `${baseName} ${n}`;
+    if (!names.has(candidate)) return candidate;
+  }
+  return `${baseName} ${Date.now()}`;
+}
+
+function uniqueLogicSlugAmong(baseSlug: string, existing: CloudLogic[]) {
+  const slugs = new Set(existing.map((l) => l.slug));
+  if (!slugs.has(baseSlug)) return baseSlug;
+  for (let n = 2; n < 1000; n += 1) {
+    const candidate = `${baseSlug}-${n}`.slice(0, 63).replace(/-+$/g, '');
+    if (!slugs.has(candidate)) return candidate;
+  }
+  return `${baseSlug}-${Date.now()}`.slice(0, 63).replace(/-+$/g, '');
+}
+
 export function AppLayout({
   localOnboardingEnabled = false,
 }: {
   localOnboardingEnabled?: boolean;
 }) {
   const logic = useLogicStore((s) => s.logic);
-  const resetLogic = useLogicStore((s) => s.resetLogic);
   const importLogic = useLogicStore((s) => s.importLogic);
   const setSelectedTable = useUiStore((s) => s.setSelectedTable);
   const setEvalDrawerOpen = useUiStore((s) => s.setEvalDrawerOpen);
@@ -75,11 +113,22 @@ export function AppLayout({
   const canUndo = useHistoryStore((s) => s.past.length > 0);
   const canRedo = useHistoryStore((s) => s.future.length > 0);
   const cloudMode = useCloudStore((s) => s.mode);
+  const orgRole = useCloudStore((s) => s.orgRole);
+  const workspace = useCloudStore((s) => s.workspace);
+  const logicId = useCloudStore((s) => s.logicId);
+  const logicSlug = useCloudStore((s) => s.logicSlug);
+  const latestVersion = useCloudStore((s) => s.latestVersion);
+  const logicCanDelete = useCloudStore((s) => s.logicCanDelete);
+  const productionVersion = useCloudStore((s) => s.productionVersion);
+  const saveState = useCloudStore((s) => s.saveState);
   const createCloudLogicFrom = useCloudStore((s) => s.createCloudLogicFrom);
-  const importFn = useImportLogic();
+  const deleteCloudLogic = useCloudStore((s) => s.deleteCloudLogic);
+  const publishCloudLogic = useCloudStore((s) => s.publishCloudLogic);
   const t = useT();
   const [sampleGalleryOpen, setSampleGalleryOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+  const [logicDialogOpen, setLogicDialogOpen] = useState(false);
+  const [publishReviewOpen, setPublishReviewOpen] = useState(false);
   const [newCloudLogicOpen, setNewCloudLogicOpen] = useState(false);
   const [newLogicName, setNewLogicName] = useState(t.initialLogicName);
   const [newLogicId, setNewLogicId] = useState(
@@ -88,49 +137,26 @@ export function AppLayout({
   const [newLogicDescription, setNewLogicDescription] = useState('');
   const [newLogicIdEdited, setNewLogicIdEdited] = useState(false);
   const [pendingNewLogic, setPendingNewLogic] = useState<Logic | null>(null);
-  // A local draft preserved when the user signed in from local mode. When set,
-  // the new-logic dialog offers starting the new cloud logic from it.
-  const [newLogicStash, setNewLogicStash] = useState<Logic | null>(null);
-  const [newLogicFromLocal, setNewLogicFromLocal] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingLogic, setDeletingLogic] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [apiOpen, setApiOpen] = useState(false);
+  const [logicSlots, setLogicSlots] = useState<CloudMyLogics | null>(null);
+  const [existingLogics, setExistingLogics] = useState<CloudLogic[]>([]);
+  const runImport = useImportLogic();
 
   // AppLayout only mounts once the viewport supports the editor (or the visitor
   // dismissed the mobile gate); the gate decision lives in EditorRoute.
   useAutoSave(logic, cloudMode === 'local');
   useCloudAutoSave(logic, true);
 
-  const prefillNewLogicFrom = (base: Logic) => {
-    setNewLogicName(base.name);
-    setNewLogicId(logicIdFromName(base.name));
+  const prefillNewLogicFrom = (base: Logic, existing: CloudLogic[]) => {
+    const name = uniqueLogicNameAmong(base.name, existing);
+    setNewLogicName(name);
+    setNewLogicId(uniqueLogicSlugAmong(logicIdFromName(name), existing));
     setNewLogicDescription(base.description ?? '');
     setNewLogicIdEdited(false);
     setPendingNewLogic(base);
-  };
-
-  // Switch the new-logic dialog between starting blank and starting from the
-  // preserved local draft, re-prefilling the form from the chosen source.
-  const selectNewLogicSource = (fromLocal: boolean) => {
-    setNewLogicFromLocal(fromLocal);
-    prefillNewLogicFrom(
-      fromLocal && newLogicStash ? newLogicStash : createInitialLogic(),
-    );
-  };
-
-  const handleNew = () => {
-    if (window.confirm(t.newLogicConfirm)) {
-      if (cloudMode === 'cloud') {
-        // Default to a blank logic; offer the preserved local draft as an
-        // opt-in source if one is pending.
-        setNewLogicStash(loadMigrationDraft());
-        setNewLogicFromLocal(false);
-        prefillNewLogicFrom(createInitialLogic());
-        setNewCloudLogicOpen(true);
-      } else {
-        resetLogic();
-        clearEvalResult();
-        clearBatch();
-        clearHistory();
-      }
-    }
   };
 
   const applyLogicToEditor = (nextLogic: Logic) => {
@@ -143,18 +169,25 @@ export function AppLayout({
     setEvalDrawerOpen(true);
   };
 
-  const openNewLogicDialog = (nextLogic: Logic) => {
-    // Opened from a sample: the sample is the source, so don't offer the
-    // local-draft choice.
-    setNewLogicStash(null);
-    setNewLogicFromLocal(false);
-    prefillNewLogicFrom(nextLogic);
+  const openNewLogicDialog = async (nextLogic: Logic) => {
+    // Pull the workspace's current logics so the prefill can dodge name/slug
+    // collisions up front and the dialog can flag any the user types back in.
+    let existing: CloudLogic[] = [];
+    if (workspace) {
+      try {
+        existing = (await listLogics(workspace.id)).logics;
+      } catch {
+        existing = [];
+      }
+    }
+    setExistingLogics(existing);
+    prefillNewLogicFrom(nextLogic, existing);
     setNewCloudLogicOpen(true);
   };
 
   const handleCreateFromSample = (sampleLogic: Logic) => {
     if (cloudMode === 'cloud') {
-      openNewLogicDialog(sampleLogic);
+      void openNewLogicDialog(sampleLogic);
       return;
     }
     if (!window.confirm(t.createSampleLocalConfirm(sampleLogic.name))) return;
@@ -171,7 +204,16 @@ export function AppLayout({
   const trimmedNewLogicName = newLogicName.trim();
   const trimmedNewLogicId = newLogicId.trim();
   const newLogicIdValid = LOGIC_ID_PATTERN.test(trimmedNewLogicId);
-  const newCloudLogicValid = trimmedNewLogicName.length > 0 && newLogicIdValid;
+  const newLogicIdTaken = existingLogics.some(
+    (l) => l.slug === trimmedNewLogicId,
+  );
+  const newLogicNameTaken = existingLogics.some(
+    (l) => l.name === trimmedNewLogicName,
+  );
+  // The server only rejects slug clashes, so the slug is the hard block; a
+  // duplicate name is allowed but worth flagging so the user can disambiguate.
+  const newCloudLogicValid =
+    trimmedNewLogicName.length > 0 && newLogicIdValid && !newLogicIdTaken;
 
   const handleCreateCloudLogic = (event: FormEvent) => {
     event.preventDefault();
@@ -191,8 +233,6 @@ export function AppLayout({
       },
       importLogic,
     );
-    if (newLogicFromLocal) clearMigrationDraft();
-    setNewLogicStash(null);
     setNewCloudLogicOpen(false);
     setPendingNewLogic(null);
     setSelectedTable(nextLogic.entryTableId);
@@ -201,6 +241,43 @@ export function AppLayout({
     clearBatch();
     clearHistory();
     setEvalDrawerOpen(true);
+  };
+
+  const editableCloudLogic =
+    cloudMode === 'cloud' && Boolean(logicId) && canEdit(orgRole);
+  // logicCanDelete already encodes the role + ownership rule from the server, so
+  // the menu item only needs a current cloud logic on top of it.
+  const deletableCloudLogic =
+    cloudMode === 'cloud' && Boolean(logicId) && logicCanDelete;
+  const isLocalMode = cloudMode === 'local';
+  // Each account has a fixed logic-slot budget; once it's full the server
+  // rejects creation, so disable Duplicate up front instead of failing on click.
+  const atLogicLimit =
+    logicSlots !== null && logicSlots.used >= logicSlots.limit;
+
+  const refreshLogicSlots = async () => {
+    try {
+      setLogicSlots(await getMyLogics());
+    } catch {
+      setLogicSlots(null);
+    }
+  };
+
+  const handleDeleteCurrentLogic = async () => {
+    if (!logicId || deletingLogic) return;
+    setDeletingLogic(true);
+    try {
+      await deleteCloudLogic(logicId, importLogic);
+      // The store loaded the next (or a blank) logic; point the editor at its
+      // entry table so the view below the dialog stays valid.
+      setSelectedTable(useLogicStore.getState().logic.entryTableId);
+      toast.success(t.deleteLogicSuccess);
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t.cloudError);
+    } finally {
+      setDeletingLogic(false);
+    }
   };
 
   return (
@@ -216,13 +293,41 @@ export function AppLayout({
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full min-w-[1040px] flex-col">
           <header className="h-12 border-b border-brand-border bg-gradient-to-r from-brand-subtle to-surface flex items-center justify-between px-3 shrink-0 gap-4">
-            <div className="flex min-w-0 items-center">
+            <div className="flex min-w-0 items-center gap-3">
               <img
                 src={logoUrl}
                 alt="LEVERIE"
                 height={34}
                 className="h-[34px]"
               />
+              <Tooltip
+                content={
+                  <span className="flex max-w-64 flex-col gap-0.5">
+                    <span className="truncate">{logic.name}</span>
+                    <span className="text-[11px] text-white/75">
+                      {productionVersion
+                        ? t.productionVersionLabel(
+                            productionVersion.versionNumber,
+                          )
+                        : t.draftOnly}
+                    </span>
+                  </span>
+                }
+              >
+                <button
+                  type="button"
+                  onClick={() => setLogicDialogOpen(true)}
+                  className="inline-flex h-8 max-w-[320px] min-w-0 items-center gap-2 rounded-full border border-brand-border bg-white/25 px-3 text-left text-xs font-medium text-fg-secondary shadow-none backdrop-blur-[1px] hover:bg-white/65 hover:text-brand-fg-strong focus:outline-none focus:ring-1 focus:ring-brand-ring"
+                  aria-label={t.switchLogic}
+                >
+                  <FileText className="h-4 w-4 shrink-0 text-brand-fg" />
+                  <span className="min-w-0 flex leading-tight">
+                    <span className="truncate text-sm font-light">
+                      {logic.name}
+                    </span>
+                  </span>
+                </button>
+              </Tooltip>
             </div>
             <div className="flex items-center gap-2">
               <Tooltip content={t.undo}>
@@ -247,7 +352,24 @@ export function AppLayout({
                   <Redo2 />
                 </IconButton>
               </Tooltip>
-              <DropdownMenu.Root>
+              {editableCloudLogic ? (
+                <Tooltip content={t.publish}>
+                  <button
+                    type="button"
+                    onClick={() => setPublishReviewOpen(true)}
+                    disabled={saveState === 'saving'}
+                    className="inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded border border-success-border bg-success-bg px-3 text-xs font-semibold text-success-fg hover:bg-success-bg disabled:opacity-50"
+                  >
+                    <Rocket className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{t.publish}</span>
+                  </button>
+                </Tooltip>
+              ) : null}
+              <DropdownMenu.Root
+                onOpenChange={(open) => {
+                  if (open && editableCloudLogic) void refreshLogicSlots();
+                }}
+              >
                 <DropdownMenu.Trigger asChild>
                   <IconButton
                     size="md"
@@ -265,22 +387,64 @@ export function AppLayout({
                     className="z-50 min-w-[220px] rounded-md border border-line bg-surface p-1 shadow-lg"
                   >
                     <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
-                      {t.fileActions}
+                      {t.thisLogicActions}
                     </DropdownMenu.Label>
-                    <DropdownMenu.Item
-                      onSelect={handleNew}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
-                    >
-                      <FilePlus className="h-4 w-4 text-fg-faint" />
-                      <span>{t.newCreate}</span>
-                    </DropdownMenu.Item>
-                    {/* File-based backup/restore is the local-mode safety net;
-                    cloud mode persists via autosave + publish, so it's hidden
-                    there. */}
-                    {cloudMode === 'local' ? (
+                    {editableCloudLogic ? (
                       <>
                         <DropdownMenu.Item
-                          onSelect={importFn}
+                          onSelect={() => setShareOpen(true)}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                        >
+                          <Share2 className="h-4 w-4 text-fg-faint" />
+                          <span>{t.shareRunner}</span>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onSelect={() => setApiOpen(true)}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                        >
+                          <Code2 className="h-4 w-4 text-fg-faint" />
+                          <span>{t.useViaApi}</span>
+                        </DropdownMenu.Item>
+                        {atLogicLimit ? (
+                          <Tooltip
+                            side="left"
+                            content={
+                              <span className="flex max-w-56 flex-col gap-0.5">
+                                <span>{t.logicLimitReached}</span>
+                                {logicSlots ? (
+                                  <span className="text-white/75">
+                                    {t.logicSlotsUsage(
+                                      logicSlots.used,
+                                      logicSlots.limit,
+                                    )}
+                                  </span>
+                                ) : null}
+                              </span>
+                            }
+                          >
+                            <DropdownMenu.Item
+                              disabled
+                              className="flex cursor-not-allowed items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-faint opacity-60 outline-none data-[disabled]:pointer-events-auto"
+                            >
+                              <Copy className="h-4 w-4 text-fg-faint" />
+                              <span>{t.duplicateLogic}</span>
+                            </DropdownMenu.Item>
+                          </Tooltip>
+                        ) : (
+                          <DropdownMenu.Item
+                            onSelect={() => void openNewLogicDialog(logic)}
+                            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                          >
+                            <Copy className="h-4 w-4 text-fg-faint" />
+                            <span>{t.duplicateLogic}</span>
+                          </DropdownMenu.Item>
+                        )}
+                      </>
+                    ) : null}
+                    {isLocalMode ? (
+                      <>
+                        <DropdownMenu.Item
+                          onSelect={runImport}
                           className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                         >
                           <Upload className="h-4 w-4 text-fg-faint" />
@@ -294,6 +458,15 @@ export function AppLayout({
                           <span>{t.exportBtn}</span>
                         </DropdownMenu.Item>
                       </>
+                    ) : null}
+                    {deletableCloudLogic ? (
+                      <DropdownMenu.Item
+                        onSelect={() => setDeleteDialogOpen(true)}
+                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-danger-fg outline-none data-[highlighted]:bg-danger-bg"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>{t.deleteLogic}</span>
+                      </DropdownMenu.Item>
                     ) : null}
                     <DropdownMenu.Separator className="my-1 h-px bg-surface-subtle" />
                     <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-faint">
@@ -334,10 +507,10 @@ export function AppLayout({
           </header>
 
           <div className="relative flex flex-1 overflow-hidden">
-            <aside className="w-80 border-r bg-surface-muted overflow-hidden flex flex-col shrink-0">
+            <aside className="w-80 border-r bg-surface overflow-hidden flex flex-col shrink-0">
               <LeftPane />
             </aside>
-            <main className="flex-1 min-w-0 overflow-hidden bg-surface-muted">
+            <main className="flex-1 min-w-0 overflow-hidden bg-surface">
               <RightPane
                 onOpenSampleGallery={() => setSampleGalleryOpen(true)}
               />
@@ -365,6 +538,49 @@ export function AppLayout({
         onOpenChange={setBatchDialogOpen}
         logic={logic}
       />
+      <LogicSwitcherDialog
+        open={logicDialogOpen}
+        onOpenChange={setLogicDialogOpen}
+      />
+      <DeleteLogicDialog
+        open={deleteDialogOpen}
+        onOpenChange={(next) => {
+          if (!next && !deletingLogic) setDeleteDialogOpen(false);
+        }}
+        logicName={logic.name}
+        hasProduction={Boolean(productionVersion)}
+        deleting={deletingLogic}
+        onConfirm={handleDeleteCurrentLogic}
+      />
+      {shareOpen && logicId ? (
+        <RunnerShareDialog
+          logicId={logicId}
+          latestVersion={latestVersion}
+          productionVersion={productionVersion}
+          onPublish={() => publishCloudLogic(logic)}
+          onClose={() => setShareOpen(false)}
+        />
+      ) : null}
+      {apiOpen && logicId ? (
+        <ApiUsageDialog
+          logic={logic}
+          logicId={logicId}
+          logicSlug={logicSlug}
+          latestVersion={latestVersion}
+          productionVersion={productionVersion}
+          onPublish={() => publishCloudLogic(logic)}
+          onClose={() => setApiOpen(false)}
+        />
+      ) : null}
+      {publishReviewOpen && logicId ? (
+        <PublishDiffReviewDialog
+          logicId={logicId}
+          draftLogic={logic}
+          hasPreviousVersion={Boolean(productionVersion)}
+          onPublish={() => publishCloudLogic(logic)}
+          onClose={() => setPublishReviewOpen(false)}
+        />
+      ) : null}
       <CloudWorkspacePicker />
       <LocalOnboarding
         enabled={localOnboardingEnabled && cloudMode === 'local'}
@@ -379,42 +595,6 @@ export function AppLayout({
               {t.createCloudLogicTitle}
             </h2>
             <div className="mt-4 space-y-3">
-              {newLogicStash ? (
-                <div>
-                  <span className="mb-1 block text-xs font-medium text-fg-muted">
-                    {t.newLogicSourceLabel}
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => selectNewLogicSource(true)}
-                      className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
-                        newLogicFromLocal
-                          ? 'border-brand-border-strong bg-brand-subtle text-brand-fg-strong'
-                          : 'border-line bg-surface text-fg-muted hover:bg-surface-muted'
-                      }`}
-                    >
-                      {t.newLogicFromLocalDraft}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => selectNewLogicSource(false)}
-                      className={`h-9 rounded border px-2 text-xs font-medium transition-colors ${
-                        newLogicFromLocal
-                          ? 'border-line bg-surface text-fg-muted hover:bg-surface-muted'
-                          : 'border-brand-border-strong bg-brand-subtle text-brand-fg-strong'
-                      }`}
-                    >
-                      {t.newLogicBlank}
-                    </button>
-                  </div>
-                  {newLogicFromLocal ? (
-                    <span className="mt-1 block text-xs leading-5 text-fg-subtle">
-                      {t.newLogicFromLocalDraftHint}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-fg-muted">
                   {t.logicNameLabel}
@@ -433,6 +613,11 @@ export function AppLayout({
                   className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                   placeholder={t.logicNamePlaceholder}
                 />
+                {newLogicNameTaken ? (
+                  <span className="mt-1 block text-xs text-warning-fg">
+                    {t.logicNameTaken}
+                  </span>
+                ) : null}
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-fg-muted">
@@ -456,6 +641,10 @@ export function AppLayout({
                 {trimmedNewLogicId && !newLogicIdValid ? (
                   <span className="mt-1 block text-xs text-danger-fg">
                     {t.logicIdInvalid}
+                  </span>
+                ) : newLogicIdValid && newLogicIdTaken ? (
+                  <span className="mt-1 block text-xs text-danger-fg">
+                    {t.logicIdTaken}
                   </span>
                 ) : null}
               </label>

@@ -38,10 +38,11 @@ export function SharingPage() {
 
       <DocSection title="Sharing from the editor">
         <p>
-          Open the Account and workspace menu in the header, then choose{' '}
-          <strong>Share runner</strong>. The dialog shows the version that would
-          be served (production if pinned, otherwise latest), a button to copy
-          the runner URL, and a small form to invite someone by email.
+          Open the More actions menu in the header, then choose{' '}
+          <strong>Share Runner</strong> under This logic. The dialog shows the
+          version that would be served (production if pinned, otherwise latest),
+          a button to copy the runner URL, and a small form to invite someone by
+          email.
         </p>
         <FeatureGrid
           items={[

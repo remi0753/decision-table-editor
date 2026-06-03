@@ -24,7 +24,12 @@ const copy = {
       {
         name: 'イベント種別',
         type: 'enum',
-        enumValues: ['ウェビナー', 'ワークショップ', 'カンファレンス', 'VIP面談'],
+        enumValues: [
+          'ウェビナー',
+          'ワークショップ',
+          'カンファレンス',
+          'VIP面談',
+        ],
       },
       { name: '開催日', type: 'date' },
       { name: '予算', type: 'number' },
@@ -288,12 +293,12 @@ async function highlight(page, locator) {
   }, box);
 }
 
-async function clearHighlight(page) {
-  await page.evaluate(() => {
-    const highlightEl = document.querySelector('#leverie-video-highlight');
-    if (highlightEl instanceof HTMLElement) highlightEl.style.opacity = '0';
-  });
-}
+// async function clearHighlight(page) {
+//   await page.evaluate(() => {
+//     const highlightEl = document.querySelector('#leverie-video-highlight');
+//     if (highlightEl instanceof HTMLElement) highlightEl.style.opacity = '0';
+//   });
+// }
 
 async function clickWithFocus(page, locator) {
   await highlight(page, locator);
@@ -302,10 +307,14 @@ async function clickWithFocus(page, locator) {
   await locator.click();
 }
 
+// The app exposes its live store instances on window in dev (see
+// apps/editor/src/main.tsx). A page-context `import()` of the store module
+// resolves to a separate copy under the bundled dev setup, so we read the real
+// stores off window to drive the same state the UI shows.
 async function runStore(page, script, args = {}) {
   await page.evaluate(
-    async ({ script: body, args: fnArgs }) => {
-      const { useLogicStore } = await import('/src/store/logicStore.ts');
+    ({ script: body, args: fnArgs }) => {
+      const useLogicStore = window.__leverieLogicStore;
       return Function('store', 'args', body)(useLogicStore.getState(), fnArgs);
     },
     { script, args },
@@ -314,26 +323,33 @@ async function runStore(page, script, args = {}) {
 
 async function runAppStores(page, script, args = {}) {
   await page.evaluate(
-    async ({ script: body, args: fnArgs }) => {
-      const { useLogicStore } = await import('/src/store/logicStore.ts');
-      const { useUiStore } = await import('/src/store/uiStore.ts');
-      return Function('logicStore', 'uiStore', 'args', body)(
-        useLogicStore.getState(),
-        useUiStore.getState(),
-        fnArgs,
-      );
+    ({ script: body, args: fnArgs }) => {
+      const useLogicStore = window.__leverieLogicStore;
+      const useUiStore = window.__leverieUiStore;
+      return Function(
+        'logicStore',
+        'uiStore',
+        'args',
+        body,
+      )(useLogicStore.getState(), useUiStore.getState(), fnArgs);
     },
     { script, args },
   );
 }
 
 async function addField(page, field) {
-  await page.locator('[data-tour-target="field-type-select"]').selectOption(field.type);
+  // Field editing now lives in a dialog: open it from the add button, fill the
+  // type and name, then submit (which closes the dialog) before the next field.
+  await clickWithFocus(page, page.locator('[data-tour-target="field-add"]'));
+  await wait(240);
+  await page
+    .locator('[data-tour-target="field-type-select"]')
+    .selectOption(field.type);
   const input = page.locator('[data-tour-target="field-name-input"]');
   await input.fill('');
   await input.pressSequentially(field.name, { delay: 7 });
   await clickWithFocus(page, page.locator('[data-tour-target="field-submit"]'));
-  await wait(260);
+  await wait(300);
 }
 
 await rm(videoDir, { recursive: true, force: true });
@@ -373,10 +389,14 @@ try {
   }
 
   await installVideoOverlay(page);
-  await runStore(page, 'store.setLogicName(args.title); store.setLogicDescription(args.description);', {
-    title: copy.title,
-    description: copy.description,
-  });
+  await runStore(
+    page,
+    'store.setLogicName(args.title); store.setLogicDescription(args.description);',
+    {
+      title: copy.title,
+      description: copy.description,
+    },
+  );
   await caption(page, ...copy.captions.intro);
   await wait(1600);
 
@@ -403,12 +423,16 @@ try {
   await wait(500);
 
   await caption(page, ...copy.captions.columns);
-  const addColButton = page.locator('[data-tour-target="condition-add"]').first();
+  const addColButton = page
+    .locator('[data-tour-target="condition-add"]')
+    .first();
   for (let i = 0; i < 4; i += 1) {
     await clickWithFocus(page, addColButton);
     await wait(180);
   }
-  const fieldSelects = page.locator('[data-tour-target="condition-field-select"]');
+  const fieldSelects = page.locator(
+    '[data-tour-target="condition-field-select"]',
+  );
   for (let i = 0; i < 4; i += 1) {
     await fieldSelects.nth(i).selectOption(`f${i + 1}`);
     await wait(120);
@@ -448,7 +472,9 @@ try {
     `,
   );
   await wait(500);
-  await highlight(page, page.getByText(copy.outputCol).last());
+  // Single-output conclusions no longer render the output column name as a
+  // chip label, so highlight the evaluation inputs the caption refers to.
+  await highlight(page, page.locator('[data-tour-target="eval-inputs"]'));
   await page.locator('input#f1').fill(copy.evalCase.team);
   await wait(160);
   await page.locator('select#f2').selectOption(copy.evalCase.type);

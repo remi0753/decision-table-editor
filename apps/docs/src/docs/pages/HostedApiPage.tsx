@@ -26,8 +26,8 @@ export function HostedApiPage() {
       <DocSection title="Copy a snippet from the editor">
         <p>
           You do not have to assemble the request by hand. Open a logic in the
-          editor and, in the left sidebar under <strong>Publish</strong> and{' '}
-          <strong>Share Runner</strong>, click <strong>Use via API</strong>. The
+          editor and, from the header More actions menu under{' '}
+          <strong>This logic</strong>, click <strong>Use via API</strong>. The
           dialog generates a ready-to-run call for <em>that</em> logic,
           prefilled with its endpoint, id, selected version, and an example{' '}
           <code>inputs</code> payload built from its field definitions.

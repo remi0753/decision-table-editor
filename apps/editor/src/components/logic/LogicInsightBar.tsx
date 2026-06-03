@@ -18,11 +18,11 @@ export function LogicInsightBar() {
   }, 0);
 
   return (
-    <section className="mb-2 overflow-hidden rounded border border-brand-border-subtle bg-surface shadow-sm">
+    <section className="overflow-hidden border-b border-brand-border-subtle bg-surface">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex min-h-10 w-full items-center justify-between gap-3 bg-brand-subtle/45 px-3 py-1.5 text-left outline-none hover:bg-brand-subtle focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-ring"
+        className="flex min-h-11 w-full items-center justify-between gap-3 bg-brand-subtle/50 px-3 py-1.5 text-left outline-none hover:bg-brand-subtle focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-ring"
         aria-expanded={open}
       >
         <div className="flex min-w-0 items-center gap-2">

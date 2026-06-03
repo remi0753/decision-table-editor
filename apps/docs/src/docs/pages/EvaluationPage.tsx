@@ -1,7 +1,6 @@
 import {
   Compass,
   Download,
-  FileSpreadsheet,
   FlaskConical,
   PlayCircle,
   Sparkles,
@@ -83,9 +82,9 @@ export function EvaluationPage() {
         <p>
           Single-case evaluation is for the fast loop while writing rules. Batch
           test is for regression — running tens or hundreds of cases at once
-          before publishing. Open it from the More actions menu (Batch test),
-          upload a CSV of inputs and expected outputs, and review which rows
-          pass, which fail, and what each one actually returned.
+          before publishing. Open it from the More actions menu, under Tools
+          (Batch test), upload a CSV of inputs and expected outputs, and review
+          which rows pass, which fail, and what each one actually returned.
         </p>
         <figure className="media-card">
           <img
@@ -145,10 +144,10 @@ export function EvaluationPage() {
 
       <DocSection title="Backups: Open file and Save backup">
         <p>
-          The File group in the More actions menu lets you move logic between
-          machines or save a checkpoint before a risky refactor. These entries
-          appear in local mode; cloud mode persists through autosave and
-          publishing instead.
+          Open file and Save backup live under This logic in the More actions
+          menu, and let you move logic between machines or save a checkpoint
+          before a risky refactor. These entries appear in local mode; cloud
+          mode persists through autosave and publishing instead.
         </p>
         <FeatureGrid
           items={[
@@ -161,11 +160,6 @@ export function EvaluationPage() {
               icon: Upload,
               title: 'Open file',
               body: 'Loads a JSON file produced by Save backup. Validation runs immediately so a malformed file cannot corrupt the editor.',
-            },
-            {
-              icon: FileSpreadsheet,
-              title: 'New',
-              body: 'Clears the current draft. In local mode this is destructive — save a backup first if you want to keep the work.',
             },
           ]}
         />

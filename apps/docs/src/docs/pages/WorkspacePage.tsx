@@ -95,22 +95,22 @@ export function WorkspacePage() {
         <p>
           Organization settings live at <code>/settings/org</code> and are
           reachable from the Account and workspace menu in the editor header.
-          Only owners and admins can open the page. It is where membership,
-          invitations, and roles are managed.
+          Only owners and admins can open the page. It is split into three tabs:
+          General, Members, and Workspaces.
         </p>
         <DefinitionList
           items={[
             [
+              'General tab',
+              'Edit the organization name and slug. The slug is unique across LEVERIE, so a clash is reported rather than silently saved.',
+            ],
+            [
               'Members tab',
-              'Lists every active member with their email, role, and the date they joined. Role changes and removals happen here.',
+              'Lists every active member with their email, role, and join date — role changes and removals happen here. The same tab shows pending invitations (revoke one sent in error) and the invite-by-email form, which sends a tokenized invitation the recipient accepts by signing in or up.',
             ],
             [
-              'Pending invitations',
-              'Shows invitations sent but not yet accepted. You can revoke a pending invitation if it was sent in error.',
-            ],
-            [
-              'Invite by email',
-              'Sends a tokenized invitation. The recipient signs in or signs up; the system attaches them to your organization on acceptance.',
+              'Workspaces tab',
+              'Lists the workspaces in the organization and links each to its own workspace settings page.',
             ],
           ]}
         />
@@ -119,21 +119,23 @@ export function WorkspacePage() {
       <DocSection title="Workspace settings">
         <p>
           Workspace settings live at <code>/settings/workspace</code>. They are
-          also owner and admin only. The most common reason to open this page is
-          to issue or revoke <a href={pageHref('api-keys')}>API keys</a>, which
-          are scoped to a single workspace.
+          also owner and admin only, and split into two tabs: General and API
+          keys. The most common reason to open this page is to issue or revoke{' '}
+          <a href={pageHref('api-keys')}>API keys</a>, which are scoped to a
+          single workspace. A header link jumps back to the organization
+          settings for the same org.
         </p>
         <FeatureGrid
           items={[
             {
+              icon: Building2,
+              title: 'General tab',
+              body: 'Edit the workspace name and description. To move between workspaces, open the org settings Workspaces tab and pick one.',
+            },
+            {
               icon: KeyRound,
               title: 'API key list',
               body: 'Shows every active key, its prefix, scope, role, who created it, and when it was last used. The full secret is only shown once at creation time.',
-            },
-            {
-              icon: Building2,
-              title: 'Workspace picker',
-              body: 'If the organization owns more than one workspace, switch between them at the top of the page.',
             },
             {
               icon: ShieldCheck,

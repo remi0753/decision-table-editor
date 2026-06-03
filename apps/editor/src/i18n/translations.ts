@@ -121,14 +121,36 @@ export type TranslationSet = {
   logicIdPlaceholder: string;
   logicIdHint: string;
   logicIdInvalid: string;
+  logicIdTaken: string;
+  logicNameTaken: string;
+  logicLimitReached: string;
   createCloudLogicSubmit: string;
   cancel: string;
+  save: string;
   useSelectedWorkspace: string;
   connecting: string;
   newLogicSourceLabel: string;
   newLogicFromLocalDraft: string;
   newLogicBlank: string;
   newLogicFromLocalDraftHint: string;
+  logicDialogTitle: string;
+  logicEditTitle: string;
+  logicSearchPlaceholder: string;
+  openLogic: string;
+  currentLogicBadge: string;
+  editLogic: string;
+  createNewLogic: string;
+  backToLogicList: string;
+  logicListEmpty: string;
+  thisLogicActions: string;
+  duplicateLogic: string;
+  deleteLogic: string;
+  deleteLogicTitle: string;
+  deleteLogicConfirm: (name: string) => string;
+  deleteLogicProductionWarning: string;
+  deleteLogicConfirmButton: string;
+  deleteLogicSuccess: string;
+  logicSlotsUsage: (used: number, limit: number) => string;
 
   // LeftPane
   logicNameLabel: string;
@@ -148,6 +170,12 @@ export type TranslationSet = {
 
   // FieldsSection
   fieldDefinitions: string;
+  addField: string;
+  createFieldTitle: string;
+  editFieldTitle: string;
+  fieldNameLabel: string;
+  fieldTypeLabel: string;
+  enumValuesLabel: string;
   fieldNameRequired: string;
   fieldTypes: {
     string: string;
@@ -504,8 +532,13 @@ export const translations: Record<Lang, TranslationSet> = {
     logicIdHint:
       'Use lowercase letters, numbers, and hyphens only. It must start and end with a letter or number, up to 63 characters.',
     logicIdInvalid: 'Logic ID is not in an allowed format.',
+    logicIdTaken: 'This logic ID is already used in this workspace.',
+    logicNameTaken: 'A logic with this name already exists in this workspace.',
+    logicLimitReached:
+      "You've reached your logic limit. Delete a logic to free a slot.",
     createCloudLogicSubmit: 'Create',
     cancel: 'Cancel',
+    save: 'Save',
     useSelectedWorkspace: 'Use selected workspace',
     connecting: 'Connecting...',
     newLogicSourceLabel: 'Start this logic from',
@@ -513,6 +546,26 @@ export const translations: Record<Lang, TranslationSet> = {
     newLogicBlank: 'A blank logic',
     newLogicFromLocalDraftHint:
       'Carry over the work from your local session as a new cloud logic.',
+    logicDialogTitle: 'Logics',
+    logicEditTitle: 'Edit logic',
+    logicSearchPlaceholder: 'Search logics...',
+    openLogic: 'Open',
+    currentLogicBadge: 'Current',
+    editLogic: 'Edit logic',
+    createNewLogic: 'Create new logic',
+    backToLogicList: 'Back to logics',
+    logicListEmpty: 'No logics found.',
+    thisLogicActions: 'This logic',
+    duplicateLogic: 'Duplicate',
+    deleteLogic: 'Delete',
+    deleteLogicTitle: 'Delete logic',
+    deleteLogicConfirm: (name) =>
+      `Delete "${name}"? This removes it for everyone in the workspace and cannot be undone here.`,
+    deleteLogicProductionWarning:
+      'This logic has a published version that may be in use by Runners or the API.',
+    deleteLogicConfirmButton: 'Delete logic',
+    deleteLogicSuccess: 'Logic deleted.',
+    logicSlotsUsage: (used, limit) => `${used} of ${limit} logic slots used`,
 
     logicNameLabel: 'Logic Name',
     logicNamePlaceholder: 'Logic name',
@@ -529,6 +582,12 @@ export const translations: Record<Lang, TranslationSet> = {
     selectTable: 'Select a table.',
 
     fieldDefinitions: 'Field Definitions',
+    addField: 'Add field',
+    createFieldTitle: 'Add field',
+    editFieldTitle: 'Edit field',
+    fieldNameLabel: 'Field name',
+    fieldTypeLabel: 'Field type',
+    enumValuesLabel: 'Enum values',
     fieldNameRequired: 'Please enter a field name.',
     fieldTypes: {
       string: 'Text',
@@ -900,8 +959,13 @@ export const translations: Record<Lang, TranslationSet> = {
     logicIdHint:
       '半角小文字英数字とハイフンのみ使用できます。先頭と末尾は英数字、最大63文字です。',
     logicIdInvalid: 'ロジックIDの形式が正しくありません。',
+    logicIdTaken: 'このロジックIDはワークスペース内で既に使われています。',
+    logicNameTaken: 'この名前のロジックはワークスペース内に既に存在します。',
+    logicLimitReached:
+      'ロジックの作成上限に達しています。枠を空けるには既存のロジックを削除してください。',
     createCloudLogicSubmit: '作成',
     cancel: 'キャンセル',
+    save: '保存',
     useSelectedWorkspace: '選択したワークスペースを使う',
     connecting: '接続中...',
     newLogicSourceLabel: 'このロジックの開始元',
@@ -909,6 +973,27 @@ export const translations: Record<Lang, TranslationSet> = {
     newLogicBlank: '空のロジック',
     newLogicFromLocalDraftHint:
       'ローカルで作業していた内容を新しいクラウドロジックとして引き継ぎます。',
+    logicDialogTitle: 'ロジック',
+    logicEditTitle: 'ロジック編集',
+    logicSearchPlaceholder: 'ロジックを検索...',
+    openLogic: '開く',
+    currentLogicBadge: '使用中',
+    editLogic: 'ロジックを編集',
+    createNewLogic: '新規ロジック作成',
+    backToLogicList: '一覧へ戻る',
+    logicListEmpty: 'ロジックが見つかりません。',
+    thisLogicActions: 'このロジック',
+    duplicateLogic: '複製',
+    deleteLogic: '削除',
+    deleteLogicTitle: 'ロジックを削除',
+    deleteLogicConfirm: (name) =>
+      `「${name}」を削除しますか？ワークスペースの全員から削除され、ここから元に戻すことはできません。`,
+    deleteLogicProductionWarning:
+      'このロジックには公開済みバージョンがあり、ランナーやAPIで利用中の可能性があります。',
+    deleteLogicConfirmButton: 'ロジックを削除',
+    deleteLogicSuccess: 'ロジックを削除しました。',
+    logicSlotsUsage: (used, limit) =>
+      `ロジック作成枠 ${used} / ${limit} 使用中`,
 
     logicNameLabel: 'ロジック名',
     logicNamePlaceholder: 'ロジック名',
@@ -925,6 +1010,12 @@ export const translations: Record<Lang, TranslationSet> = {
     selectTable: 'テーブルを選択してください。',
 
     fieldDefinitions: 'フィールド定義',
+    addField: 'フィールドを追加',
+    createFieldTitle: 'フィールドを追加',
+    editFieldTitle: 'フィールドを編集',
+    fieldNameLabel: 'フィールド名',
+    fieldTypeLabel: 'フィールド型',
+    enumValuesLabel: '選択肢',
     fieldNameRequired: 'フィールド名を入力してください。',
     fieldTypes: {
       string: 'テキスト',
