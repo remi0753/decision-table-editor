@@ -1,6 +1,6 @@
 import type { FieldDef, FieldType } from '@leverie/engine';
 import * as Dialog from '@radix-ui/react-dialog';
-import { FileText, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -22,6 +22,10 @@ export function FieldsSection() {
   const [editorTarget, setEditorTarget] = useState<EditorTarget | null>(null);
   const [draftName, setDraftName] = useState('');
   const [draftType, setDraftType] = useState<FieldType>('string');
+  // Enum choices for the "new" editor. The field does not exist yet, so we
+  // collect them locally and hand them to addField on save. (Edit mode mutates
+  // the store directly via the existing enum actions.)
+  const [draftEnumValues, setDraftEnumValues] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     id: string;
     name: string;
@@ -38,6 +42,9 @@ export function FieldsSection() {
   const renameField = useLogicStore((s) => s.renameField);
   const changeFieldType = useLogicStore((s) => s.changeFieldType);
   const deleteField = useLogicStore((s) => s.deleteField);
+  const addEnumValue = useLogicStore((s) => s.addEnumValue);
+  const renameEnumValue = useLogicStore((s) => s.renameEnumValue);
+  const deleteEnumValue = useLogicStore((s) => s.deleteEnumValue);
   const t = useT();
 
   const fieldDefs = Object.values(logic.fieldDefs);
@@ -65,6 +72,7 @@ export function FieldsSection() {
     if (editorTarget.mode === 'new') {
       setDraftName('');
       setDraftType('string');
+      setDraftEnumValues([]);
       return;
     }
     const field = logic.fieldDefs[editorTarget.fieldId];
@@ -135,7 +143,7 @@ export function FieldsSection() {
       const result = addField(
         name,
         draftType,
-        draftType === 'enum' ? [] : undefined,
+        draftType === 'enum' ? draftEnumValues : undefined,
       );
       if (result.error) {
         toast.error(result.error);
@@ -191,7 +199,6 @@ export function FieldsSection() {
             onClick={() => openEditEditor(field)}
             className="group flex w-full min-w-0 items-center gap-2 px-3 py-2 text-left hover:bg-surface-muted focus:outline-none focus:ring-1 focus:ring-inset focus:ring-brand-ring"
           >
-            <FileText className="h-3.5 w-3.5 shrink-0 text-fg-faint" />
             <span className="min-w-0 flex-1 truncate text-sm text-fg-secondary">
               {field.name}
             </span>
@@ -271,18 +278,48 @@ export function FieldsSection() {
                   </select>
                 </label>
 
-                {editorTarget?.mode === 'edit' &&
-                editingField &&
-                draftType === 'enum' ? (
+                {draftType === 'enum' &&
+                (editorTarget?.mode === 'new' || editingField) ? (
                   <div>
                     <div className="mb-1 text-xs font-medium text-fg-muted">
                       {t.enumValuesLabel}
                     </div>
                     <div className="rounded border border-line bg-surface-muted p-2">
-                      <EnumValuesEditor
-                        fieldId={editingField.id}
-                        enumValues={editingField.enumValues ?? []}
-                      />
+                      {editingField ? (
+                        <EnumValuesEditor
+                          enumValues={editingField.enumValues ?? []}
+                          onAdd={(value) =>
+                            addEnumValue(editingField.id, value)
+                          }
+                          onRename={(oldValue, newValue) =>
+                            renameEnumValue(editingField.id, oldValue, newValue)
+                          }
+                          onDelete={(value) => {
+                            const result = deleteEnumValue(
+                              editingField.id,
+                              value,
+                            );
+                            if (result.error) toast.error(result.error);
+                          }}
+                        />
+                      ) : (
+                        <EnumValuesEditor
+                          enumValues={draftEnumValues}
+                          onAdd={(value) =>
+                            setDraftEnumValues((prev) => [...prev, value])
+                          }
+                          onRename={(oldValue, newValue) =>
+                            setDraftEnumValues((prev) =>
+                              prev.map((v) => (v === oldValue ? newValue : v)),
+                            )
+                          }
+                          onDelete={(value) =>
+                            setDraftEnumValues((prev) =>
+                              prev.filter((v) => v !== value),
+                            )
+                          }
+                        />
+                      )}
                     </div>
                   </div>
                 ) : null}
