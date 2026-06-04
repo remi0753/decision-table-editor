@@ -43,6 +43,17 @@ export const createInitialLogic = (): Logic => {
   };
 };
 
+// Clear all editable content (fields, tables, rows) back to a blank canvas
+// while keeping the logic's identity (name / description) intact, so "start
+// over" empties the work without losing what the logic is called.
+export const clearLogicContent = (logic: Logic): Logic => ({
+  ...createInitialLogic(),
+  name: logic.name,
+  ...(logic.description !== undefined
+    ? { description: logic.description }
+    : {}),
+});
+
 interface LogicStore {
   logic: Logic;
 
@@ -110,7 +121,7 @@ export const useLogicStore = create<LogicStore>((set, get) => ({
   setEntryTable: (entryTableId) =>
     set((s) => ({ logic: { ...s.logic, entryTableId } })),
   importLogic: (logic) => set({ logic }),
-  resetLogic: () => set({ logic: createInitialLogic() }),
+  resetLogic: () => set((s) => ({ logic: clearLogicContent(s.logic) })),
 
   addTable: () => {
     const t = getT();

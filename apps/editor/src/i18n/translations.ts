@@ -14,6 +14,9 @@ export type TranslationSet = {
   newCreate: string;
   importBtn: string;
   exportBtn: string;
+  startOver: string;
+  startOverConfirm: string;
+  startOverDone: string;
   undo: string;
   redo: string;
   moreActions: string;
@@ -407,6 +410,10 @@ export const translations: Record<Lang, TranslationSet> = {
     newCreate: 'New',
     importBtn: 'Open file',
     exportBtn: 'Save backup',
+    startOver: 'Start over',
+    startOverConfirm:
+      'Clear all fields, tables, and rows to start from scratch?\nThe logic name and description are kept. This cannot be undone.',
+    startOverDone: 'Cleared. You can start editing from scratch.',
     undo: 'Undo (⌘Z)',
     redo: 'Redo (⇧⌘Z)',
     moreActions: 'More actions',
@@ -837,6 +844,10 @@ export const translations: Record<Lang, TranslationSet> = {
     newCreate: '新規作成',
     importBtn: 'ファイルを開く',
     exportBtn: 'バックアップを保存',
+    startOver: '最初からやり直す',
+    startOverConfirm:
+      'すべてのフィールド・テーブル・行をクリアして最初からやり直しますか？\nロジック名と説明はそのまま残ります。この操作は取り消せません。',
+    startOverDone: 'クリアしました。最初から編集できます。',
     undo: '元に戻す（⌘Z）',
     redo: 'やり直し（⇧⌘Z）',
     moreActions: 'その他の操作',

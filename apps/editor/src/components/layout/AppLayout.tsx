@@ -11,6 +11,7 @@ import {
   Menu,
   Redo2,
   Rocket,
+  RotateCcw,
   Share2,
   Trash2,
   Undo2,
@@ -50,7 +51,11 @@ import {
   undo,
   useHistoryStore,
 } from '@/store/historyStore';
-import { createInitialLogic, useLogicStore } from '@/store/logicStore';
+import {
+  clearLogicContent,
+  createInitialLogic,
+  useLogicStore,
+} from '@/store/logicStore';
 import { useUiStore } from '@/store/uiStore';
 import { LeftPane } from './LeftPane';
 import { RightPane } from './RightPane';
@@ -199,6 +204,12 @@ export function AppLayout({
     if (!window.confirm(t.replaceWithSampleConfirm(sampleLogic.name))) return;
     applyLogicToEditor(sampleLogic);
     toast.success(t.sampleLoaded(sampleLogic.name));
+  };
+
+  const handleStartOver = () => {
+    if (!window.confirm(t.startOverConfirm)) return;
+    applyLogicToEditor(clearLogicContent(logic));
+    toast.success(t.startOverDone);
   };
 
   const trimmedNewLogicName = newLogicName.trim();
@@ -456,6 +467,13 @@ export function AppLayout({
                         >
                           <Download className="h-4 w-4 text-fg-faint" />
                           <span>{t.exportBtn}</span>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onSelect={handleStartOver}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                        >
+                          <RotateCcw className="h-4 w-4 text-fg-faint" />
+                          <span>{t.startOver}</span>
                         </DropdownMenu.Item>
                       </>
                     ) : null}
