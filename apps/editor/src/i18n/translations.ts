@@ -16,6 +16,7 @@ export type TranslationSet = {
   exportBtn: string;
   startOver: string;
   startOverConfirm: string;
+  startOverConfirmCloud: string;
   startOverDone: string;
   undo: string;
   redo: string;
@@ -412,7 +413,9 @@ export const translations: Record<Lang, TranslationSet> = {
     exportBtn: 'Save backup',
     startOver: 'Start over',
     startOverConfirm:
-      'Clear all fields, tables, and rows to start from scratch?\nThe logic name and description are kept. This cannot be undone.',
+      'Clear all fields, tables, and rows to start from scratch?\nThe logic name and description are kept. You can undo this.',
+    startOverConfirmCloud:
+      'Clear all fields, tables, and rows to start the draft from scratch?\nThe name and description are kept, and your published version stays live until you publish again. You can undo this.',
     startOverDone: 'Cleared. You can start editing from scratch.',
     undo: 'Undo (⌘Z)',
     redo: 'Redo (⇧⌘Z)',
@@ -846,7 +849,9 @@ export const translations: Record<Lang, TranslationSet> = {
     exportBtn: 'バックアップを保存',
     startOver: '最初からやり直す',
     startOverConfirm:
-      'すべてのフィールド・テーブル・行をクリアして最初からやり直しますか？\nロジック名と説明はそのまま残ります。この操作は取り消せません。',
+      'すべてのフィールド・テーブル・行をクリアして最初からやり直しますか？\nロジック名と説明はそのまま残ります。この操作は取り消せます（Undo）。',
+    startOverConfirmCloud:
+      'すべてのフィールド・テーブル・行をクリアして、ドラフトを最初からやり直しますか？\nロジック名と説明は残り、公開版は次に Publish するまでそのまま稼働します。この操作は取り消せます（Undo）。',
     startOverDone: 'クリアしました。最初から編集できます。',
     undo: '元に戻す（⌘Z）',
     redo: 'やり直し（⇧⌘Z）',

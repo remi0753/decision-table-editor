@@ -207,8 +207,22 @@ export function AppLayout({
   };
 
   const handleStartOver = () => {
-    if (!window.confirm(t.startOverConfirm)) return;
-    applyLogicToEditor(clearLogicContent(logic));
+    const confirmMessage = isLocalMode
+      ? t.startOverConfirm
+      : t.startOverConfirmCloud;
+    if (!window.confirm(confirmMessage)) return;
+    // Unlike loading a different logic, starting over stays within the same
+    // logic identity, so keep the undo stack: importLogic records the change
+    // (history subscription) and clearHistory() is intentionally skipped so
+    // ⌘Z restores the pre-clear state. The cloud draft autosave then persists
+    // whichever state is current, keeping view and saved draft in sync.
+    const next = clearLogicContent(logic);
+    importLogic(next);
+    setSelectedTable(next.entryTableId);
+    clearEvalInputs();
+    clearEvalResult();
+    clearBatch();
+    setEvalDrawerOpen(true);
     toast.success(t.startOverDone);
   };
 
@@ -261,6 +275,10 @@ export function AppLayout({
   const deletableCloudLogic =
     cloudMode === 'cloud' && Boolean(logicId) && logicCanDelete;
   const isLocalMode = cloudMode === 'local';
+  // Start over clears the working content of the current logic, so it's offered
+  // whenever that content is editable: local drafts, or cloud logics the user
+  // can edit. In cloud it only touches the draft, never the published version.
+  const canStartOver = isLocalMode || editableCloudLogic;
   // Each account has a fixed logic-slot budget; once it's full the server
   // rejects creation, so disable Duplicate up front instead of failing on click.
   const atLogicLimit =
@@ -468,14 +486,16 @@ export function AppLayout({
                           <Download className="h-4 w-4 text-fg-faint" />
                           <span>{t.exportBtn}</span>
                         </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          onSelect={handleStartOver}
-                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
-                        >
-                          <RotateCcw className="h-4 w-4 text-fg-faint" />
-                          <span>{t.startOver}</span>
-                        </DropdownMenu.Item>
                       </>
+                    ) : null}
+                    {canStartOver ? (
+                      <DropdownMenu.Item
+                        onSelect={handleStartOver}
+                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                      >
+                        <RotateCcw className="h-4 w-4 text-fg-faint" />
+                        <span>{t.startOver}</span>
+                      </DropdownMenu.Item>
                     ) : null}
                     {deletableCloudLogic ? (
                       <DropdownMenu.Item
