@@ -35,6 +35,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useCloudAutoSave } from '@/hooks/useCloudAutoSave';
+import { useConfirm } from '@/hooks/useConfirm';
 import { exportLogic, useImportLogic } from '@/hooks/useImportExport';
 import { useAutoSave } from '@/hooks/useLocalStorage';
 import type { Lang } from '@/i18n/translations';
@@ -132,6 +133,7 @@ export function AppLayout({
   const deleteCloudLogic = useCloudStore((s) => s.deleteCloudLogic);
   const publishCloudLogic = useCloudStore((s) => s.publishCloudLogic);
   const t = useT();
+  const { confirm, confirmDialog } = useConfirm();
   const [sampleGalleryOpen, setSampleGalleryOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [logicDialogOpen, setLogicDialogOpen] = useState(false);
@@ -192,18 +194,31 @@ export function AppLayout({
     setNewCloudLogicOpen(true);
   };
 
-  const handleCreateFromSample = (sampleLogic: Logic) => {
+  const handleCreateFromSample = async (sampleLogic: Logic) => {
     if (cloudMode === 'cloud') {
       void openNewLogicDialog(sampleLogic);
       return;
     }
-    if (!window.confirm(t.createSampleLocalConfirm(sampleLogic.name))) return;
+    if (
+      !(await confirm({
+        title: t.createFromSample,
+        description: t.createSampleLocalConfirm(sampleLogic.name),
+      }))
+    )
+      return;
     applyLogicToEditor(sampleLogic);
     toast.success(t.sampleLoaded(sampleLogic.name));
   };
 
-  const handleReplaceWithSample = (sampleLogic: Logic) => {
-    if (!window.confirm(t.replaceWithSampleConfirm(sampleLogic.name))) return;
+  const handleReplaceWithSample = async (sampleLogic: Logic) => {
+    if (
+      !(await confirm({
+        title: t.replaceWithSample,
+        description: t.replaceWithSampleConfirm(sampleLogic.name),
+        destructive: true,
+      }))
+    )
+      return;
     applyLogicToEditor(sampleLogic);
     toast.success(t.sampleLoaded(sampleLogic.name));
   };
@@ -223,11 +238,18 @@ export function AppLayout({
     setEvalDrawerOpen(true);
   };
 
-  const handleStartOver = () => {
+  const handleStartOver = async () => {
     const confirmMessage = isLocalMode
       ? t.startOverConfirm
       : t.startOverConfirmCloud;
-    if (!window.confirm(confirmMessage)) return;
+    if (
+      !(await confirm({
+        title: t.startOver,
+        description: confirmMessage,
+        destructive: true,
+      }))
+    )
+      return;
     applyLogicKeepingHistory(clearLogicContent(logic));
     toast.success(t.startOverDone);
   };
@@ -235,9 +257,13 @@ export function AppLayout({
   const handleRevertToPublished = async () => {
     if (!logicId || !productionVersion) return;
     if (
-      !window.confirm(
-        t.revertToPublishedConfirm(productionVersion.versionNumber),
-      )
+      !(await confirm({
+        title: t.revertToPublished,
+        description: t.revertToPublishedConfirm(
+          productionVersion.versionNumber,
+        ),
+        destructive: true,
+      }))
     )
       return;
     try {
@@ -500,7 +526,7 @@ export function AppLayout({
                           </DropdownMenu.Item>
                         ) : null}
                         <DropdownMenu.Item
-                          onSelect={handleStartOver}
+                          onSelect={() => void handleStartOver()}
                           className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                         >
                           <RotateCcw className="h-4 w-4 text-fg-faint" />
@@ -525,7 +551,7 @@ export function AppLayout({
                           <span>{t.exportBtn}</span>
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
-                          onSelect={handleStartOver}
+                          onSelect={() => void handleStartOver()}
                           className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
                         >
                           <RotateCcw className="h-4 w-4 text-fg-faint" />
@@ -659,6 +685,7 @@ export function AppLayout({
       <LocalOnboarding
         enabled={localOnboardingEnabled && cloudMode === 'local'}
       />
+      {confirmDialog}
       {newCloudLogicOpen ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-6">
           <form
