@@ -7,6 +7,7 @@ import {
   Download,
   FileText,
   FlaskConical,
+  History,
   Loader2,
   Menu,
   Redo2,
@@ -41,6 +42,7 @@ import { useT } from '@/i18n/useT';
 import {
   type CloudLogic,
   type CloudMyLogics,
+  getLogicVersion,
   getMyLogics,
   listLogics,
 } from '@/lib/cloudApi';
@@ -206,24 +208,48 @@ export function AppLayout({
     toast.success(t.sampleLoaded(sampleLogic.name));
   };
 
+  // Like applyLogicToEditor, but keeps the undo stack. Used for in-place
+  // transforms of the *same* logic (start over, revert to published): unlike
+  // loading a different logic, these stay within the current logic identity, so
+  // clearHistory() is intentionally skipped and importLogic records the change
+  // (history subscription) so ⌘Z restores the prior state. The cloud draft
+  // autosave then persists whatever is current, keeping view and draft in sync.
+  const applyLogicKeepingHistory = (nextLogic: Logic) => {
+    importLogic(nextLogic);
+    setSelectedTable(nextLogic.entryTableId);
+    clearEvalInputs();
+    clearEvalResult();
+    clearBatch();
+    setEvalDrawerOpen(true);
+  };
+
   const handleStartOver = () => {
     const confirmMessage = isLocalMode
       ? t.startOverConfirm
       : t.startOverConfirmCloud;
     if (!window.confirm(confirmMessage)) return;
-    // Unlike loading a different logic, starting over stays within the same
-    // logic identity, so keep the undo stack: importLogic records the change
-    // (history subscription) and clearHistory() is intentionally skipped so
-    // ⌘Z restores the pre-clear state. The cloud draft autosave then persists
-    // whichever state is current, keeping view and saved draft in sync.
-    const next = clearLogicContent(logic);
-    importLogic(next);
-    setSelectedTable(next.entryTableId);
-    clearEvalInputs();
-    clearEvalResult();
-    clearBatch();
-    setEvalDrawerOpen(true);
+    applyLogicKeepingHistory(clearLogicContent(logic));
     toast.success(t.startOverDone);
+  };
+
+  const handleRevertToPublished = async () => {
+    if (!logicId || !productionVersion) return;
+    if (
+      !window.confirm(
+        t.revertToPublishedConfirm(productionVersion.versionNumber),
+      )
+    )
+      return;
+    try {
+      const { version } = await getLogicVersion(
+        logicId,
+        productionVersion.versionNumber,
+      );
+      applyLogicKeepingHistory(version.data);
+      toast.success(t.revertToPublishedDone(productionVersion.versionNumber));
+    } catch {
+      toast.error(t.revertToPublishedFailed);
+    }
   };
 
   const trimmedNewLogicName = newLogicName.trim();
@@ -275,10 +301,6 @@ export function AppLayout({
   const deletableCloudLogic =
     cloudMode === 'cloud' && Boolean(logicId) && logicCanDelete;
   const isLocalMode = cloudMode === 'local';
-  // Start over clears the working content of the current logic, so it's offered
-  // whenever that content is editable: local drafts, or cloud logics the user
-  // can edit. In cloud it only touches the draft, never the published version.
-  const canStartOver = isLocalMode || editableCloudLogic;
   // Each account has a fixed logic-slot budget; once it's full the server
   // rejects creation, so disable Duplicate up front instead of failing on click.
   const atLogicLimit =
@@ -468,6 +490,22 @@ export function AppLayout({
                             <span>{t.duplicateLogic}</span>
                           </DropdownMenu.Item>
                         )}
+                        {productionVersion ? (
+                          <DropdownMenu.Item
+                            onSelect={() => void handleRevertToPublished()}
+                            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                          >
+                            <History className="h-4 w-4 text-fg-faint" />
+                            <span>{t.revertToPublished}</span>
+                          </DropdownMenu.Item>
+                        ) : null}
+                        <DropdownMenu.Item
+                          onSelect={handleStartOver}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                        >
+                          <RotateCcw className="h-4 w-4 text-fg-faint" />
+                          <span>{t.resetLogic}</span>
+                        </DropdownMenu.Item>
                       </>
                     ) : null}
                     {isLocalMode ? (
@@ -486,16 +524,14 @@ export function AppLayout({
                           <Download className="h-4 w-4 text-fg-faint" />
                           <span>{t.exportBtn}</span>
                         </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onSelect={handleStartOver}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
+                        >
+                          <RotateCcw className="h-4 w-4 text-fg-faint" />
+                          <span>{t.startOver}</span>
+                        </DropdownMenu.Item>
                       </>
-                    ) : null}
-                    {canStartOver ? (
-                      <DropdownMenu.Item
-                        onSelect={handleStartOver}
-                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-fg-secondary outline-none data-[highlighted]:bg-brand-subtle data-[highlighted]:text-brand-fg-strong"
-                      >
-                        <RotateCcw className="h-4 w-4 text-fg-faint" />
-                        <span>{t.startOver}</span>
-                      </DropdownMenu.Item>
                     ) : null}
                     {deletableCloudLogic ? (
                       <DropdownMenu.Item
