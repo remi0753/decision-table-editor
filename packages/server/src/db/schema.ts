@@ -378,6 +378,7 @@ export const logic = pgTable(
     name: text('name').notNull(),
     description: text('description'),
     draftData: jsonb('draft_data').notNull(),
+    draftWorkspaceConfig: jsonb('draft_workspace_config'),
     draftSchemaVersion: text('draft_schema_version').notNull().default('2'),
     draftRevision: integer('draft_revision').notNull().default(0),
     productionVersionId: uuid('production_version_id'),
@@ -412,6 +413,10 @@ export const logic = pgTable(
       'logic_draft_schema_version_matches_chk',
       sql`jsonb_typeof(${t.draftData}->'version') = 'string'
           AND ${t.draftSchemaVersion} = ${t.draftData}->>'version'`,
+    ),
+    check(
+      'logic_draft_workspace_config_object_chk',
+      sql`${t.draftWorkspaceConfig} IS NULL OR jsonb_typeof(${t.draftWorkspaceConfig}) = 'object'`,
     ),
     check(
       'logic_created_actor_type_chk',
@@ -466,6 +471,7 @@ export const logicVersion = pgTable(
     versionNumber: integer('version_number').notNull(),
     schemaVersion: text('schema_version').notNull().default('2'),
     data: jsonb('data').notNull(),
+    workspaceConfig: jsonb('workspace_config'),
     releaseNotes: text('release_notes'),
     publishedAt: timestamp('published_at', { withTimezone: true })
       .notNull()
@@ -482,6 +488,10 @@ export const logicVersion = pgTable(
       'logic_version_schema_version_matches_chk',
       sql`jsonb_typeof(${t.data}->'version') = 'string'
           AND ${t.schemaVersion} = ${t.data}->>'version'`,
+    ),
+    check(
+      'logic_version_workspace_config_object_chk',
+      sql`${t.workspaceConfig} IS NULL OR jsonb_typeof(${t.workspaceConfig}) = 'object'`,
     ),
     check(
       'logic_version_release_notes_length_chk',

@@ -1,4 +1,4 @@
-import { LogicRunner } from '@leverie/ui-runtime';
+import { WorkspaceRunner } from '@leverie/ui-runtime';
 import { ArrowLeft, ExternalLink, LockKeyhole, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import logoUrl from '@/assets/logo.svg';
@@ -30,6 +30,15 @@ function formatPublishedAt(value: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function runnerInitialValues(): Record<string, string> {
+  const params = new URLSearchParams(window.location.search);
+  const values: Record<string, string> = {};
+  for (const [key, value] of params.entries()) {
+    values[key] = value;
+  }
+  return values;
 }
 
 export function RunnerPage() {
@@ -156,10 +165,14 @@ export function RunnerPage() {
           </div>
 
           <section className="rounded border border-line bg-surface p-5 shadow-sm">
-            <LogicRunner
+            <WorkspaceRunner
               logic={state.data.version.data}
-              runLabel="Run review"
-              resetLabel="Reset inputs"
+              workspaceConfig={state.data.version.workspaceConfig ?? undefined}
+              initialValues={runnerInitialValues()}
+              versionLabel={`v${state.data.version.versionNumber}`}
+              publishedAtLabel={formatPublishedAt(
+                state.data.version.publishedAt,
+              )}
             />
           </section>
         </main>

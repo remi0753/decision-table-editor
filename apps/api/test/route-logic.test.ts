@@ -259,6 +259,7 @@ function makeLogicRow(
     name: 'Approval',
     description: null,
     draftData: data,
+    draftWorkspaceConfig: null,
     draftSchemaVersion: '2',
     draftRevision: 3,
     productionVersionId: 'version-2',
@@ -311,6 +312,8 @@ function makeVersionRow(versionNumber = 2) {
     versionNumber,
     schemaVersion: '2',
     releaseNotes: null,
+    data: makeLogic(),
+    workspaceConfig: null,
     publishedAt: new Date('2026-05-22T00:00:00.000Z'),
     publishedActorType: 'user',
     publishedActorId: ownerUser.id,
@@ -996,6 +999,15 @@ describe('logic route behavior', () => {
 
   it('creates a validated logic draft with canonical schema metadata', async () => {
     const data = makeLogic();
+    const workspaceConfig = {
+      version: '1',
+      fields: {
+        f1: {
+          fieldId: 'f1',
+          question: 'What is the request amount?',
+        },
+      },
+    };
     currentDb = createFakeDb({
       select: [
         [
@@ -1019,6 +1031,7 @@ describe('logic route behavior', () => {
           slug: 'Approval Logic',
           description: 'Cloud draft',
           data,
+          workspaceConfig,
         },
         { method: 'POST' },
       ),
@@ -1033,8 +1046,12 @@ describe('logic route behavior', () => {
       name: 'Approval',
       description: 'Cloud draft',
       draftData: data,
+      draftWorkspaceConfig: workspaceConfig,
       draftSchemaVersion: '2',
       draftRevision: 1,
+    });
+    expect(currentDb.writes[0]?.values).toMatchObject({
+      draftWorkspaceConfig: workspaceConfig,
     });
     expect(currentDb.writes).toHaveLength(2);
     expect(currentDb.writes[1]?.values).toMatchObject({
@@ -1153,6 +1170,102 @@ describe('logic route behavior', () => {
       error: { code: 'draft_revision_conflict' },
     });
     expect(currentDb.writes).toHaveLength(0);
+  });
+
+  it('updates workspace config as a draft revision', async () => {
+    const data = makeLogic();
+    const workspaceConfig = {
+      version: '1',
+      fields: {
+        f1: {
+          fieldId: 'f1',
+          question: 'How much is the request?',
+        },
+      },
+    };
+    currentDb = createFakeDb({
+      select: [
+        [
+          {
+            logic: makeLogicRow(data, {
+              draftRevision: 3,
+              draftWorkspaceConfig: null,
+            }),
+            workspace: makeWorkspaceRow(),
+          },
+        ],
+        [membership('editor')],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(
+        '/api/logics/logic-1',
+        { draftRevision: 3, workspaceConfig },
+        { method: 'PATCH' },
+      ),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      logic: {
+        draftRevision: 4,
+        draftWorkspaceConfig: workspaceConfig,
+      },
+    });
+    expect(currentDb.writes[0]?.set).toMatchObject({
+      draftWorkspaceConfig: workspaceConfig,
+      draftRevision: 4,
+      draftUpdatedActorType: 'user',
+    });
+  });
+
+  it('returns published workspace config from the runner endpoint', async () => {
+    const data = makeLogic();
+    const logicId = '44444444-4444-4444-4444-444444444444';
+    const workspaceConfig = {
+      version: '1',
+      fields: {
+        f1: { fieldId: 'f1', question: 'What is the amount?' },
+      },
+    };
+    currentDb = createFakeDb({
+      select: [
+        [makeWorkspaceRow()],
+        [membership('runner')],
+        [
+          {
+            logic: makeLogicRow(data, { id: logicId }),
+            version: {
+              ...makeVersionRow(2),
+              logicId,
+              data,
+              workspaceConfig,
+            },
+          },
+        ],
+      ],
+    });
+    const app = await loadApp();
+
+    const response = await app.fetch(
+      jsonRequest(`/api/run/workspace-1/${logicId}@v2`),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      version: {
+        data,
+        workspaceConfig,
+      },
+      runner: {
+        role: 'runner',
+        canEdit: false,
+      },
+    });
   });
 
   it('returns a stable runner URL for the production version', async () => {

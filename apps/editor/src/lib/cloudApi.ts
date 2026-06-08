@@ -1,4 +1,5 @@
 import type { Logic } from '@leverie/engine';
+import type { WorkspaceConfig } from '@leverie/ui-runtime';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -43,6 +44,7 @@ export type CloudLogic = {
   name: string;
   description?: string | null;
   draftData: Logic;
+  draftWorkspaceConfig?: WorkspaceConfig | null;
   draftRevision: number;
   productionVersionId?: string | null;
   productionVersionNumber?: number | null;
@@ -172,6 +174,7 @@ export type RunnerVersion = CloudVersion & {
   schemaVersion: string;
   releaseNotes?: string | null;
   data: Logic;
+  workspaceConfig?: WorkspaceConfig | null;
 };
 
 export type RunnerLogicResponse = {

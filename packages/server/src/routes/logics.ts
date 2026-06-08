@@ -74,6 +74,7 @@ type WorkspaceRow = typeof workspace.$inferSelect;
 type WorkspaceAccess = MembershipAccess & { workspace: WorkspaceRow };
 type LogicAccess = WorkspaceAccess & { logic: LogicRow };
 type RunnerVersionRow = typeof logicVersion.$inferSelect;
+type WorkspaceConfigJson = Record<string, unknown>;
 type SerializedLogicInput = Pick<
   LogicRow,
   | 'id'
@@ -82,6 +83,7 @@ type SerializedLogicInput = Pick<
   | 'name'
   | 'description'
   | 'draftData'
+  | 'draftWorkspaceConfig'
   | 'draftSchemaVersion'
   | 'draftRevision'
   | 'productionVersionId'
@@ -116,6 +118,7 @@ type PublishRow = {
   logic_name: string;
   logic_description: string | null;
   logic_draft_data: Logic;
+  logic_draft_workspace_config: WorkspaceConfigJson | null;
   logic_draft_schema_version: string;
   logic_draft_revision: number;
   logic_production_version_id: string | null;
@@ -147,6 +150,38 @@ function validateLogicBody(c: AppContext, data: unknown) {
       400,
     ),
   };
+}
+
+function parseWorkspaceConfigBody(c: AppContext, body: unknown) {
+  if (!body || typeof body !== 'object' || !('workspaceConfig' in body)) {
+    return { value: undefined as WorkspaceConfigJson | null | undefined };
+  }
+
+  const value = (body as Record<string, unknown>).workspaceConfig;
+  if (value === null) return { value: null };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {
+      error: jsonError(
+        c,
+        400,
+        'invalid_workspace_config',
+        'Workspace config must be an object or null.',
+      ),
+    };
+  }
+
+  const config = value as WorkspaceConfigJson;
+  if (config.version !== '1') {
+    return {
+      error: jsonError(
+        c,
+        400,
+        'invalid_workspace_config',
+        'Workspace config version must be "1".',
+      ),
+    };
+  }
+  return { value: config };
 }
 
 async function loadWorkspaceAccess(
@@ -208,6 +243,7 @@ function serializeLogic(row: SerializedLogicInput) {
     name: row.name,
     description: row.description,
     draftData: row.draftData,
+    draftWorkspaceConfig: row.draftWorkspaceConfig,
     draftSchemaVersion: row.draftSchemaVersion,
     draftRevision: row.draftRevision,
     productionVersionId: row.productionVersionId,
@@ -243,6 +279,7 @@ function serializeRunnerVersion(row: RunnerVersionRow) {
     publishedActorType: row.publishedActorType,
     publishedActorId: row.publishedActorId,
     data: row.data,
+    workspaceConfig: row.workspaceConfig,
   };
 }
 
@@ -636,6 +673,8 @@ logicRoutes.post('/api/workspaces/:workspaceId/logics', async (c) => {
 
   const validation = validateLogicBody(c, data);
   if ('error' in validation) return validation.error;
+  const workspaceConfig = parseWorkspaceConfigBody(c, body);
+  if ('error' in workspaceConfig) return workspaceConfig.error;
 
   const requestedSlug = parseBodyString(body, 'slug', { max: 63 });
   const baseSlug = requestedSlug
@@ -663,6 +702,7 @@ logicRoutes.post('/api/workspaces/:workspaceId/logics', async (c) => {
         name,
         description,
         draftData: validation.logic,
+        draftWorkspaceConfig: workspaceConfig.value ?? null,
         draftSchemaVersion: validation.logic.version,
         draftRevision: 1,
         draftUpdatedActorType: 'user',
@@ -938,6 +978,10 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
   const slugInput = parseBodyString(body, 'slug', { max: 63 });
   const description = parseBodyString(body, 'description', { max: 500 });
   const draftData = parseBodyObject(body, 'data');
+  const workspaceConfig = parseWorkspaceConfigBody(c, body);
+  if ('error' in workspaceConfig) return workspaceConfig.error;
+  const hasWorkspaceConfigUpdate = workspaceConfig.value !== undefined;
+  const hasDraftUpdate = draftData !== undefined || hasWorkspaceConfigUpdate;
 
   if (name) update.name = name;
   if (description !== undefined) update.description = description ?? null;
@@ -961,6 +1005,14 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
     update.draftUpdatedActorType = 'user';
     update.draftUpdatedActorId = access.user.id;
   }
+  if (hasWorkspaceConfigUpdate) {
+    update.draftWorkspaceConfig = workspaceConfig.value;
+    update.draftRevision =
+      update.draftRevision ?? access.logic.draftRevision + 1;
+    update.draftUpdatedAt = new Date();
+    update.draftUpdatedActorType = 'user';
+    update.draftUpdatedActorId = access.user.id;
+  }
 
   const [updated] = await db
     .update(logic)
@@ -977,7 +1029,7 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
     .returning();
 
   if (!updated) {
-    if (expectedDraftRevision !== undefined && draftData !== undefined) {
+    if (expectedDraftRevision !== undefined && hasDraftUpdate) {
       return jsonError(
         c,
         409,
@@ -993,7 +1045,7 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
     workspaceId: access.logic.workspaceId,
     actorUserId: access.user.id,
     actorPersona: rolePersona[access.member.role],
-    action: draftData === undefined ? 'logic.updated' : 'logic.draft_saved',
+    action: hasDraftUpdate ? 'logic.draft_saved' : 'logic.updated',
     targetType: 'logic',
     targetId: logicId,
     metadata: { draftRevision: updated.draftRevision },
@@ -1110,6 +1162,10 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
   const pinProduction = parseBodyBoolean(body, 'pinProduction', true);
   const validation = validateLogicBody(c, access.logic.draftData);
   if ('error' in validation) return validation.error;
+  const draftWorkspaceConfigJson =
+    access.logic.draftWorkspaceConfig == null
+      ? null
+      : JSON.stringify(access.logic.draftWorkspaceConfig);
 
   let created: SerializedVersion | undefined;
   let updatedLogic: SerializedLogicInput = access.logic;
@@ -1130,6 +1186,7 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
           version_number,
           schema_version,
           data,
+          workspace_config,
           release_notes,
           published_actor_type,
           published_actor_id
@@ -1140,6 +1197,7 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
           next_version.version_number,
           ${validation.logic.version},
           ${JSON.stringify(validation.logic)}::jsonb,
+          ${draftWorkspaceConfigJson}::jsonb,
           ${releaseNotes ?? null},
           'user',
           ${access.user.id}::uuid
@@ -1181,6 +1239,7 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
         logic_result.name AS logic_name,
         logic_result.description AS logic_description,
         logic_result.draft_data AS logic_draft_data,
+        logic_result.draft_workspace_config AS logic_draft_workspace_config,
         logic_result.draft_schema_version AS logic_draft_schema_version,
         logic_result.draft_revision AS logic_draft_revision,
         logic_result.production_version_id AS logic_production_version_id,
@@ -1213,6 +1272,7 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
       name: row.logic_name,
       description: row.logic_description,
       draftData: row.logic_draft_data,
+      draftWorkspaceConfig: row.logic_draft_workspace_config,
       draftSchemaVersion: row.logic_draft_schema_version,
       draftRevision: row.logic_draft_revision,
       productionVersionId: row.logic_production_version_id,
