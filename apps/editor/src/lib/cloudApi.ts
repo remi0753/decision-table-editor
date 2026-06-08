@@ -414,6 +414,12 @@ export async function getMyLogics() {
   return api<CloudMyLogics>('/api/me/logics');
 }
 
+export async function getLogicVersion(logicId: string, versionNumber: number) {
+  return api<{ version: CloudVersion & { data: Logic } }>(
+    `/api/logics/${logicId}/versions/${versionNumber}`,
+  );
+}
+
 export async function deleteLogic(logicId: string) {
   // Send an empty JSON body so the request carries Content-Type: application/json.
   // The CSRF guard rejects state-changing requests that have a body (browsers

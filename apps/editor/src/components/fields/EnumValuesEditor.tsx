@@ -55,7 +55,9 @@ export function EnumValuesEditor({
                 tabIndex={0}
                 contentEditable
                 suppressContentEditableWarning
-                onBlur={(e) => handleRename(v, e.currentTarget.textContent ?? v)}
+                onBlur={(e) =>
+                  handleRename(v, e.currentTarget.textContent ?? v)
+                }
                 onKeyDown={(e) => {
                   if (e.nativeEvent.isComposing) return;
                   if (e.key === 'Enter') {

@@ -14,6 +14,15 @@ export type TranslationSet = {
   newCreate: string;
   importBtn: string;
   exportBtn: string;
+  startOver: string;
+  startOverConfirm: string;
+  startOverConfirmCloud: string;
+  startOverDone: string;
+  resetLogic: string;
+  revertToPublished: string;
+  revertToPublishedConfirm: (versionNumber: number) => string;
+  revertToPublishedDone: (versionNumber: number) => string;
+  revertToPublishedFailed: string;
   undo: string;
   redo: string;
   moreActions: string;
@@ -407,6 +416,19 @@ export const translations: Record<Lang, TranslationSet> = {
     newCreate: 'New',
     importBtn: 'Open file',
     exportBtn: 'Save backup',
+    startOver: 'Start over',
+    startOverConfirm:
+      'Clear all fields, tables, and rows to start from scratch?\nThe logic name and description are kept. You can undo this.',
+    startOverConfirmCloud:
+      'Clear all fields, tables, and rows to reset the draft from scratch?\nThe name and description are kept, and your published version stays live until you publish again. You can undo this.',
+    startOverDone: 'Cleared. You can start editing from scratch.',
+    resetLogic: 'Reset logic',
+    revertToPublished: 'Revert to published',
+    revertToPublishedConfirm: (versionNumber) =>
+      `Discard the current draft and restore the published version (v${versionNumber})?\nThe published version stays live as-is. You can undo this.`,
+    revertToPublishedDone: (versionNumber) =>
+      `Draft restored to published version v${versionNumber}.`,
+    revertToPublishedFailed: 'Could not load the published version.',
     undo: 'Undo (⌘Z)',
     redo: 'Redo (⇧⌘Z)',
     moreActions: 'More actions',
@@ -837,6 +859,19 @@ export const translations: Record<Lang, TranslationSet> = {
     newCreate: '新規作成',
     importBtn: 'ファイルを開く',
     exportBtn: 'バックアップを保存',
+    startOver: '最初からやり直す',
+    startOverConfirm:
+      'すべてのフィールド・テーブル・行をクリアして最初からやり直しますか？\nロジック名と説明はそのまま残ります。この操作は取り消せます（Undo）。',
+    startOverConfirmCloud:
+      'すべてのフィールド・テーブル・行をクリアして、ドラフトをリセットしますか？\nロジック名と説明は残り、公開版は次に Publish するまでそのまま稼働します。この操作は取り消せます（Undo）。',
+    startOverDone: 'クリアしました。最初から編集できます。',
+    resetLogic: 'ロジックをリセットする',
+    revertToPublished: '公開版に戻す',
+    revertToPublishedConfirm: (versionNumber) =>
+      `現在のドラフトを破棄して、公開版（v${versionNumber}）に戻しますか？\n公開版はそのまま稼働し続けます。この操作は取り消せます（Undo）。`,
+    revertToPublishedDone: (versionNumber) =>
+      `ドラフトを公開版 v${versionNumber} に戻しました。`,
+    revertToPublishedFailed: '公開版の読み込みに失敗しました。',
     undo: '元に戻す（⌘Z）',
     redo: 'やり直し（⇧⌘Z）',
     moreActions: 'その他の操作',

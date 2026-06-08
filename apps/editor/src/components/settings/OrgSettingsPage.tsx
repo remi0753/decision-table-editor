@@ -22,6 +22,7 @@ import {
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   CloudApiError,
   type CloudInvitation,
@@ -86,6 +87,7 @@ function invitationStatus(invitation: CloudInvitation) {
 type SettingsTab = 'general' | 'members' | 'workspaces';
 
 export function OrgSettingsPage() {
+  const { confirm, confirmDialog } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -203,7 +205,11 @@ export function OrgSettingsPage() {
   const handleRemoveMember = async (member: CloudMember) => {
     if (!selectedOrg) return;
     if (
-      !window.confirm(`Remove ${member.email} from ${selectedOrg.org.name}?`)
+      !(await confirm({
+        title: 'Remove member',
+        description: `Remove ${member.email} from ${selectedOrg.org.name}?`,
+        destructive: true,
+      }))
     ) {
       return;
     }
@@ -602,6 +608,7 @@ export function OrgSettingsPage() {
           </>
         ) : null}
       </main>
+      {confirmDialog}
     </div>
   );
 }

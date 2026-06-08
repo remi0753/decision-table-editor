@@ -22,6 +22,7 @@ import {
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   CloudApiError,
   type CloudApiKey,
@@ -80,6 +81,7 @@ function formatRelativeUse(value?: string | null) {
 type WorkspaceTab = 'general' | 'apiKeys';
 
 export function WorkspaceSettingsPage() {
+  const { confirm, confirmDialog } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('general');
@@ -281,7 +283,13 @@ export function WorkspaceSettingsPage() {
 
   const handleRevokeApiKey = async (key: CloudApiKey) => {
     if (!selectedWorkspace) return;
-    if (!window.confirm(`Revoke "${key.name}"? This cannot be undone.`)) {
+    if (
+      !(await confirm({
+        title: 'Revoke API key',
+        description: `Revoke "${key.name}"? This cannot be undone.`,
+        destructive: true,
+      }))
+    ) {
       return;
     }
     try {
@@ -754,6 +762,7 @@ export function WorkspaceSettingsPage() {
           </section>
         </div>
       ) : null}
+      {confirmDialog}
     </div>
   );
 }
