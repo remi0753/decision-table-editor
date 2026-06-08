@@ -392,7 +392,7 @@ export async function revokeApiKey(apiKeyId: string) {
 export async function createLogic(
   workspaceId: string,
   logic: Logic,
-  options: { slug?: string } = {},
+  options: { slug?: string; workspaceConfig?: WorkspaceConfig | null } = {},
 ) {
   return api<{ logic: CloudLogic }>(`/api/workspaces/${workspaceId}/logics`, {
     method: 'POST',
@@ -401,6 +401,9 @@ export async function createLogic(
       slug: options.slug,
       description: logic.description,
       data: logic,
+      ...(options.workspaceConfig === undefined
+        ? {}
+        : { workspaceConfig: options.workspaceConfig }),
     },
   });
 }
@@ -447,6 +450,7 @@ export async function saveDraft(input: {
   logicId: string;
   logic: Logic;
   draftRevision: number;
+  workspaceConfig?: WorkspaceConfig | null;
 }) {
   return api<{ logic: CloudLogic }>(`/api/logics/${input.logicId}`, {
     method: 'PATCH',
@@ -455,6 +459,9 @@ export async function saveDraft(input: {
       description: input.logic.description,
       data: input.logic,
       draftRevision: input.draftRevision,
+      ...(input.workspaceConfig === undefined
+        ? {}
+        : { workspaceConfig: input.workspaceConfig }),
     },
   });
 }

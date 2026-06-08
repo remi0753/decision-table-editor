@@ -129,6 +129,7 @@ export function AppLayout({
   const logicCanDelete = useCloudStore((s) => s.logicCanDelete);
   const productionVersion = useCloudStore((s) => s.productionVersion);
   const saveState = useCloudStore((s) => s.saveState);
+  const workspaceConfig = useCloudStore((s) => s.workspaceConfig);
   const createCloudLogicFrom = useCloudStore((s) => s.createCloudLogicFrom);
   const deleteCloudLogic = useCloudStore((s) => s.deleteCloudLogic);
   const publishCloudLogic = useCloudStore((s) => s.publishCloudLogic);
@@ -157,7 +158,7 @@ export function AppLayout({
   // AppLayout only mounts once the viewport supports the editor (or the visitor
   // dismissed the mobile gate); the gate decision lives in EditorRoute.
   useAutoSave(logic, cloudMode === 'local');
-  useCloudAutoSave(logic, true);
+  useCloudAutoSave(logic, workspaceConfig, true);
 
   const prefillNewLogicFrom = (base: Logic, existing: CloudLogic[]) => {
     const name = uniqueLogicNameAmong(base.name, existing);

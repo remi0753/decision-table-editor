@@ -1,4 +1,8 @@
 import type { Logic } from '@leverie/engine';
+import type {
+  WorkspaceConfig,
+  WorkspaceFieldConfig,
+} from '@leverie/ui-runtime';
 import { toast } from 'sonner';
 import { create } from 'zustand';
 import {
@@ -51,8 +55,13 @@ type CloudStore = {
   draftRevision: number | null;
   latestVersion: CloudVersion | null;
   productionVersion: CloudVersion | null;
+  workspaceConfig: WorkspaceConfig | null;
   lastSavedAt: Date | null;
   error: string | null;
+  updateWorkspaceFieldConfig: (
+    fieldId: string,
+    patch: Partial<WorkspaceFieldConfig>,
+  ) => void;
   initializeCloud: (
     localLogic: Logic,
     importLogic: (logic: Logic) => void,
@@ -158,9 +167,43 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   draftRevision: null,
   latestVersion: null,
   productionVersion: null,
+  workspaceConfig: null,
   lastSavedAt: null,
   error: null,
   choices: null,
+
+  updateWorkspaceFieldConfig: (fieldId, patch) => {
+    set((state) => {
+      const current = state.workspaceConfig ?? { version: '1' as const };
+      const fields = { ...(current.fields ?? {}) };
+      const nextField: Partial<WorkspaceFieldConfig> = {
+        ...(fields[fieldId] ?? { fieldId }),
+        ...patch,
+        fieldId,
+      };
+
+      for (const key of Object.keys(nextField) as Array<
+        keyof WorkspaceFieldConfig
+      >) {
+        if (nextField[key] === undefined || nextField[key] === '') {
+          delete nextField[key];
+        }
+      }
+
+      if (Object.keys(nextField).length <= 1) {
+        delete fields[fieldId];
+      } else {
+        fields[fieldId] = nextField as WorkspaceFieldConfig;
+      }
+
+      return {
+        workspaceConfig: {
+          ...current,
+          fields: Object.keys(fields).length === 0 ? undefined : fields,
+        },
+      };
+    });
+  },
 
   initializeCloud: async (_localLogic, importLogic, options) => {
     if (initializeRequest) return initializeRequest;
@@ -191,6 +234,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             org: null,
             orgRole: null,
             choices: null,
+            workspaceConfig: null,
             error: null,
           });
           return;
@@ -271,6 +315,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
                 draftRevision: cloudLogic.draftRevision,
                 latestVersion: cloudResult?.latestVersion ?? null,
                 productionVersion: cloudResult?.productionVersion ?? null,
+                workspaceConfig: cloudLogic.draftWorkspaceConfig ?? null,
                 lastSavedAt: new Date(),
                 error: null,
               });
@@ -306,6 +351,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             org: null,
             orgRole: null,
             choices: null,
+            workspaceConfig: null,
             error: null,
           });
           return;
@@ -404,6 +450,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           draftRevision: cloudLogic.draftRevision,
           latestVersion: cloudResult?.latestVersion ?? null,
           productionVersion: cloudResult?.productionVersion ?? null,
+          workspaceConfig: cloudLogic.draftWorkspaceConfig ?? null,
           lastSavedAt: new Date(),
           error: null,
         });
@@ -427,6 +474,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             draftRevision: null,
             latestVersion: null,
             productionVersion: null,
+            workspaceConfig: null,
             error: null,
           });
           return;
@@ -439,6 +487,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           choices: null,
           latestVersion: null,
           productionVersion: null,
+          workspaceConfig: null,
           error: apiErrorMessage(error),
         });
       } finally {
@@ -517,6 +566,8 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         draftRevision: (cloudResult?.logic ?? cloudLogic).draftRevision,
         latestVersion: cloudResult?.latestVersion ?? null,
         productionVersion: cloudResult?.productionVersion ?? null,
+        workspaceConfig:
+          (cloudResult?.logic ?? cloudLogic).draftWorkspaceConfig ?? null,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -548,6 +599,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         draftRevision: null,
         latestVersion: null,
         productionVersion: null,
+        workspaceConfig: null,
         lastSavedAt: null,
         error: null,
       });
@@ -576,6 +628,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         draftRevision: result.logic.draftRevision,
         latestVersion: null,
         productionVersion: null,
+        workspaceConfig: result.logic.draftWorkspaceConfig ?? null,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -601,6 +654,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         draftRevision: cloudResult.logic.draftRevision,
         latestVersion: cloudResult.latestVersion,
         productionVersion: cloudResult.productionVersion,
+        workspaceConfig: cloudResult.logic.draftWorkspaceConfig ?? null,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -640,6 +694,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
             draftRevision: cloudResult.logic.draftRevision,
             latestVersion: cloudResult.latestVersion,
             productionVersion: cloudResult.productionVersion,
+            workspaceConfig: cloudResult.logic.draftWorkspaceConfig ?? null,
             lastSavedAt: new Date(),
             error: null,
           });
@@ -658,21 +713,28 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       draftRevision: null,
       latestVersion: null,
       productionVersion: null,
+      workspaceConfig: null,
       lastSavedAt: null,
       error: null,
     });
   },
 
   saveCloudDraft: async (logic) => {
-    const { logicId, draftRevision, mode } = get();
+    const { logicId, draftRevision, mode, workspaceConfig } = get();
     if (mode !== 'cloud' || !logicId || draftRevision === null) return;
 
     set({ saveState: 'saving', error: null });
     try {
-      const result = await saveDraft({ logicId, logic, draftRevision });
+      const result = await saveDraft({
+        logicId,
+        logic,
+        draftRevision,
+        workspaceConfig,
+      });
       set({
         saveState: 'saved',
         draftRevision: result.logic.draftRevision,
+        workspaceConfig: result.logic.draftWorkspaceConfig ?? null,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -695,7 +757,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
     set({ saveState: 'saving', error: null });
     try {
       if (currentLogic) {
-        const { draftRevision } = get();
+        const { draftRevision, workspaceConfig } = get();
         if (draftRevision === null) {
           throw new Error('Cloud draft revision is missing.');
         }
@@ -703,9 +765,11 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
           logicId,
           logic: currentLogic,
           draftRevision,
+          workspaceConfig,
         });
         set({
           draftRevision: saved.logic.draftRevision,
+          workspaceConfig: saved.logic.draftWorkspaceConfig ?? null,
           lastSavedAt: new Date(),
         });
       }
@@ -715,6 +779,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
         draftRevision: result.logic.draftRevision,
         latestVersion: result.version,
         productionVersion: result.version,
+        workspaceConfig: result.logic.draftWorkspaceConfig ?? null,
         lastSavedAt: new Date(),
         error: null,
       });
@@ -740,6 +805,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
       draftRevision: null,
       latestVersion: null,
       productionVersion: null,
+      workspaceConfig: null,
       lastSavedAt: null,
       error: null,
     });

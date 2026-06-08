@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useT } from '@/i18n/useT';
 import { cn } from '@/lib/utils';
+import { useCloudStore } from '@/store/cloudStore';
 import { useLogicStore } from '@/store/logicStore';
 import { EnumValuesEditor } from './EnumValuesEditor';
 
@@ -22,6 +23,11 @@ export function FieldsSection() {
   const [editorTarget, setEditorTarget] = useState<EditorTarget | null>(null);
   const [draftName, setDraftName] = useState('');
   const [draftType, setDraftType] = useState<FieldType>('string');
+  const [draftWorkspaceQuestion, setDraftWorkspaceQuestion] = useState('');
+  const [draftWorkspaceHelp, setDraftWorkspaceHelp] = useState('');
+  const [draftWorkspaceDefault, setDraftWorkspaceDefault] = useState('');
+  const [draftWorkspaceAskOrder, setDraftWorkspaceAskOrder] = useState('');
+  const [draftWorkspaceHidden, setDraftWorkspaceHidden] = useState(false);
   // Enum choices for the "new" editor. The field does not exist yet, so we
   // collect them locally and hand them to addField on save. (Edit mode mutates
   // the store directly via the existing enum actions.)
@@ -45,6 +51,11 @@ export function FieldsSection() {
   const addEnumValue = useLogicStore((s) => s.addEnumValue);
   const renameEnumValue = useLogicStore((s) => s.renameEnumValue);
   const deleteEnumValue = useLogicStore((s) => s.deleteEnumValue);
+  const cloudMode = useCloudStore((s) => s.mode);
+  const workspaceConfig = useCloudStore((s) => s.workspaceConfig);
+  const updateWorkspaceFieldConfig = useCloudStore(
+    (s) => s.updateWorkspaceFieldConfig,
+  );
   const t = useT();
 
   const fieldDefs = Object.values(logic.fieldDefs);
@@ -73,6 +84,11 @@ export function FieldsSection() {
       setDraftName('');
       setDraftType('string');
       setDraftEnumValues([]);
+      setDraftWorkspaceQuestion('');
+      setDraftWorkspaceHelp('');
+      setDraftWorkspaceDefault('');
+      setDraftWorkspaceAskOrder('');
+      setDraftWorkspaceHidden(false);
       return;
     }
     const field = logic.fieldDefs[editorTarget.fieldId];
@@ -82,7 +98,15 @@ export function FieldsSection() {
     }
     setDraftName(field.name);
     setDraftType(field.type);
-  }, [editorTarget, logic.fieldDefs]);
+    const fieldConfig = workspaceConfig?.fields?.[field.id];
+    setDraftWorkspaceQuestion(fieldConfig?.question ?? '');
+    setDraftWorkspaceHelp(fieldConfig?.helpText ?? '');
+    setDraftWorkspaceDefault(fieldConfig?.defaultValue ?? '');
+    setDraftWorkspaceAskOrder(
+      fieldConfig?.askOrder === undefined ? '' : String(fieldConfig.askOrder),
+    );
+    setDraftWorkspaceHidden(fieldConfig?.visibility === 'hidden');
+  }, [editorTarget, logic.fieldDefs, workspaceConfig]);
 
   const openNewEditor = () => {
     setEditorTarget({ mode: 'new' });
@@ -110,6 +134,22 @@ export function FieldsSection() {
         toast.error(result.error);
         return false;
       }
+    }
+
+    const askOrder = draftWorkspaceAskOrder.trim();
+    if (askOrder && !Number.isFinite(Number(askOrder))) {
+      toast.error(t.workspaceOrderNumberError);
+      return false;
+    }
+
+    if (cloudMode === 'cloud') {
+      updateWorkspaceFieldConfig(field.id, {
+        question: draftWorkspaceQuestion.trim() || undefined,
+        helpText: draftWorkspaceHelp.trim() || undefined,
+        defaultValue: draftWorkspaceDefault.trim() || undefined,
+        askOrder: askOrder ? Number(askOrder) : undefined,
+        visibility: draftWorkspaceHidden ? 'hidden' : undefined,
+      });
     }
 
     if (draftType !== field.type) {
@@ -223,8 +263,11 @@ export function FieldsSection() {
       >
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/40" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-[61] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-md border border-line bg-surface shadow-xl">
-            <form onSubmit={handleSave}>
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-[61] flex max-h-[min(720px,calc(100vh-2rem))] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-md border border-line bg-surface shadow-xl">
+            <form
+              onSubmit={handleSave}
+              className="flex min-h-0 flex-1 flex-col"
+            >
               <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
                 <Dialog.Title className="text-base font-semibold text-fg">
                   {editorTarget?.mode === 'new'
@@ -242,7 +285,7 @@ export function FieldsSection() {
                 </Dialog.Close>
               </div>
 
-              <div className="space-y-4 p-4">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
                 <label className="block">
                   <span className="mb-1 block text-xs font-medium text-fg-muted">
                     {t.fieldNameLabel}
@@ -320,6 +363,94 @@ export function FieldsSection() {
                           }
                         />
                       )}
+                    </div>
+                  </div>
+                ) : null}
+
+                {editorTarget?.mode === 'edit' &&
+                editingField &&
+                cloudMode === 'cloud' ? (
+                  <div className="rounded border border-line bg-surface-muted p-3">
+                    <div className="mb-3">
+                      <div className="text-xs font-semibold text-fg">
+                        {t.workspaceDisplayTitle}
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-fg-muted">
+                        {t.workspaceDisplayDescription}
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-medium text-fg-muted">
+                          {t.workspaceQuestionLabel}
+                        </span>
+                        <input
+                          value={draftWorkspaceQuestion}
+                          onChange={(event) =>
+                            setDraftWorkspaceQuestion(event.target.value)
+                          }
+                          maxLength={160}
+                          className="h-9 w-full rounded border border-line bg-surface px-3 text-sm text-fg-secondary focus:outline-none focus:ring-1 focus:ring-brand-ring"
+                          placeholder={editingField.name}
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-medium text-fg-muted">
+                          {t.workspaceHelpLabel}
+                        </span>
+                        <textarea
+                          value={draftWorkspaceHelp}
+                          onChange={(event) =>
+                            setDraftWorkspaceHelp(event.target.value)
+                          }
+                          maxLength={280}
+                          rows={3}
+                          className="w-full resize-none rounded border border-line bg-surface px-3 py-2 text-sm text-fg-secondary focus:outline-none focus:ring-1 focus:ring-brand-ring"
+                          placeholder={t.workspaceHelpPlaceholder}
+                        />
+                      </label>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="block">
+                          <span className="mb-1 block text-xs font-medium text-fg-muted">
+                            {t.workspaceDefaultValueLabel}
+                          </span>
+                          <input
+                            value={draftWorkspaceDefault}
+                            onChange={(event) =>
+                              setDraftWorkspaceDefault(event.target.value)
+                            }
+                            className="h-9 w-full rounded border border-line bg-surface px-3 text-sm text-fg-secondary focus:outline-none focus:ring-1 focus:ring-brand-ring"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1 block text-xs font-medium text-fg-muted">
+                            {t.workspaceAskOrderLabel}
+                          </span>
+                          <input
+                            value={draftWorkspaceAskOrder}
+                            onChange={(event) =>
+                              setDraftWorkspaceAskOrder(event.target.value)
+                            }
+                            inputMode="numeric"
+                            className="h-9 w-full rounded border border-line bg-surface px-3 text-sm text-fg-secondary focus:outline-none focus:ring-1 focus:ring-brand-ring"
+                          />
+                        </label>
+                      </div>
+
+                      <label className="flex items-center gap-2 text-xs font-medium text-fg-muted">
+                        <input
+                          type="checkbox"
+                          checked={draftWorkspaceHidden}
+                          onChange={(event) =>
+                            setDraftWorkspaceHidden(event.target.checked)
+                          }
+                          className="h-4 w-4 rounded border-line text-brand focus:ring-brand-ring"
+                        />
+                        {t.workspaceHideFieldLabel}
+                      </label>
                     </div>
                   </div>
                 ) : null}
