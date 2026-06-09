@@ -4,10 +4,11 @@ import {
   ExternalLink,
   Loader2,
   Mail,
+  RefreshCw,
   Send,
   X,
 } from 'lucide-react';
-import { type FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   CloudApiError,
@@ -46,7 +47,8 @@ export function RunnerShareDialog({
   const [role, setRole] = useState<RunnerShareRole>('runner');
   const [runnerUrl, setRunnerUrl] = useState('');
   const [acceptUrl, setAcceptUrl] = useState('');
-  const [loadingUrl, setLoadingUrl] = useState(false);
+  const [urlError, setUrlError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [sending, setSending] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState<'runner' | 'invite' | null>(null);
@@ -58,28 +60,32 @@ export function RunnerShareDialog({
       : `Latest v${version.versionNumber}`;
   }, [productionVersion, version]);
 
-  const ensureRunnerUrl = async () => {
-    if (runnerUrl) return runnerUrl;
-    if (!version) return '';
-    setLoadingUrl(true);
-    try {
-      const result = await shareRunner({
-        logicId,
-        versionNumber: version.versionNumber,
+  // Generate the Runner URL as soon as the dialog opens so it is always
+  // visible without forcing the user to press Copy first.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadKey is an intentional trigger dep for the Retry button
+  useEffect(() => {
+    if (!version) return;
+    let cancelled = false;
+    setUrlError(false);
+    shareRunner({ logicId, versionNumber: version.versionNumber })
+      .then((result) => {
+        if (!cancelled) setRunnerUrl(absoluteUrl(result.runnerPath));
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setUrlError(true);
+          toast.error(errorMessage(error));
+        }
       });
-      const nextUrl = absoluteUrl(result.runnerPath);
-      setRunnerUrl(nextUrl);
-      return nextUrl;
-    } finally {
-      setLoadingUrl(false);
-    }
-  };
+    return () => {
+      cancelled = true;
+    };
+  }, [logicId, version, reloadKey]);
 
   const copyRunnerUrl = async () => {
+    if (!runnerUrl) return;
     try {
-      const url = await ensureRunnerUrl();
-      if (!url) return;
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(runnerUrl);
       setCopied('runner');
       toast.success('Runner URL copied.');
       window.setTimeout(() => setCopied(null), 1600);
@@ -170,6 +176,31 @@ export function RunnerShareDialog({
                 Publish
               </button>
             </div>
+          ) : !runnerUrl ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              {urlError ? (
+                <>
+                  <p className="text-sm text-fg-muted">
+                    Couldn't load the Runner link.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setReloadKey((key) => key + 1)}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-muted hover:bg-surface-muted"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Retry
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin text-fg-subtle" />
+                  <p className="text-sm text-fg-subtle">
+                    Preparing the Runner link…
+                  </p>
+                </>
+              )}
+            </div>
           ) : (
             <>
               <div className="space-y-2">
@@ -178,26 +209,32 @@ export function RunnerShareDialog({
                 </div>
                 <div className="flex gap-2">
                   <input
-                    value={runnerUrl || 'Generate a URL for this version'}
+                    value={runnerUrl}
                     readOnly
                     className="h-9 min-w-0 flex-1 rounded border border-line bg-surface-muted px-3 text-sm text-fg-muted"
                   />
                   <button
                     type="button"
                     onClick={() => void copyRunnerUrl()}
-                    disabled={loadingUrl}
                     className="inline-flex h-9 w-9 items-center justify-center rounded border border-line text-fg-muted hover:bg-surface-muted disabled:opacity-50"
                     aria-label="Copy Runner URL"
                   >
-                    {loadingUrl ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : copied === 'runner' ? (
+                    {copied === 'runner' ? (
                       <Check className="h-4 w-4 text-success-fg" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
                   </button>
                 </div>
+                <a
+                  href={runnerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-fg-strong hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open Runner page
+                </a>
               </div>
 
               <form onSubmit={handleInvite} className="space-y-3">
