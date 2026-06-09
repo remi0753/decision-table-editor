@@ -90,6 +90,11 @@ export function valuesFromInitialInputs(
 export function buildRuntimeGroups(
   logic: Logic,
   config?: WorkspaceConfig,
+  context: {
+    values?: Record<string, WorkspaceValueState>;
+    decision?: WorkspaceDecisionState;
+    visibleFieldIds?: string[];
+  } = {},
 ): WorkspaceRuntimeGroup[] {
   const configuredGroups = config?.groups ?? [];
   if (configuredGroups.length > 0) {
@@ -117,15 +122,89 @@ export function buildRuntimeGroups(
         ];
   }
 
-  const knownFieldIds = Object.keys(logic.fieldDefs);
+  return buildDefaultRuntimeGroups(logic, config, context);
+}
+
+function buildDefaultRuntimeGroups(
+  logic: Logic,
+  config: WorkspaceConfig | undefined,
+  context: {
+    values?: Record<string, WorkspaceValueState>;
+    decision?: WorkspaceDecisionState;
+    visibleFieldIds?: string[];
+  },
+): WorkspaceRuntimeGroup[] {
+  const visible = new Set(
+    context.visibleFieldIds ?? visibleFieldIds(logic, config, true),
+  );
+  const assigned = new Set<string>();
+
+  const addGroup = (
+    id: string,
+    name: string,
+    fieldIds: string[],
+    order: number,
+    description?: string,
+  ): WorkspaceRuntimeGroup | null => {
+    const uniqueFieldIds = unique(
+      fieldIds.filter((fieldId) => fieldId in logic.fieldDefs),
+    ).filter((fieldId) => {
+      if (assigned.has(fieldId)) return false;
+      assigned.add(fieldId);
+      return true;
+    });
+
+    if (uniqueFieldIds.length === 0) return null;
+    return {
+      id,
+      name,
+      description,
+      fieldIds: uniqueFieldIds,
+      order,
+    };
+  };
+
+  const needsAttention = unique(
+    context.decision?.recommendedChecks.flatMap((check) => check.fieldIds) ??
+      context.decision?.blockingFieldIds ??
+      [],
+  ).filter((fieldId) => visible.has(fieldId));
+
+  const internal = Object.keys(logic.fieldDefs).filter((fieldId) => {
+    const fieldConfig = config?.fields?.[fieldId];
+    return (
+      fieldConfig?.source === 'internal' ||
+      fieldConfig?.visibility === 'hidden' ||
+      context.values?.[fieldId]?.source === 'internal'
+    );
+  });
+
+  const known = Object.entries(context.values ?? {})
+    .filter(([, value]) => value.value !== '')
+    .map(([fieldId]) => fieldId)
+    .filter((fieldId) => visible.has(fieldId));
+
+  const missing = (context.decision?.missingFieldIds ?? []).filter((fieldId) =>
+    visible.has(fieldId),
+  );
+
+  const other = Object.keys(logic.fieldDefs).filter(
+    (fieldId) => visible.has(fieldId) && !assigned.has(fieldId),
+  );
+
   return [
-    {
-      id: 'other',
-      name: 'Other',
-      fieldIds: knownFieldIds,
-      order: 0,
-    },
-  ];
+    addGroup(
+      'needs_attention',
+      'Needs attention',
+      needsAttention,
+      0,
+      'Facts that currently advance the decision.',
+    ),
+    addGroup('internal', 'Internal facts', internal, 1),
+    addGroup('known', 'Known facts', known, 2),
+    addGroup('missing', 'Missing facts', missing, 3),
+    addGroup('other', 'Other', other, 4),
+  ].filter((group): group is WorkspaceRuntimeGroup => group !== null);
 }
 
 export function fieldQuestion(

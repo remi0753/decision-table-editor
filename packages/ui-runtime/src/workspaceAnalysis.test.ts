@@ -2,6 +2,7 @@ import type { Logic } from '@leverie/engine';
 import { describe, expect, it } from 'vitest';
 import {
   analyzeWorkspaceDecision,
+  buildRuntimeGroups,
   valuesFromInitialInputs,
 } from './workspaceAnalysis.js';
 
@@ -106,5 +107,57 @@ describe('analyzeWorkspaceDecision', () => {
     if (state.finalResult?.status === 'ok') {
       expect(state.finalResult.outputs).toEqual({ oc1: 'Approve' });
     }
+  });
+});
+
+describe('buildRuntimeGroups', () => {
+  it('builds state-aware fallback groups when no groups are configured', () => {
+    const values = valuesFromInitialInputs(logic, { f1: 'Gold' }, 'manual');
+    const decision = analyzeWorkspaceDecision(logic, values);
+    const groups = buildRuntimeGroups(logic, undefined, { values, decision });
+
+    expect(groups.map((group) => group.name)).toEqual([
+      'Needs attention',
+      'Known facts',
+      'Missing facts',
+    ]);
+    expect(
+      groups.find((group) => group.id === 'needs_attention')?.fieldIds,
+    ).toEqual(['f2']);
+    expect(groups.find((group) => group.id === 'known')?.fieldIds).toEqual([
+      'f1',
+    ]);
+    expect(groups.find((group) => group.id === 'missing')?.fieldIds).toEqual([
+      'f3',
+    ]);
+  });
+
+  it('keeps configured author groups as the primary grouping', () => {
+    const groups = buildRuntimeGroups(logic, {
+      version: '1',
+      groups: [
+        {
+          id: 'customer',
+          name: 'Customer',
+          fieldIds: ['f1', 'missing-field'],
+        },
+      ],
+    });
+
+    expect(groups).toEqual([
+      {
+        id: 'customer',
+        name: 'Customer',
+        description: undefined,
+        fieldIds: ['f1'],
+        order: 0,
+      },
+      {
+        id: 'other',
+        name: 'Other',
+        fieldIds: ['f2', 'f3'],
+        order: Number.MAX_SAFE_INTEGER,
+      },
+    ]);
   });
 });

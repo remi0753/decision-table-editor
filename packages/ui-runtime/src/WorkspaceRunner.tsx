@@ -66,13 +66,18 @@ export function WorkspaceRunner({
     () => analyzeWorkspaceDecision(logic, values, workspaceConfig),
     [logic, values, workspaceConfig],
   );
-  const groups = useMemo(
-    () => buildRuntimeGroups(logic, workspaceConfig),
-    [logic, workspaceConfig],
-  );
   const visibleIds = useMemo(
     () => visibleFieldIds(logic, workspaceConfig, mode === 'detail'),
     [logic, workspaceConfig, mode],
+  );
+  const groups = useMemo(
+    () =>
+      buildRuntimeGroups(logic, workspaceConfig, {
+        values,
+        decision: analysis,
+        visibleFieldIds: visibleIds,
+      }),
+    [analysis, logic, values, visibleIds, workspaceConfig],
   );
   const currentCheck = analysis.recommendedChecks[0];
   const currentFieldIds =
