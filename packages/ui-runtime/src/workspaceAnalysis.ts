@@ -14,6 +14,7 @@ import type {
   WorkspaceDecisionState,
   WorkspaceOutcomeCandidate,
   WorkspaceRecommendedCheck,
+  WorkspaceResultTemplate,
   WorkspaceRuntimeGroup,
   WorkspaceValueSource,
   WorkspaceValueState,
@@ -29,6 +30,16 @@ type PathCandidate = {
   certainty: 'definite' | 'possible';
   outputs?: Record<string, string>;
   missingFieldIds: Set<string>;
+};
+
+export type WorkspaceFormattedResult = {
+  title: string;
+  reason: string;
+  copyText: string;
+  customerMessage?: string;
+  internalNote?: string;
+  template?: WorkspaceResultTemplate;
+  outputsByName: Record<string, string>;
 };
 
 export function normalizeWorkspaceInputs(
@@ -263,6 +274,68 @@ export function workspaceValuesToInputs(
     if (state.value !== '') inputs[fieldId] = state.value;
   }
   return inputs;
+}
+
+export function formatWorkspaceResultSummary(
+  logic: Logic,
+  outputs: Record<string, string>,
+  config?: WorkspaceConfig,
+  values: Record<string, WorkspaceValueState> = {},
+  versionLabel?: string,
+): WorkspaceFormattedResult {
+  const template = selectResultTemplate(logic, outputs, config);
+  const outputsByName = Object.fromEntries(
+    Object.entries(outputs).map(([outputId, value]) => [
+      outputName(logic, outputId),
+      value,
+    ]),
+  );
+  const context = buildTemplateContext(logic, outputs, outputsByName, values);
+  const firstOutputValue = Object.values(outputs).find(Boolean);
+  const fallbackTitle = firstOutputValue || 'Decision ready';
+  const reasonOutput = outputByNormalizedName(outputsByName, 'reason');
+  const fallbackReason =
+    reasonOutput ??
+    `Evaluated by LEVERIE logic${versionLabel ? ` ${versionLabel}` : ''}.`;
+  const title = renderTemplate(template?.title, context) || fallbackTitle;
+  const reason =
+    renderTemplate(template?.reasonTemplate, context) || fallbackReason;
+  const customerMessage = renderTemplate(
+    template?.customerMessageTemplate,
+    context,
+  );
+  const internalNote = renderTemplate(template?.internalNoteTemplate, context);
+  const copyText =
+    customerMessage ||
+    [
+      title,
+      reason ? `Reason: ${reason}` : undefined,
+      ...Object.entries(outputsByName).map(
+        ([name, value]) => `${name}: ${value}`,
+      ),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+  return {
+    title,
+    reason,
+    copyText,
+    customerMessage,
+    internalNote,
+    template,
+    outputsByName,
+  };
+}
+
+export function selectResultTemplate(
+  logic: Logic,
+  outputs: Record<string, string>,
+  config?: WorkspaceConfig,
+): WorkspaceResultTemplate | undefined {
+  return config?.resultTemplates?.find((template) =>
+    resultTemplateMatches(logic, outputs, template),
+  );
 }
 
 export function analyzeWorkspaceDecision(
@@ -638,6 +711,104 @@ function stableOutputsKey(outputs: Record<string, string>): string {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}:${value}`)
     .join('|');
+}
+
+function resultTemplateMatches(
+  logic: Logic,
+  outputs: Record<string, string>,
+  template: WorkspaceResultTemplate,
+): boolean {
+  const outputsByName = Object.fromEntries(
+    Object.entries(outputs).map(([outputId, value]) => [
+      outputName(logic, outputId),
+      value,
+    ]),
+  );
+  const match = template.match;
+
+  if (match.outputValuesByColumnId) {
+    return Object.entries(match.outputValuesByColumnId).every(
+      ([outputId, value]) => outputs[outputId] === value,
+    );
+  }
+
+  if (match.outputValues) {
+    return Object.entries(match.outputValues).every(
+      ([name, value]) => outputsByName[name] === value,
+    );
+  }
+
+  const matchedValue =
+    match.outputColumnId !== undefined
+      ? outputs[match.outputColumnId]
+      : match.outputName !== undefined
+        ? outputsByName[match.outputName]
+        : undefined;
+
+  if (match.outputValue !== undefined) {
+    return matchedValue === match.outputValue;
+  }
+
+  return matchedValue !== undefined;
+}
+
+function buildTemplateContext(
+  logic: Logic,
+  outputs: Record<string, string>,
+  outputsByName: Record<string, string>,
+  values: Record<string, WorkspaceValueState>,
+): Record<string, string> {
+  const context: Record<string, string> = {};
+
+  for (const [outputId, value] of Object.entries(outputs)) {
+    context[`output:${outputId}`] = value;
+    context[`output:${outputName(logic, outputId)}`] = value;
+    context[outputName(logic, outputId)] = value;
+  }
+
+  for (const [name, value] of Object.entries(outputsByName)) {
+    context[`output:${name}`] = value;
+    context[name] = value;
+  }
+
+  for (const [fieldId, value] of Object.entries(values)) {
+    const field = logic.fieldDefs[fieldId];
+    if (!field) continue;
+    context[`field:${fieldId}`] = value.value;
+    context[`field:${field.name}`] = value.value;
+    context[field.name] = value.value;
+  }
+
+  return context;
+}
+
+function renderTemplate(
+  template: string | undefined,
+  context: Record<string, string>,
+): string | undefined {
+  if (!template) return undefined;
+  const rendered = template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => {
+    const lookup = String(key).trim();
+    return context[lookup] ?? '';
+  });
+  return rendered.trim() || undefined;
+}
+
+function outputByNormalizedName(
+  outputsByName: Record<string, string>,
+  normalized: string,
+): string | undefined {
+  return Object.entries(outputsByName).find(
+    ([name]) => normalizeKey(name) === normalizeKey(normalized),
+  )?.[1];
+}
+
+export function outputName(logic: Logic, outputId: string): string {
+  for (const table of Object.values(logic.tables)) {
+    const output = table.outputCols.find((col) => col.id === outputId);
+    if (output) return output.name;
+  }
+  return outputId;
 }
 
 function fieldIndex(logic: Logic, fieldId: string): number {

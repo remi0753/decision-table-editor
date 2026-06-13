@@ -7,7 +7,9 @@ import {
   buildRuntimeGroups,
   fieldHelp,
   fieldQuestion,
+  formatWorkspaceResultSummary,
   normalizeWorkspaceInputs,
+  outputName,
   valuesFromInitialInputs,
   visibleFieldIds,
   workspaceValuesToInputs,
@@ -198,7 +200,14 @@ export function WorkspaceRunner({
         />
       </div>
 
-      <ResultPanel logic={logic} analysis={analysis} mode={mode} />
+      <ResultPanel
+        logic={logic}
+        analysis={analysis}
+        mode={mode}
+        values={values}
+        workspaceConfig={workspaceConfig}
+        versionLabel={versionLabel}
+      />
     </div>
   );
 }
@@ -595,11 +604,19 @@ function ResultPanel({
   logic,
   analysis,
   mode,
+  values,
+  workspaceConfig,
+  versionLabel,
 }: {
   logic: Logic;
   analysis: ReturnType<typeof analyzeWorkspaceDecision>;
   mode: WorkspaceMode;
+  values: Record<string, WorkspaceValueState>;
+  workspaceConfig?: WorkspaceConfig;
+  versionLabel?: string;
 }) {
+  const [copied, setCopied] = useState(false);
+
   if (analysis.status !== 'decision_ready' && analysis.status !== 'no_match') {
     return null;
   }
@@ -622,15 +639,59 @@ function ResultPanel({
     analysis.finalResult?.status === 'ok'
       ? analysis.finalResult.outputs
       : analysis.possibleOutcomes[0]?.outputs;
+  const summary = outputs
+    ? formatWorkspaceResultSummary(
+        logic,
+        outputs,
+        workspaceConfig,
+        values,
+        versionLabel,
+      )
+    : null;
+
+  const copyResult = async () => {
+    if (!summary) return;
+    try {
+      await navigator.clipboard.writeText(summary.copyText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
     <section className="rounded border border-brand-border bg-surface p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-fg">Decision ready</h2>
-          <p className="mt-1 text-sm text-fg-muted">{analysis.reason}</p>
+          <h2 className="text-lg font-semibold text-fg">
+            {summary?.title ?? 'Decision ready'}
+          </h2>
+          <p className="mt-1 text-sm text-fg-muted">
+            {summary?.reason ?? analysis.reason}
+          </p>
         </div>
+        {summary ? (
+          <button
+            type="button"
+            onClick={() => void copyResult()}
+            className="rounded border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-muted"
+          >
+            {copied ? 'Copied' : 'Copy result'}
+          </button>
+        ) : null}
       </div>
+
+      {summary ? (
+        <div className="mt-4 rounded border border-line bg-surface-muted p-3">
+          <div className="text-xs font-medium text-fg-faint">
+            Copy-ready text
+          </div>
+          <pre className="mt-2 whitespace-pre-wrap break-words font-sans text-sm leading-6 text-fg-muted">
+            {summary.copyText}
+          </pre>
+        </div>
+      ) : null}
 
       {outputs ? (
         <div className="mt-4 grid gap-2 md:grid-cols-2">
@@ -730,12 +791,4 @@ function statusClassName(
     return `${base} bg-success-bg text-success-fg`;
   if (status === 'no_match') return `${base} bg-danger-bg text-danger-fg`;
   return `${base} bg-surface-muted text-fg-muted`;
-}
-
-function outputName(logic: Logic, outputId: string): string {
-  for (const table of Object.values(logic.tables)) {
-    const output = table.outputCols.find((col) => col.id === outputId);
-    if (output) return output.name;
-  }
-  return outputId;
 }

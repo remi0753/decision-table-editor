@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   analyzeWorkspaceDecision,
   buildRuntimeGroups,
+  formatWorkspaceResultSummary,
   valuesFromInitialInputs,
 } from './workspaceAnalysis.js';
 
@@ -159,5 +160,50 @@ describe('buildRuntimeGroups', () => {
         order: Number.MAX_SAFE_INTEGER,
       },
     ]);
+  });
+});
+
+describe('formatWorkspaceResultSummary', () => {
+  it('builds copyable fallback text from output names and values', () => {
+    const summary = formatWorkspaceResultSummary(
+      logic,
+      { oc1: 'Approve' },
+      undefined,
+      {},
+      'v12',
+    );
+
+    expect(summary.title).toBe('Approve');
+    expect(summary.reason).toBe('Evaluated by LEVERIE logic v12.');
+    expect(summary.copyText).toContain('Approve');
+    expect(summary.copyText).toContain('Decision: Approve');
+  });
+
+  it('uses a matching result template for title, reason, and copy text', () => {
+    const values = valuesFromInitialInputs(logic, { f1: 'Gold' }, 'manual');
+    const summary = formatWorkspaceResultSummary(
+      logic,
+      { oc1: 'Approve' },
+      {
+        version: '1',
+        resultTemplates: [
+          {
+            id: 'approve',
+            match: { outputValuesByColumnId: { oc1: 'Approve' } },
+            title: 'Refund {{Decision}}',
+            reasonTemplate: '{{Customer Tier}} customers can be approved.',
+            customerMessageTemplate:
+              'Your refund is {{Decision}} because your tier is {{field:Customer Tier}}.',
+          },
+        ],
+      },
+      values,
+    );
+
+    expect(summary.title).toBe('Refund Approve');
+    expect(summary.reason).toBe('Gold customers can be approved.');
+    expect(summary.copyText).toBe(
+      'Your refund is Approve because your tier is Gold.',
+    );
   });
 });
