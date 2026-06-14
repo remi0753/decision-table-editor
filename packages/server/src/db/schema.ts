@@ -26,6 +26,7 @@
 
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   customType,
   foreignKey,
@@ -957,6 +958,176 @@ export const orgDeletionJob = pgTable(
     index('org_deletion_job_completed_at_idx')
       .on(t.completedAt.desc())
       .where(sql`completed_at IS NOT NULL`),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.13 fact_definition — workspace-level business facts (data-connected
+//   workspace MVP, see implementation_leverie_data_connected_workspace.md §3.1).
+//   The (workspace_id, id) UNIQUE is the tenant-consistency composite-FK anchor
+//   that logic_fact_binding uses. updated_at is stamped by the set_updated_at
+//   trigger added in the migration (§3.0 convention 4), never by Drizzle.
+// ─────────────────────────────────────────────────────────────────────────
+export const factDefinition = pgTable(
+  'fact_definition',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    type: text('type').notNull(),
+    enumValues: jsonb('enum_values'),
+    kind: text('kind').notNull(),
+    aliases: jsonb('aliases').notNull().default(sql`'[]'::jsonb`),
+    question: text('question'),
+    sensitive: boolean('sensitive').notNull().default(false),
+    loggingPolicy: text('logging_policy').notNull().default('full'),
+    retentionPolicy: text('retention_policy')
+      .notNull()
+      .default('workspace_default'),
+    status: text('status').notNull().default('active'),
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdActorType: text('created_actor_type').notNull(),
+    createdActorId: uuid('created_actor_id'),
+    updatedActorType: text('updated_actor_type'),
+    updatedActorId: uuid('updated_actor_id'),
+  },
+  (t) => [
+    check('fact_definition_name_length_chk', sql`length(${t.name}) <= 120`),
+    check(
+      'fact_definition_description_length_chk',
+      sql`${t.description} IS NULL OR length(${t.description}) <= 1000`,
+    ),
+    check(
+      'fact_definition_type_chk',
+      sql`${t.type} IN ('string', 'number', 'bool', 'enum', 'date', 'datetime')`,
+    ),
+    check(
+      'fact_definition_kind_chk',
+      sql`${t.kind} IN ('key', 'system_fact', 'manual_fact', 'derived_fact', 'internal_fact')`,
+    ),
+    check(
+      'fact_definition_status_chk',
+      sql`${t.status} IN ('draft', 'active', 'deprecated')`,
+    ),
+    check(
+      'fact_definition_logging_policy_chk',
+      sql`${t.loggingPolicy} IN ('full', 'masked', 'hash', 'omit')`,
+    ),
+    check(
+      'fact_definition_enum_values_type_chk',
+      sql`${t.enumValues} IS NULL OR jsonb_typeof(${t.enumValues}) = 'array'`,
+    ),
+    check(
+      'fact_definition_aliases_type_chk',
+      sql`jsonb_typeof(${t.aliases}) = 'array'`,
+    ),
+    // enum facts require a non-empty enum value list
+    check(
+      'fact_definition_enum_values_required_chk',
+      sql`${t.type} <> 'enum'
+          OR (${t.enumValues} IS NOT NULL AND jsonb_array_length(${t.enumValues}) > 0)`,
+    ),
+    // active manual facts require a question
+    check(
+      'fact_definition_manual_question_chk',
+      sql`${t.kind} <> 'manual_fact'
+          OR ${t.status} <> 'active'
+          OR length(btrim(coalesce(${t.question}, ''))) > 0`,
+    ),
+    check(
+      'fact_definition_created_actor_type_chk',
+      sql`${t.createdActorType} IN ('user', 'system')`,
+    ),
+    check(
+      'fact_definition_updated_actor_type_chk',
+      sql`${t.updatedActorType} IS NULL OR ${t.updatedActorType} IN ('user', 'system')`,
+    ),
+    check(
+      'fact_definition_created_actor_consistency_chk',
+      sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
+          OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
+    ),
+    check(
+      'fact_definition_updated_actor_consistency_chk',
+      sql`(${t.updatedActorType} IS NULL AND ${t.updatedActorId} IS NULL)
+          OR (${t.updatedActorType} = 'user' AND ${t.updatedActorId} IS NOT NULL)
+          OR (${t.updatedActorType} = 'system' AND ${t.updatedActorId} IS NULL)`,
+    ),
+    // Composite-FK target so logic_fact_binding can enforce that a bound fact
+    // lives in the same workspace as the binding (§3.0 convention 1).
+    unique('fact_definition_workspace_id_id_uniq').on(t.workspaceId, t.id),
+    // Unique active name per workspace. Deprecated rows are excluded so a name
+    // can be reused after retirement. Alias uniqueness cannot be expressed in
+    // SQL across JSON arrays and is enforced in route validation (§3.1).
+    uniqueIndex('fact_definition_workspace_name_active_uniq')
+      .on(t.workspaceId, sql`lower(${t.name})`)
+      .where(sql`status <> 'deprecated'`),
+    index('fact_definition_workspace_status_created_idx').on(
+      t.workspaceId,
+      t.status,
+      t.createdAt.desc(),
+    ),
+    index('fact_definition_workspace_kind_status_idx').on(
+      t.workspaceId,
+      t.kind,
+      t.status,
+    ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.14 logic_fact_binding — maps engine field IDs to workspace facts without
+//   changing Logic v2 (§3.2). The engine still evaluates by field ID; the
+//   workspace resolves by fact ID and projects values into field IDs through
+//   this binding. Both parents are referenced through tenant-consistency
+//   composite FKs (§3.0 convention 1). updated_at uses the set_updated_at
+//   trigger added in the migration.
+// ─────────────────────────────────────────────────────────────────────────
+export const logicFactBinding = pgTable(
+  'logic_fact_binding',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id').notNull(),
+    logicId: uuid('logic_id').notNull(),
+    fieldId: text('field_id').notNull(),
+    factId: uuid('fact_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    check(
+      'logic_fact_binding_field_id_length_chk',
+      sql`length(${t.fieldId}) <= 120`,
+    ),
+    // One fact per field and one field per fact within a logic (MVP, §3.2).
+    unique('logic_fact_binding_logic_field_uniq').on(t.logicId, t.fieldId),
+    unique('logic_fact_binding_logic_fact_uniq').on(t.logicId, t.factId),
+    foreignKey({
+      columns: [t.workspaceId, t.logicId],
+      foreignColumns: [logic.workspaceId, logic.id],
+      name: 'logic_fact_binding_workspace_logic_fk',
+    }).onDelete('cascade'),
+    // restrict so an in-use fact cannot be hard-deleted out from under a binding
+    foreignKey({
+      columns: [t.workspaceId, t.factId],
+      foreignColumns: [factDefinition.workspaceId, factDefinition.id],
+      name: 'logic_fact_binding_workspace_fact_fk',
+    }).onDelete('restrict'),
+    index('logic_fact_binding_logic_idx').on(t.logicId),
+    index('logic_fact_binding_workspace_fact_idx').on(t.workspaceId, t.factId),
   ],
 );
 

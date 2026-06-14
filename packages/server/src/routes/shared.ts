@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { createAuth } from '../auth.js';
 import type { Database } from '../db/client.js';
-import { auditEvent, membership } from '../db/schema.js';
+import { auditEvent, logic, membership, workspace } from '../db/schema.js';
 import type { Env } from '../env.js';
 import { getAllowedOrigins } from '../origins.js';
 import { checkFixedWindowRateLimit } from '../rateLimit.js';
@@ -314,12 +314,82 @@ export async function requireMembership(
   return { user, member };
 }
 
+export type WorkspaceRow = typeof workspace.$inferSelect;
+export type LogicRow = typeof logic.$inferSelect;
+export type WorkspaceAccess = MembershipAccess & { workspace: WorkspaceRow };
+export type LogicAccess = WorkspaceAccess & { logic: LogicRow };
+
+// Resolve a workspace by id, then the caller's org membership for it. Shared by
+// the data-connected routes (facts / bindings / reference tables / resolvers)
+// so they all enforce the same workspace → org → membership chain.
+export async function loadWorkspaceAccess(
+  c: AppContext,
+  db: Database,
+  workspaceId: string,
+): Promise<WorkspaceAccess | RouteError> {
+  const [existing] = await db
+    .select()
+    .from(workspace)
+    .where(and(eq(workspace.id, workspaceId), isNull(workspace.deletedAt)))
+    .limit(1);
+
+  if (!existing) {
+    return { error: jsonError(c, 404, 'not_found', 'Workspace not found.') };
+  }
+
+  const access = await requireMembership(c, db, existing.orgId);
+  if ('error' in access) return access;
+
+  return { workspace: existing, ...access };
+}
+
+// Resolve a logic by id (joined to its workspace), then membership. Shared by
+// the fact-binding routes.
+export async function loadLogicAccess(
+  c: AppContext,
+  db: Database,
+  logicId: string,
+): Promise<LogicAccess | RouteError> {
+  const [row] = await db
+    .select({ logic, workspace })
+    .from(logic)
+    .innerJoin(workspace, eq(logic.workspaceId, workspace.id))
+    .where(
+      and(
+        eq(logic.id, logicId),
+        isNull(logic.deletedAt),
+        isNull(workspace.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!row)
+    return { error: jsonError(c, 404, 'not_found', 'Logic not found.') };
+
+  const access = await requireMembership(c, db, row.workspace.orgId);
+  if ('error' in access) return access;
+
+  return { logic: row.logic, workspace: row.workspace, ...access };
+}
+
 export function canManageMembers(role: Role) {
   return role === 'owner' || role === 'admin';
 }
 
 export function canManageWorkspaces(role: Role) {
   return roleRank[role] >= roleRank.editor;
+}
+
+// Viewer+ may read the fact catalog and other non-sensitive data definitions.
+// Runners (run-only) cannot.
+export function canViewWorkspaceData(role: Role) {
+  return roleRank[role] >= roleRank.viewer;
+}
+
+// Admin/owner manage data sources, reference tables, sensitive logging
+// policies, and system/internal facts (§5.1, §10.1).
+export function canManageDataSources(role: Role) {
+  return roleRank[role] >= roleRank.admin;
 }
 
 export function canEditLogics(role: Role) {

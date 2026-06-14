@@ -10,6 +10,8 @@ import { buildOpenApiDocument } from './openapi.js';
 import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
 import { apiKeyRoutes } from './routes/apiKeys.js';
 import { evaluateRoutes } from './routes/evaluate.js';
+import { factBindingRoutes } from './routes/factBindings.js';
+import { factRoutes } from './routes/facts.js';
 import { logicRoutes } from './routes/logics.js';
 import { mcpRoutes } from './routes/mcp.js';
 import { orgRoutes } from './routes/orgs.js';
@@ -344,6 +346,8 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
   app.route('/', orgRoutes);
   app.route('/', workspaceRoutes);
   app.route('/', logicRoutes);
+  app.route('/', factRoutes);
+  app.route('/', factBindingRoutes);
   app.route('/', apiKeyRoutes);
 
   // /v1/* — external public API surface (Bearer auth, no cookies, permissive
