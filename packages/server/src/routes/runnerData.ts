@@ -65,7 +65,7 @@ interface SnapshotReferenceTableRef {
 
 type SnapshotRow = typeof logicVersionDataSnapshot.$inferSelect;
 
-interface RunnerVersionContext {
+export interface RunnerVersionContext {
   access: WorkspaceAccess;
   logicId: string;
   logicVersionId: string;
@@ -80,7 +80,7 @@ const UUID_AT_V_RE =
 
 // Resolve a runner ref (bare logicId => production, logicId@vN => exact version)
 // to its logic version and pinned data snapshot, after checking membership.
-async function resolveRunnerVersion(
+export async function resolveRunnerVersion(
   c: AppContext,
   db: Database,
   workspaceId: string,

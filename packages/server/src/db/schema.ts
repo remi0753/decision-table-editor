@@ -1532,6 +1532,200 @@ export const caseContext = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────
+// 3.21 decision_session — one human-facing decision attempt (§3.9). References
+//   the pinned logic_version_data_snapshot instead of re-storing config. Status
+//   gates whether result may be present. created_by is NO ACTION DEFERRABLE.
+// ─────────────────────────────────────────────────────────────────────────
+export const decisionSession = pgTable(
+  'decision_session',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id').notNull(),
+    logicId: uuid('logic_id').notNull(),
+    logicVersionId: uuid('logic_version_id').notNull(),
+    dataSnapshotId: uuid('data_snapshot_id')
+      .notNull()
+      .references(() => logicVersionDataSnapshot.id, { onDelete: 'restrict' }),
+    caseContextId: uuid('case_context_id').references(() => caseContext.id, {
+      onDelete: 'set null',
+    }),
+    status: text('status').notNull(),
+    result: jsonb('result'),
+    trace: jsonb('trace'),
+    // NO ACTION (DEFERRABLE INITIALLY IMMEDIATE added in the migration)
+    createdBy: uuid('created_by').references(() => user.id, {
+      onDelete: 'no action',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (t) => [
+    check(
+      'decision_session_status_chk',
+      sql`${t.status} IN ('started', 'needs_input', 'decision_ready', 'no_match', 'error', 'abandoned')`,
+    ),
+    check(
+      'decision_session_result_payload_chk',
+      sql`${t.result} IS NULL OR ${t.status} IN ('decision_ready', 'no_match', 'error')`,
+    ),
+    foreignKey({
+      columns: [t.workspaceId, t.logicId],
+      foreignColumns: [logic.workspaceId, logic.id],
+      name: 'decision_session_workspace_logic_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [t.workspaceId, t.logicId, t.logicVersionId],
+      foreignColumns: [
+        logicVersion.workspaceId,
+        logicVersion.logicId,
+        logicVersion.id,
+      ],
+      name: 'decision_session_version_fk',
+    }).onDelete('cascade'),
+    index('decision_session_workspace_created_idx').on(
+      t.workspaceId,
+      t.createdAt.desc(),
+    ),
+    index('decision_session_logic_created_idx').on(
+      t.logicId,
+      t.createdAt.desc(),
+    ),
+    index('decision_session_created_by_idx').on(
+      t.createdBy,
+      t.createdAt.desc(),
+    ),
+    index('decision_session_workspace_status_created_idx').on(
+      t.workspaceId,
+      t.status,
+      t.createdAt.desc(),
+    ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.22 decision_fact_value — resolved and manual values for a session (§3.10).
+//   Immutable audit record: fact_id is a plain column (no FK), the definition is
+//   read from the session's pinned snapshot. Masking obeys the fact's
+//   logging_policy (§10.2). confirmed_by is NO ACTION DEFERRABLE.
+// ─────────────────────────────────────────────────────────────────────────
+export const decisionFactValue = pgTable(
+  'decision_fact_value',
+  {
+    decisionSessionId: uuid('decision_session_id')
+      .notNull()
+      .references(() => decisionSession.id, { onDelete: 'cascade' }),
+    factId: uuid('fact_id').notNull(),
+    fieldId: text('field_id'),
+    value: text('value'),
+    maskedValue: text('masked_value'),
+    state: text('state').notNull(),
+    sourceKind: text('source_kind').notNull(),
+    dataSourceId: uuid('data_source_id'),
+    resolverRecipeId: uuid('resolver_recipe_id'),
+    referenceTableId: uuid('reference_table_id'),
+    referenceTableVersion: integer('reference_table_version'),
+    provenance: jsonb('provenance').notNull().default(sql`'{}'::jsonb`),
+    // NO ACTION (DEFERRABLE INITIALLY IMMEDIATE added in the migration)
+    confirmedBy: uuid('confirmed_by').references(() => user.id, {
+      onDelete: 'no action',
+    }),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.decisionSessionId, t.factId] }),
+    check(
+      'decision_fact_value_state_chk',
+      sql`${t.state} IN ('missing', 'resolved', 'needs_confirmation', 'confirmed', 'manual', 'unavailable', 'invalid', 'hidden')`,
+    ),
+    check(
+      'decision_fact_value_source_kind_chk',
+      sql`${t.sourceKind} IN ('manual', 'url_query', 'clipboard', 'reference_table', 'api', 'derived', 'embed', 'internal')`,
+    ),
+    check(
+      'decision_fact_value_provenance_type_chk',
+      sql`jsonb_typeof(${t.provenance}) = 'object'`,
+    ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.23 decision_report — no-match / operator feedback reports (§3.11). Survives
+//   a swept session (decision_session_id is SET NULL). created_by / resolved_by
+//   are NO ACTION DEFERRABLE.
+// ─────────────────────────────────────────────────────────────────────────
+export const decisionReport = pgTable(
+  'decision_report',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id').notNull(),
+    logicId: uuid('logic_id').notNull(),
+    logicVersionId: uuid('logic_version_id'),
+    decisionSessionId: uuid('decision_session_id').references(
+      () => decisionSession.id,
+      { onDelete: 'set null' },
+    ),
+    kind: text('kind').notNull(),
+    note: text('note'),
+    status: text('status').notNull().default('open'),
+    // NO ACTION (DEFERRABLE INITIALLY IMMEDIATE added in the migration)
+    createdBy: uuid('created_by').references(() => user.id, {
+      onDelete: 'no action',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    resolvedBy: uuid('resolved_by').references(() => user.id, {
+      onDelete: 'no action',
+    }),
+  },
+  (t) => [
+    check(
+      'decision_report_kind_chk',
+      sql`${t.kind} IN ('no_match', 'wrong_fact', 'missing_source', 'confusing_question', 'wrong_result_text', 'exception_required')`,
+    ),
+    check(
+      'decision_report_status_chk',
+      sql`${t.status} IN ('open', 'reviewing', 'resolved', 'dismissed')`,
+    ),
+    check(
+      'decision_report_note_length_chk',
+      sql`${t.note} IS NULL OR length(${t.note}) <= 2000`,
+    ),
+    foreignKey({
+      columns: [t.workspaceId, t.logicId],
+      foreignColumns: [logic.workspaceId, logic.id],
+      name: 'decision_report_workspace_logic_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [t.workspaceId, t.logicId, t.logicVersionId],
+      foreignColumns: [
+        logicVersion.workspaceId,
+        logicVersion.logicId,
+        logicVersion.id,
+      ],
+      name: 'decision_report_version_fk',
+    }).onDelete('cascade'),
+    index('decision_report_workspace_status_created_idx').on(
+      t.workspaceId,
+      t.status,
+      t.createdAt.desc(),
+    ),
+    index('decision_report_logic_created_idx').on(
+      t.logicId,
+      t.createdAt.desc(),
+    ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
 // Better Auth tables — session / account / verification.
 //
 // These are auth implementation detail and are not in the 12 production

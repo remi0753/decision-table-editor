@@ -9,6 +9,7 @@ import type { Env } from './env.js';
 import { buildOpenApiDocument } from './openapi.js';
 import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
 import { apiKeyRoutes } from './routes/apiKeys.js';
+import { decisionSessionRoutes } from './routes/decisionSessions.js';
 import { evaluateRoutes } from './routes/evaluate.js';
 import { factBindingRoutes } from './routes/factBindings.js';
 import { factRoutes } from './routes/facts.js';
@@ -354,6 +355,7 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
   app.route('/', referenceTableRoutes);
   app.route('/', resolverRoutes);
   app.route('/', runnerDataRoutes);
+  app.route('/', decisionSessionRoutes);
   app.route('/', apiKeyRoutes);
 
   // /v1/* — external public API surface (Bearer auth, no cookies, permissive
