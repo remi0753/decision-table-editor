@@ -36,6 +36,13 @@
       "when": 1781424095879,
       "tag": "0004_tidy_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781431019934,
+      "tag": "0005_odd_rockslide",
+      "breakpoints": true
     }
   ]
 }

@@ -1132,6 +1132,293 @@ export const logicFactBinding = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────
+// 3.15 data_source — source metadata (§3.3). The stable entity; one row per
+//   admin-facing source. MVP only allows kind='reference_table'. The
+//   (workspace_id, id) UNIQUE is the composite-FK target for reference_table
+//   and resolver_recipe. owner_user_id is NO ACTION DEFERRABLE (added in the
+//   migration) so users are never physically deleted out from under a source.
+// ─────────────────────────────────────────────────────────────────────────
+export const dataSource = pgTable(
+  'data_source',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    kind: text('kind').notNull().default('reference_table'),
+    schema: jsonb('schema').notNull(),
+    schemaHash: text('schema_hash'),
+    authType: text('auth_type').notNull().default('none'),
+    secretRef: text('secret_ref'),
+    allowedDomains: jsonb('allowed_domains'),
+    // NO ACTION (DEFERRABLE INITIALLY IMMEDIATE added in the migration)
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'no action' }),
+    status: text('status').notNull().default('active'),
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdActorType: text('created_actor_type').notNull(),
+    createdActorId: uuid('created_actor_id'),
+    updatedActorType: text('updated_actor_type'),
+    updatedActorId: uuid('updated_actor_id'),
+  },
+  (t) => [
+    check('data_source_name_length_chk', sql`length(${t.name}) <= 120`),
+    check(
+      'data_source_kind_chk',
+      sql`${t.kind} IN ('reference_table', 'spreadsheet', 'managed_connector', 'openapi_http', 'graphql')`,
+    ),
+    check(
+      'data_source_auth_type_chk',
+      sql`${t.authType} IN ('none', 'api_key', 'bearer', 'basic', 'oauth')`,
+    ),
+    check(
+      'data_source_status_chk',
+      sql`${t.status} IN ('draft', 'active', 'disabled')`,
+    ),
+    check(
+      'data_source_schema_object_chk',
+      sql`jsonb_typeof(${t.schema}) = 'object'`,
+    ),
+    check(
+      'data_source_allowed_domains_type_chk',
+      sql`${t.allowedDomains} IS NULL OR jsonb_typeof(${t.allowedDomains}) = 'array'`,
+    ),
+    check(
+      'data_source_created_actor_type_chk',
+      sql`${t.createdActorType} IN ('user', 'system')`,
+    ),
+    check(
+      'data_source_updated_actor_type_chk',
+      sql`${t.updatedActorType} IS NULL OR ${t.updatedActorType} IN ('user', 'system')`,
+    ),
+    check(
+      'data_source_created_actor_consistency_chk',
+      sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
+          OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
+    ),
+    check(
+      'data_source_updated_actor_consistency_chk',
+      sql`(${t.updatedActorType} IS NULL AND ${t.updatedActorId} IS NULL)
+          OR (${t.updatedActorType} = 'user' AND ${t.updatedActorId} IS NOT NULL)
+          OR (${t.updatedActorType} = 'system' AND ${t.updatedActorId} IS NULL)`,
+    ),
+    unique('data_source_workspace_id_id_uniq').on(t.workspaceId, t.id),
+    index('data_source_workspace_status_idx').on(
+      t.workspaceId,
+      t.status,
+      t.createdAt.desc(),
+    ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.16 reference_table — one immutable version of the data under a data source
+//   (§3.4). replace/append create a new version (version = previous + 1) and
+//   flip the old one to 'superseded'; rows are kept for recorded replay. At
+//   most one 'active' version per source (partial unique index).
+// ─────────────────────────────────────────────────────────────────────────
+export const referenceTable = pgTable(
+  'reference_table',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    dataSourceId: uuid('data_source_id').notNull(),
+    name: text('name').notNull(),
+    columns: jsonb('columns').notNull(),
+    keyColumns: jsonb('key_columns').notNull(),
+    rowCount: integer('row_count').notNull(),
+    storageRef: text('storage_ref'),
+    version: integer('version').notNull(),
+    status: text('status').notNull().default('active'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdActorType: text('created_actor_type').notNull(),
+    createdActorId: uuid('created_actor_id'),
+  },
+  (t) => [
+    check('reference_table_name_length_chk', sql`length(${t.name}) <= 120`),
+    check(
+      'reference_table_columns_type_chk',
+      sql`jsonb_typeof(${t.columns}) = 'array'`,
+    ),
+    check(
+      'reference_table_key_columns_type_chk',
+      sql`jsonb_typeof(${t.keyColumns}) = 'array'`,
+    ),
+    check('reference_table_row_count_chk', sql`${t.rowCount} >= 0`),
+    check(
+      'reference_table_status_chk',
+      sql`${t.status} IN ('active', 'superseded', 'disabled')`,
+    ),
+    check(
+      'reference_table_created_actor_type_chk',
+      sql`${t.createdActorType} IN ('user', 'system')`,
+    ),
+    check(
+      'reference_table_created_actor_consistency_chk',
+      sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
+          OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
+    ),
+    foreignKey({
+      columns: [t.workspaceId, t.dataSourceId],
+      foreignColumns: [dataSource.workspaceId, dataSource.id],
+      name: 'reference_table_workspace_source_fk',
+    }).onDelete('cascade'),
+    unique('reference_table_source_version_uniq').on(t.dataSourceId, t.version),
+    unique('reference_table_workspace_id_id_uniq').on(t.workspaceId, t.id),
+    uniqueIndex('reference_table_source_active_uniq')
+      .on(t.dataSourceId)
+      .where(sql`status = 'active'`),
+    index('reference_table_workspace_idx').on(
+      t.workspaceId,
+      t.createdAt.desc(),
+    ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.17 reference_table_row — rows for lookup (§3.5). key_hash is the hash of
+//   the normalized key value(s) in configured key-column order. The unique
+//   (reference_table_id, key_hash) is the first line of defense for the
+//   "reject duplicate keys" upload policy (§6.4). No updated_at (rows are
+//   immutable within a version), so no trigger.
+// ─────────────────────────────────────────────────────────────────────────
+export const referenceTableRow = pgTable(
+  'reference_table_row',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    referenceTableId: uuid('reference_table_id')
+      .notNull()
+      .references(() => referenceTable.id, { onDelete: 'cascade' }),
+    rowIndex: integer('row_index').notNull(),
+    keyHash: text('key_hash').notNull(),
+    keyValues: jsonb('key_values').notNull(),
+    data: jsonb('data').notNull(),
+  },
+  (t) => [
+    uniqueIndex('reference_table_row_index_uniq').on(
+      t.referenceTableId,
+      t.rowIndex,
+    ),
+    uniqueIndex('reference_table_row_key_hash_uniq').on(
+      t.referenceTableId,
+      t.keyHash,
+    ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.18 resolver_recipe — how facts are resolved from a data source (§3.6). The
+//   recipe pins the stable data_source_id; the active reference_table version
+//   is resolved at publish time and pinned in the snapshot. timeout/cache/
+//   sensitivity policy columns are deferred until HTTP connectors arrive.
+// ─────────────────────────────────────────────────────────────────────────
+export const resolverRecipe = pgTable(
+  'resolver_recipe',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    inputFactIds: jsonb('input_fact_ids').notNull(),
+    dataSourceId: uuid('data_source_id').notNull(),
+    operationRef: jsonb('operation_ref').notNull(),
+    parameterMappings: jsonb('parameter_mappings').notNull(),
+    outputMappings: jsonb('output_mappings').notNull(),
+    normalizers: jsonb('normalizers').notNull().default(sql`'{}'::jsonb`),
+    fallbackPolicy: text('fallback_policy').notNull().default('ask_operator'),
+    status: text('status').notNull().default('active'),
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdActorType: text('created_actor_type').notNull(),
+    createdActorId: uuid('created_actor_id'),
+    updatedActorType: text('updated_actor_type'),
+    updatedActorId: uuid('updated_actor_id'),
+  },
+  (t) => [
+    check('resolver_recipe_name_length_chk', sql`length(${t.name}) <= 120`),
+    check(
+      'resolver_recipe_input_fact_ids_type_chk',
+      sql`jsonb_typeof(${t.inputFactIds}) = 'array'`,
+    ),
+    check(
+      'resolver_recipe_operation_ref_type_chk',
+      sql`jsonb_typeof(${t.operationRef}) = 'object'`,
+    ),
+    check(
+      'resolver_recipe_parameter_mappings_type_chk',
+      sql`jsonb_typeof(${t.parameterMappings}) = 'object'`,
+    ),
+    check(
+      'resolver_recipe_output_mappings_type_chk',
+      sql`jsonb_typeof(${t.outputMappings}) = 'array'`,
+    ),
+    check(
+      'resolver_recipe_normalizers_type_chk',
+      sql`jsonb_typeof(${t.normalizers}) = 'object'`,
+    ),
+    check(
+      'resolver_recipe_fallback_policy_chk',
+      sql`${t.fallbackPolicy} IN ('ask_operator', 'mark_unavailable', 'block')`,
+    ),
+    check(
+      'resolver_recipe_status_chk',
+      sql`${t.status} IN ('draft', 'active', 'disabled')`,
+    ),
+    check(
+      'resolver_recipe_created_actor_type_chk',
+      sql`${t.createdActorType} IN ('user', 'system')`,
+    ),
+    check(
+      'resolver_recipe_updated_actor_type_chk',
+      sql`${t.updatedActorType} IS NULL OR ${t.updatedActorType} IN ('user', 'system')`,
+    ),
+    check(
+      'resolver_recipe_created_actor_consistency_chk',
+      sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
+          OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
+    ),
+    check(
+      'resolver_recipe_updated_actor_consistency_chk',
+      sql`(${t.updatedActorType} IS NULL AND ${t.updatedActorId} IS NULL)
+          OR (${t.updatedActorType} = 'user' AND ${t.updatedActorId} IS NOT NULL)
+          OR (${t.updatedActorType} = 'system' AND ${t.updatedActorId} IS NULL)`,
+    ),
+    foreignKey({
+      columns: [t.workspaceId, t.dataSourceId],
+      foreignColumns: [dataSource.workspaceId, dataSource.id],
+      name: 'resolver_recipe_workspace_source_fk',
+    }).onDelete('restrict'),
+    unique('resolver_recipe_workspace_id_id_uniq').on(t.workspaceId, t.id),
+    index('resolver_recipe_workspace_status_idx').on(
+      t.workspaceId,
+      t.status,
+      t.createdAt.desc(),
+    ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
 // Better Auth tables — session / account / verification.
 //
 // These are auth implementation detail and are not in the 12 production
