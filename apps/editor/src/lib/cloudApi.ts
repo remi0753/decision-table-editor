@@ -256,6 +256,33 @@ async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   return data as T;
 }
 
+// Multipart variant for file uploads. Mirrors `api`'s error handling but lets
+// the browser set the multipart boundary Content-Type itself.
+async function apiForm<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const code = data?.error?.code ?? data?.code ?? 'request_failed';
+    const message =
+      data?.error?.message ??
+      data?.message ??
+      `Request failed with ${res.status}`;
+    throw new CloudApiError(res.status, code, message);
+  }
+  if (data === null) {
+    throw new CloudApiError(
+      res.status,
+      'invalid_response',
+      'Invalid API response.',
+    );
+  }
+  return data as T;
+}
+
 export async function getMe() {
   return api<{ user: CloudUser; orgs: CloudOrgMembership[] }>('/api/me');
 }
@@ -411,6 +438,104 @@ export async function deprecateFact(factId: string) {
     method: 'POST',
     body: {},
   });
+}
+
+export type ReferenceColumnDef = {
+  name: string;
+  factId?: string;
+  normalizer?: { kind?: string; format?: string };
+};
+
+export type ReferenceTableVersionSummary = {
+  referenceTableId: string;
+  version: number;
+  rowCount: number;
+  columns: ReferenceColumnDef[];
+  keyColumns: string[];
+  status: string;
+  updatedAt: string;
+};
+
+export type CloudReferenceTable = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  kind: string;
+  status: string;
+  ownerUserId: string;
+  activeVersion: ReferenceTableVersionSummary | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReferenceColumnMappingInput = {
+  columnName: string;
+  factId: string;
+};
+
+export type ReferenceUploadMetadata = {
+  name: string;
+  headerRowIndex?: number;
+  keyColumns: string[];
+  columnMappings: ReferenceColumnMappingInput[];
+};
+
+export type ReferenceLookupValue = {
+  factId: string;
+  value?: string;
+  state: string;
+  sourceKind: string;
+  provenance: Record<string, unknown>;
+};
+
+export async function listReferenceTables(workspaceId: string) {
+  return api<{ referenceTables: CloudReferenceTable[] }>(
+    `/api/workspaces/${workspaceId}/reference-tables`,
+  );
+}
+
+export async function createReferenceTable(
+  workspaceId: string,
+  file: File,
+  metadata: ReferenceUploadMetadata,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('metadata', JSON.stringify(metadata));
+  return apiForm<{ referenceTable: CloudReferenceTable }>(
+    `/api/workspaces/${workspaceId}/reference-tables`,
+    form,
+  );
+}
+
+export async function getReferenceTable(referenceTableId: string) {
+  return api<{
+    referenceTable: CloudReferenceTable;
+    versions: {
+      referenceTableId: string;
+      version: number;
+      status: string;
+      rowCount: number;
+      createdAt: string;
+    }[];
+  }>(`/api/reference-tables/${referenceTableId}`);
+}
+
+export async function testReferenceLookup(
+  referenceTableId: string,
+  input: { key?: string; keys?: Record<string, string> },
+) {
+  return api<{ matched: boolean; values: ReferenceLookupValue[] }>(
+    `/api/reference-tables/${referenceTableId}/test-lookup`,
+    { method: 'POST', body: input },
+  );
+}
+
+export async function disableReferenceTable(referenceTableId: string) {
+  return api<{ referenceTable: CloudReferenceTable }>(
+    `/api/reference-tables/${referenceTableId}/disable`,
+    { method: 'POST', body: {} },
+  );
 }
 
 export async function listApiKeys(workspaceId: string) {

@@ -2,31 +2,32 @@ import {
   ArrowLeft,
   Ban,
   Boxes,
-  Database,
   Loader2,
-  Pencil,
-  Plus,
-  Tag,
+  Search,
+  Table2,
+  Upload,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import logoUrl from '@/assets/logo.svg';
 import { DataNav } from '@/components/data/DataNav';
-import { FactEditorDialog } from '@/components/data/FactEditorDialog';
+import { ReferenceTableWizard } from '@/components/data/ReferenceTableWizard';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useConfirm } from '@/hooks/useConfirm';
 import {
   CloudApiError,
   type CloudFact,
   type CloudOrg,
+  type CloudReferenceTable,
   type CloudWorkspace,
-  createFact,
-  deprecateFact,
-  type FactInput,
+  disableReferenceTable,
   getMe,
   listFacts,
+  listReferenceTables,
   listWorkspaces,
-  updateFact,
+  type ReferenceLookupValue,
+  testReferenceLookup,
 } from '@/lib/cloudApi';
 
 function errorMessage(error: unknown) {
@@ -34,29 +35,7 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Request failed.';
 }
 
-const KIND_LABELS: Record<string, string> = {
-  key: 'Key',
-  system_fact: 'System',
-  manual_fact: 'Manual',
-  derived_fact: 'Derived',
-  internal_fact: 'Internal',
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const cls =
-    status === 'active'
-      ? 'bg-success-bg text-success-fg'
-      : status === 'draft'
-        ? 'bg-warning-bg text-warning-fg'
-        : 'bg-surface-subtle text-fg-subtle';
-  return (
-    <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>
-      {status}
-    </span>
-  );
-}
-
-export function FactCatalogPage() {
+export function ReferenceTablesPage() {
   const { confirm, confirmDialog } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,25 +43,32 @@ export function FactCatalogPage() {
   const [selectedOrgId, setSelectedOrgId] = useState('');
   const [workspaces, setWorkspaces] = useState<CloudWorkspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
+  const [tables, setTables] = useState<CloudReferenceTable[]>([]);
   const [facts, setFacts] = useState<CloudFact[]>([]);
-  const [dialog, setDialog] = useState<
-    { mode: 'create' } | { mode: 'edit'; fact: CloudFact } | null
-  >(null);
+  const [showWizard, setShowWizard] = useState(false);
+  const [lookupTarget, setLookupTarget] = useState<CloudReferenceTable | null>(
+    null,
+  );
 
   const selectedWorkspace = useMemo(
     () => workspaces.find((w) => w.id === selectedWorkspaceId) ?? null,
     [workspaces, selectedWorkspaceId],
   );
 
-  const loadFacts = useCallback(async (workspaceId: string, spinner = true) => {
+  const loadData = useCallback(async (workspaceId: string, spinner = true) => {
     if (!workspaceId) {
+      setTables([]);
       setFacts([]);
       return;
     }
     if (spinner) setRefreshing(true);
     try {
-      const result = await listFacts(workspaceId);
-      setFacts(result.facts);
+      const [tableResult, factResult] = await Promise.all([
+        listReferenceTables(workspaceId),
+        listFacts(workspaceId),
+      ]);
+      setTables(tableResult.referenceTables);
+      setFacts(factResult.facts);
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -99,9 +85,9 @@ export function FactCatalogPage() {
         result.workspaces[0]?.id ??
         '';
       setSelectedWorkspaceId(nextId);
-      await loadFacts(nextId, false);
+      await loadData(nextId, false);
     },
-    [loadFacts],
+    [loadData],
   );
 
   useEffect(() => {
@@ -144,42 +130,20 @@ export function FactCatalogPage() {
     }
   };
 
-  const handleWorkspaceChange = async (workspaceId: string) => {
-    setSelectedWorkspaceId(workspaceId);
-    await loadFacts(workspaceId);
-  };
-
-  const handleSubmit = async (input: FactInput) => {
-    if (!selectedWorkspaceId) return;
-    try {
-      if (dialog?.mode === 'edit') {
-        await updateFact(dialog.fact.id, input);
-        toast.success('Fact updated.');
-      } else {
-        await createFact(selectedWorkspaceId, input);
-        toast.success('Fact created.');
-      }
-      setDialog(null);
-      await loadFacts(selectedWorkspaceId);
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  };
-
-  const handleDeprecate = async (fact: CloudFact) => {
+  const handleDisable = async (table: CloudReferenceTable) => {
     if (
       !(await confirm({
-        title: 'Deprecate fact',
-        description: `Deprecate "${fact.name}"? It can no longer be bound to new fields.`,
+        title: 'Disable reference table',
+        description: `Disable "${table.name}"? Resolvers using it will stop returning rows.`,
         destructive: true,
       }))
     ) {
       return;
     }
     try {
-      await deprecateFact(fact.id);
-      toast.success('Fact deprecated.');
-      await loadFacts(selectedWorkspaceId);
+      await disableReferenceTable(table.id);
+      toast.success('Reference table disabled.');
+      await loadData(selectedWorkspaceId);
     } catch (error) {
       toast.error(errorMessage(error));
     }
@@ -195,17 +159,6 @@ export function FactCatalogPage() {
         <div className="inline-flex items-center gap-3">
           <ThemeToggle />
           <a
-            href={
-              selectedWorkspaceId
-                ? `/settings/workspace?workspaceId=${selectedWorkspaceId}`
-                : '/settings/workspace'
-            }
-            className="inline-flex h-8 items-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
-          >
-            <Boxes className="h-4 w-4" />
-            Workspace settings
-          </a>
-          <a
             href="/edit"
             className="inline-flex h-8 items-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
           >
@@ -219,12 +172,12 @@ export function FactCatalogPage() {
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-brand-border bg-brand-subtle text-brand-fg">
-              <Database className="h-5 w-5" />
+              <Table2 className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl font-semibold text-fg">Fact catalog</h1>
+            <h1 className="text-2xl font-semibold text-fg">Reference tables</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-muted">
-              Business facts a decision logic can use. Bind logic fields to
-              these facts, then resolve them from reference tables.
+              Admin-maintained lookup tables. Upload a CSV, choose key columns,
+              and map output columns to facts so resolvers can fill them in.
             </p>
           </div>
 
@@ -253,7 +206,10 @@ export function FactCatalogPage() {
                 <select
                   value={selectedWorkspaceId}
                   onChange={(event) =>
-                    void handleWorkspaceChange(event.target.value)
+                    void (async () => {
+                      setSelectedWorkspaceId(event.target.value);
+                      await loadData(event.target.value);
+                    })()
                   }
                   className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                 >
@@ -268,7 +224,7 @@ export function FactCatalogPage() {
           ) : null}
         </div>
 
-        <DataNav active="facts" workspaceId={selectedWorkspaceId} />
+        <DataNav active="tables" workspaceId={selectedWorkspaceId} />
 
         {loading ? (
           <div className="flex min-h-72 items-center justify-center rounded border border-line bg-surface">
@@ -280,17 +236,14 @@ export function FactCatalogPage() {
             <h2 className="mt-3 text-base font-semibold text-fg">
               No workspace selected
             </h2>
-            <p className="mt-2 text-sm text-fg-subtle">
-              Create a workspace before defining facts.
-            </p>
           </section>
         ) : (
           <section className="rounded border border-line bg-surface">
             <div className="flex items-center justify-between border-b border-line-subtle px-4 py-3">
               <div className="flex items-center gap-2">
-                <Tag className="h-4 w-4 text-fg-faint" />
+                <Table2 className="h-4 w-4 text-fg-faint" />
                 <h2 className="text-sm font-semibold text-fg">
-                  {facts.length} fact{facts.length === 1 ? '' : 's'}
+                  {tables.length} table{tables.length === 1 ? '' : 's'}
                 </h2>
                 {refreshing ? (
                   <Loader2 className="h-4 w-4 animate-spin text-fg-faint" />
@@ -298,11 +251,11 @@ export function FactCatalogPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setDialog({ mode: 'create' })}
+                onClick={() => setShowWizard(true)}
                 className="inline-flex h-9 items-center gap-2 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong"
               >
-                <Plus className="h-4 w-4" />
-                New fact
+                <Upload className="h-4 w-4" />
+                Upload table
               </button>
             </div>
 
@@ -311,75 +264,71 @@ export function FactCatalogPage() {
                 <thead>
                   <tr className="border-b border-line-subtle bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                     <th className="px-4 py-2">Name</th>
-                    <th className="px-4 py-2">Kind</th>
-                    <th className="px-4 py-2">Type</th>
-                    <th className="px-4 py-2">Aliases</th>
-                    <th className="px-4 py-2">Sensitive</th>
+                    <th className="px-4 py-2">Key columns</th>
+                    <th className="px-4 py-2">Rows</th>
+                    <th className="px-4 py-2">Version</th>
                     <th className="px-4 py-2">Status</th>
                     <th className="w-24 px-4 py-2 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {facts.length === 0 ? (
+                  {tables.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={6}
                         className="px-4 py-8 text-center text-sm text-fg-subtle"
                       >
-                        No facts yet. Create your first fact to get started.
+                        No reference tables yet. Upload a CSV to get started.
                       </td>
                     </tr>
                   ) : (
-                    facts.map((fact) => (
+                    tables.map((table) => (
                       <tr
-                        key={fact.id}
+                        key={table.id}
                         className="border-b border-line-subtle last:border-0"
                       >
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-fg">{fact.name}</div>
-                          {fact.description ? (
-                            <div className="mt-0.5 max-w-md truncate text-xs text-fg-subtle">
-                              {fact.description}
-                            </div>
-                          ) : null}
+                        <td className="px-4 py-3 font-medium text-fg">
+                          {table.name}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-fg-muted">
+                          {table.activeVersion?.keyColumns.join(', ') ?? '—'}
                         </td>
                         <td className="px-4 py-3 text-fg-muted">
-                          {KIND_LABELS[fact.kind] ?? fact.kind}
+                          {table.activeVersion?.rowCount ?? 0}
                         </td>
-                        <td className="px-4 py-3 text-fg-muted">{fact.type}</td>
-                        <td className="px-4 py-3 text-fg-subtle">
-                          {fact.aliases.length > 0
-                            ? fact.aliases.join(', ')
+                        <td className="px-4 py-3 text-fg-muted">
+                          {table.activeVersion
+                            ? `v${table.activeVersion.version}`
                             : '—'}
                         </td>
                         <td className="px-4 py-3">
-                          {fact.sensitive ? (
-                            <span className="rounded bg-warning-bg px-2 py-0.5 text-xs font-medium text-warning-fg">
-                              {fact.loggingPolicy}
-                            </span>
-                          ) : (
-                            <span className="text-fg-subtle">No</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={fact.status} />
+                          <span
+                            className={`rounded px-2 py-0.5 text-xs font-medium ${
+                              table.status === 'active'
+                                ? 'bg-success-bg text-success-fg'
+                                : 'bg-surface-subtle text-fg-subtle'
+                            }`}
+                          >
+                            {table.status}
+                          </span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
-                              onClick={() => setDialog({ mode: 'edit', fact })}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:bg-surface-muted"
-                              aria-label={`Edit ${fact.name}`}
+                              onClick={() => setLookupTarget(table)}
+                              disabled={!table.activeVersion}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:bg-surface-muted disabled:opacity-40"
+                              aria-label={`Test lookup ${table.name}`}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Search className="h-4 w-4" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => void handleDeprecate(fact)}
-                              disabled={fact.status === 'deprecated'}
+                              onClick={() => void handleDisable(table)}
+                              disabled={table.status !== 'active'}
                               className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:border-danger-border hover:bg-danger-bg hover:text-danger-fg disabled:cursor-not-allowed disabled:opacity-40"
-                              aria-label={`Deprecate ${fact.name}`}
+                              aria-label={`Disable ${table.name}`}
                             >
                               <Ban className="h-4 w-4" />
                             </button>
@@ -395,15 +344,150 @@ export function FactCatalogPage() {
         )}
       </main>
 
-      {dialog ? (
-        <FactEditorDialog
-          mode={dialog.mode}
-          initial={dialog.mode === 'edit' ? dialog.fact : undefined}
-          onClose={() => setDialog(null)}
-          onSubmit={handleSubmit}
+      {showWizard && selectedWorkspaceId ? (
+        <ReferenceTableWizard
+          workspaceId={selectedWorkspaceId}
+          facts={facts}
+          onClose={() => setShowWizard(false)}
+          onCreated={() => {
+            setShowWizard(false);
+            void loadData(selectedWorkspaceId);
+          }}
+        />
+      ) : null}
+
+      {lookupTarget ? (
+        <TestLookupDialog
+          table={lookupTarget}
+          facts={facts}
+          onClose={() => setLookupTarget(null)}
         />
       ) : null}
       {confirmDialog}
+    </div>
+  );
+}
+
+function TestLookupDialog({
+  table,
+  facts,
+  onClose,
+}: {
+  table: CloudReferenceTable;
+  facts: CloudFact[];
+  onClose: () => void;
+}) {
+  const keyColumns = table.activeVersion?.keyColumns ?? [];
+  const [keys, setKeys] = useState<Record<string, string>>({});
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<{
+    matched: boolean;
+    values: ReferenceLookupValue[];
+  } | null>(null);
+
+  const factName = (factId: string) =>
+    facts.find((f) => f.id === factId)?.name ?? factId;
+
+  const handleRun = async () => {
+    setRunning(true);
+    setResult(null);
+    try {
+      const res = await testReferenceLookup(table.id, { keys });
+      setResult(res);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Lookup failed.');
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4">
+      <section
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-lg rounded border border-line bg-surface shadow-xl"
+      >
+        <div className="flex items-center justify-between border-b border-line-subtle px-5 py-4">
+          <h2 className="text-lg font-semibold text-fg">
+            Test lookup — {table.name}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:bg-surface-muted"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-3 px-5 py-4">
+          {keyColumns.map((col) => (
+            <label key={col} className="block">
+              <span className="mb-1 block text-xs font-medium text-fg-muted">
+                {col}
+              </span>
+              <input
+                value={keys[col] ?? ''}
+                onChange={(event) =>
+                  setKeys((current) => ({
+                    ...current,
+                    [col]: event.target.value,
+                  }))
+                }
+                className="h-10 w-full rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
+              />
+            </label>
+          ))}
+          <button
+            type="button"
+            onClick={() => void handleRun()}
+            disabled={running}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-ink px-3 text-sm font-medium text-white hover:bg-ink disabled:opacity-50"
+          >
+            {running ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            Run lookup
+          </button>
+
+          {result ? (
+            result.matched ? (
+              <div className="rounded border border-line">
+                <div className="border-b border-line-subtle bg-success-bg px-3 py-2 text-xs font-medium text-success-fg">
+                  Matched — {result.values.length} mapped value(s)
+                </div>
+                <table className="w-full border-collapse text-sm">
+                  <tbody>
+                    {result.values.map((value) => (
+                      <tr
+                        key={value.factId}
+                        className="border-b border-line-subtle last:border-0"
+                      >
+                        <td className="px-3 py-2 text-fg-muted">
+                          {factName(value.factId)}
+                        </td>
+                        <td className="px-3 py-2 font-medium text-fg">
+                          {value.value ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right text-xs text-fg-subtle">
+                          {value.state}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="rounded border border-warning-border bg-warning-bg px-3 py-2 text-sm text-warning-fg">
+                No row matched that key.
+              </p>
+            )
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }

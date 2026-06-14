@@ -36,6 +36,11 @@ const FactCatalogPage = lazy(() =>
     default: m.FactCatalogPage,
   })),
 );
+const ReferenceTablesPage = lazy(() =>
+  import('@/components/data/ReferenceTablesPage').then((m) => ({
+    default: m.ReferenceTablesPage,
+  })),
+);
 const AuthPage = lazy(() =>
   import('@/components/auth/AuthPage').then((m) => ({ default: m.AuthPage })),
 );
@@ -56,6 +61,7 @@ function route() {
   if (path === '/settings/org') return <OrgSettingsPage />;
   if (path === '/settings/workspace') return <WorkspaceSettingsPage />;
   if (path === '/settings/data') return <FactCatalogPage />;
+  if (path === '/settings/data/tables') return <ReferenceTablesPage />;
   if (path === '/edit') return <EditorRoute />;
   // `/local` opens the editor in local mode regardless of any existing cloud
   // session: a stable, shareable/bookmarkable entry point that never depends on
