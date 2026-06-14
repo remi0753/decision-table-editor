@@ -538,6 +538,83 @@ export async function disableReferenceTable(referenceTableId: string) {
   );
 }
 
+export type ResolverKeyColumnMapping = {
+  columnName: string;
+  factId: string;
+};
+
+export type ResolverOutputMapping = {
+  columnName: string;
+  factId: string;
+  normalizer?: { kind?: string; format?: string };
+};
+
+export type CloudResolver = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  inputFactIds: string[];
+  dataSourceId: string;
+  operationRef: { kind: string };
+  parameterMappings: { keyColumns: ResolverKeyColumnMapping[] };
+  outputMappings: ResolverOutputMapping[];
+  normalizers: Record<string, unknown>;
+  fallbackPolicy: string;
+  status: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ResolverInput = {
+  name: string;
+  dataSourceId: string;
+  inputFactIds: string[];
+  parameterMappings: { keyColumns: ResolverKeyColumnMapping[] };
+  outputMappings: ResolverOutputMapping[];
+  fallbackPolicy?: string;
+};
+
+export async function listResolvers(workspaceId: string) {
+  return api<{ resolvers: CloudResolver[] }>(
+    `/api/workspaces/${workspaceId}/resolvers`,
+  );
+}
+
+export async function createResolver(
+  workspaceId: string,
+  input: ResolverInput,
+) {
+  return api<{ resolver: CloudResolver }>(
+    `/api/workspaces/${workspaceId}/resolvers`,
+    {
+      method: 'POST',
+      body: { ...input, operationRef: { kind: 'reference_table_lookup' } },
+    },
+  );
+}
+
+export async function testResolver(
+  resolverId: string,
+  facts: { factId: string; value: string }[],
+) {
+  return api<{
+    matched: boolean;
+    values: ReferenceLookupValue[];
+    missingKeys: string[];
+  }>(`/api/resolvers/${resolverId}/test`, {
+    method: 'POST',
+    body: { facts },
+  });
+}
+
+export async function disableResolver(resolverId: string) {
+  return api<{ resolver: CloudResolver }>(
+    `/api/resolvers/${resolverId}/disable`,
+    { method: 'POST', body: {} },
+  );
+}
+
 export async function listApiKeys(workspaceId: string) {
   return api<{ apiKeys: CloudApiKey[] }>(
     `/api/workspaces/${workspaceId}/api-keys`,
