@@ -46,6 +46,11 @@ const ResolverRecipePage = lazy(() =>
     default: m.ResolverRecipePage,
   })),
 );
+const LogicBindingsPage = lazy(() =>
+  import('@/components/data/LogicBindingsPage').then((m) => ({
+    default: m.LogicBindingsPage,
+  })),
+);
 const AuthPage = lazy(() =>
   import('@/components/auth/AuthPage').then((m) => ({ default: m.AuthPage })),
 );
@@ -68,6 +73,7 @@ function route() {
   if (path === '/settings/data') return <FactCatalogPage />;
   if (path === '/settings/data/tables') return <ReferenceTablesPage />;
   if (path === '/settings/data/resolvers') return <ResolverRecipePage />;
+  if (path === '/settings/data/bindings') return <LogicBindingsPage />;
   if (path === '/edit') return <EditorRoute />;
   // `/local` opens the editor in local mode regardless of any existing cloud
   // session: a stable, shareable/bookmarkable entry point that never depends on

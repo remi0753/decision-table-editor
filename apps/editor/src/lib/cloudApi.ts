@@ -615,6 +615,47 @@ export async function disableResolver(resolverId: string) {
   );
 }
 
+export type LogicFactBinding = {
+  fieldId: string;
+  factId: string;
+};
+
+export type DataReadinessIssue = {
+  code: string;
+  severity: 'block' | 'warn';
+  message: string;
+  fieldId?: string;
+  factId?: string;
+};
+
+export type DataReadinessResult = {
+  ok: boolean;
+  dataConnected: boolean;
+  issues: DataReadinessIssue[];
+};
+
+export async function getFactBindings(logicId: string) {
+  return api<{ bindings: LogicFactBinding[] }>(
+    `/api/logics/${logicId}/fact-bindings`,
+  );
+}
+
+export async function putFactBindings(
+  logicId: string,
+  bindings: LogicFactBinding[],
+) {
+  return api<{ bindings: LogicFactBinding[] }>(
+    `/api/logics/${logicId}/fact-bindings`,
+    { method: 'PUT', body: { bindings } },
+  );
+}
+
+export async function getDataReadiness(logicId: string) {
+  return api<{ readiness: DataReadinessResult }>(
+    `/api/logics/${logicId}/data-readiness`,
+  );
+}
+
 export async function listApiKeys(workspaceId: string) {
   return api<{ apiKeys: CloudApiKey[] }>(
     `/api/workspaces/${workspaceId}/api-keys`,
