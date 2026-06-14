@@ -43,6 +43,13 @@
       "when": 1781431019934,
       "tag": "0005_odd_rockslide",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781432137986,
+      "tag": "0006_premium_talisman",
+      "breakpoints": true
     }
   ]
 }

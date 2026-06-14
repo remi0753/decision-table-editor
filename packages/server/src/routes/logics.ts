@@ -2,13 +2,25 @@ import type { Logic } from '@leverie/engine';
 import { validateLogicForSave } from '@leverie/engine';
 import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
+import {
+  checkDataReadiness,
+  type ReadinessFact,
+  type ReadinessResolver,
+} from '../dataWorkspace/dataReadiness.js';
+import { buildDataSnapshot } from '../dataWorkspace/snapshot.js';
 import { createDb, type Database } from '../db/client.js';
 import {
+  dataSource,
+  factDefinition,
   invitation,
   logic,
+  logicFactBinding,
   logicVersion,
+  logicVersionDataSnapshot,
   membership,
   org,
+  referenceTable,
+  resolverRecipe,
   workspace,
 } from '../db/schema.js';
 import { sendInvitationEmail } from '../email.js';
@@ -233,6 +245,152 @@ async function loadLogicAccess(
   if ('error' in access) return access;
 
   return { logic: row.logic, workspace: row.workspace, ...access };
+}
+
+// Gather the data-connected layer for a logic and run publish readiness. Shared
+// by the readiness endpoint and the publish route. A logic with no bindings is
+// treated as not data-connected (readiness passes, no snapshot is written),
+// preserving existing publish behavior (§15).
+type FactRow = typeof factDefinition.$inferSelect;
+type ResolverRow = typeof resolverRecipe.$inferSelect;
+type DataSourceRow = typeof dataSource.$inferSelect;
+type ActiveTableRow = {
+  dataSourceId: string;
+  referenceTableId: string;
+  version: number;
+  rowCount: number;
+  status: string;
+};
+
+interface LogicDataLayer {
+  bindings: { fieldId: string; factId: string }[];
+  facts: FactRow[];
+  resolvers: ResolverRow[];
+  dataSources: DataSourceRow[];
+  activeTables: ActiveTableRow[];
+}
+
+function resolverOutputFactIds(resolver: ResolverRow): string[] {
+  const mappings = (resolver.outputMappings as { factId?: string }[]) ?? [];
+  return mappings
+    .map((m) => m.factId)
+    .filter((id): id is string => typeof id === 'string');
+}
+
+async function loadLogicDataLayer(
+  db: Database,
+  logicRow: { id: string; workspaceId: string },
+): Promise<LogicDataLayer> {
+  const [bindings, facts, resolvers, dataSources, tables] = await Promise.all([
+    db
+      .select({
+        fieldId: logicFactBinding.fieldId,
+        factId: logicFactBinding.factId,
+      })
+      .from(logicFactBinding)
+      .where(eq(logicFactBinding.logicId, logicRow.id)),
+    db
+      .select()
+      .from(factDefinition)
+      .where(eq(factDefinition.workspaceId, logicRow.workspaceId)),
+    db
+      .select()
+      .from(resolverRecipe)
+      .where(eq(resolverRecipe.workspaceId, logicRow.workspaceId)),
+    db
+      .select()
+      .from(dataSource)
+      .where(eq(dataSource.workspaceId, logicRow.workspaceId)),
+    db
+      .select({
+        dataSourceId: referenceTable.dataSourceId,
+        referenceTableId: referenceTable.id,
+        version: referenceTable.version,
+        rowCount: referenceTable.rowCount,
+        status: referenceTable.status,
+      })
+      .from(referenceTable)
+      .where(
+        and(
+          eq(referenceTable.workspaceId, logicRow.workspaceId),
+          eq(referenceTable.status, 'active'),
+        ),
+      ),
+  ]);
+  return { bindings, facts, resolvers, dataSources, activeTables: tables };
+}
+
+function runReadiness(logicData: Logic, layer: LogicDataLayer) {
+  const facts: ReadinessFact[] = layer.facts.map((f) => ({
+    id: f.id,
+    name: f.name,
+    type: f.type,
+    kind: f.kind,
+    status: f.status,
+    enumValues: (f.enumValues as string[] | null) ?? null,
+    question: f.question,
+    sensitive: f.sensitive,
+    loggingPolicy: f.loggingPolicy,
+  }));
+  const resolvers: ReadinessResolver[] = layer.resolvers.map((r) => ({
+    id: r.id,
+    status: r.status,
+    dataSourceId: r.dataSourceId,
+    inputFactIds: (r.inputFactIds as string[]) ?? [],
+    outputFactIds: resolverOutputFactIds(r),
+  }));
+  return checkDataReadiness({
+    fieldDefs: logicData.fieldDefs ?? {},
+    bindings: layer.bindings,
+    facts,
+    resolvers,
+    dataSources: layer.dataSources.map((s) => ({ id: s.id, status: s.status })),
+    referenceTables: layer.activeTables.map((t) => ({
+      dataSourceId: t.dataSourceId,
+      status: t.status,
+      rowCount: t.rowCount,
+    })),
+  });
+}
+
+// Assemble the publish-time data snapshot from the gathered layer, restricting
+// to the facts / resolvers / sources relevant to this logic's bindings.
+async function buildLogicDataSnapshot(layer: LogicDataLayer) {
+  const boundFactIds = new Set(layer.bindings.map((b) => b.factId));
+  const relevantResolvers = layer.resolvers.filter(
+    (r) =>
+      r.status === 'active' &&
+      resolverOutputFactIds(r).some((fid) => boundFactIds.has(fid)),
+  );
+  const relevantSourceIds = new Set(
+    relevantResolvers.map((r) => r.dataSourceId),
+  );
+  // Facts to snapshot: those bound, plus any referenced by the relevant
+  // resolvers (inputs/outputs), so historical sessions can render them.
+  const neededFactIds = new Set(boundFactIds);
+  for (const r of relevantResolvers) {
+    for (const id of (r.inputFactIds as string[]) ?? []) neededFactIds.add(id);
+    for (const id of resolverOutputFactIds(r)) neededFactIds.add(id);
+  }
+  const factDefinitions = layer.facts.filter((f) => neededFactIds.has(f.id));
+  const dataSources = layer.dataSources.filter((s) =>
+    relevantSourceIds.has(s.id),
+  );
+  const referenceTables = layer.activeTables
+    .filter((t) => relevantSourceIds.has(t.dataSourceId))
+    .map((t) => ({
+      dataSourceId: t.dataSourceId,
+      referenceTableId: t.referenceTableId,
+      version: t.version,
+    }));
+
+  return buildDataSnapshot({
+    bindings: layer.bindings,
+    factDefinitions,
+    resolverRecipes: relevantResolvers,
+    dataSources,
+    referenceTables,
+  });
 }
 
 function serializeLogic(row: SerializedLogicInput) {
@@ -1135,6 +1293,20 @@ logicRoutes.get('/api/logics/:logicId/versions/:versionNumber', async (c) => {
   return c.json({ version });
 });
 
+// GET /api/logics/:logicId/data-readiness — publish readiness checklist for the
+// data-connected layer (viewer+). The publish route enforces the same checks
+// server-side; this endpoint is for the editor checklist (§7.6).
+logicRoutes.get('/api/logics/:logicId/data-readiness', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const logicId = c.req.param('logicId');
+  const access = await loadLogicAccess(c, db, logicId);
+  if ('error' in access) return access.error;
+
+  const layer = await loadLogicDataLayer(db, access.logic);
+  const readiness = runReadiness(access.logic.draftData as Logic, layer);
+  return c.json({ readiness });
+});
+
 logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const logicId = c.req.param('logicId');
@@ -1166,6 +1338,28 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
     access.logic.draftWorkspaceConfig == null
       ? null
       : JSON.stringify(access.logic.draftWorkspaceConfig);
+
+  // Data-connected publish readiness (§7.6). Enforced server-side: blocking
+  // issues stop the publish. A logic with no fact bindings is not data-connected
+  // and skips both the checks and the snapshot, preserving existing behavior.
+  const dataLayer = await loadLogicDataLayer(db, access.logic);
+  const readiness = runReadiness(validation.logic, dataLayer);
+  if (readiness.dataConnected && !readiness.ok) {
+    return c.json(
+      {
+        error: {
+          code: 'data_readiness_failed',
+          message:
+            'Resolve the blocking data readiness issues before publishing.',
+          issues: readiness.issues,
+        },
+      },
+      422,
+    );
+  }
+  const dataSnapshot = readiness.dataConnected
+    ? await buildLogicDataSnapshot(dataLayer)
+    : null;
 
   let created: SerializedVersion | undefined;
   let updatedLogic: SerializedLogicInput = access.logic;
@@ -1299,6 +1493,23 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
     return jsonError(c, 500, 'publish_failed', 'Could not publish version.');
   }
 
+  // Pin the data-layer snapshot for this published version (§3.7). Only for
+  // data-connected logics; others have no snapshot and the runner falls back to
+  // its existing non-data-connected behavior.
+  if (dataSnapshot) {
+    await db.insert(logicVersionDataSnapshot).values({
+      workspaceId: created.workspaceId,
+      logicId: created.logicId,
+      logicVersionId: created.id,
+      bindings: dataSnapshot.bindings,
+      factDefinitions: dataSnapshot.factDefinitions,
+      resolverRecipes: dataSnapshot.resolverRecipes,
+      dataSources: dataSnapshot.dataSources,
+      referenceTables: dataSnapshot.referenceTables,
+      snapshotHash: dataSnapshot.snapshotHash,
+    });
+  }
+
   await writeAudit(db, {
     orgId: access.workspace.orgId,
     workspaceId: access.logic.workspaceId,
@@ -1307,7 +1518,11 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
     action: pinProduction ? 'logic.published_to_production' : 'logic.published',
     targetType: 'logic_version',
     targetId: created.id,
-    metadata: { logicId, versionNumber: created.versionNumber },
+    metadata: {
+      logicId,
+      versionNumber: created.versionNumber,
+      dataSnapshotHash: dataSnapshot?.snapshotHash,
+    },
   });
 
   return c.json(

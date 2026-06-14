@@ -518,6 +518,13 @@ export const logicVersion = pgTable(
       t.id,
       t.versionNumber,
     ),
+    // FK target for logic_version_data_snapshot's tenant-consistency composite
+    // FK (workspace_id, logic_id, logic_version_id) — see §3.7.
+    unique('logic_version_workspace_logic_id_uniq').on(
+      t.workspaceId,
+      t.logicId,
+      t.id,
+    ),
     index('logic_version_logic_id_desc_idx').on(
       t.logicId,
       t.versionNumber.desc(),
@@ -1415,6 +1422,67 @@ export const resolverRecipe = pgTable(
       t.status,
       t.createdAt.desc(),
     ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.19 logic_version_data_snapshot — data-layer references pinned at publish
+//   time (§3.7). Single source of truth for the data definitions used by a
+//   published version: bindings, fact definitions, resolver recipes, data
+//   sources, and the concrete active reference_table id+version. snapshot_hash
+//   is the bundle identity surfaced to operators/auditors as the "data
+//   definition version" (it replaces the unsound max-active-version integers).
+//   decision_session references this row rather than re-storing config.
+// ─────────────────────────────────────────────────────────────────────────
+export const logicVersionDataSnapshot = pgTable(
+  'logic_version_data_snapshot',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id').notNull(),
+    logicId: uuid('logic_id').notNull(),
+    logicVersionId: uuid('logic_version_id').notNull(),
+    bindings: jsonb('bindings').notNull(),
+    factDefinitions: jsonb('fact_definitions').notNull(),
+    resolverRecipes: jsonb('resolver_recipes').notNull(),
+    dataSources: jsonb('data_sources').notNull(),
+    referenceTables: jsonb('reference_tables').notNull(),
+    snapshotHash: text('snapshot_hash').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    check(
+      'lv_data_snapshot_bindings_type_chk',
+      sql`jsonb_typeof(${t.bindings}) = 'array'`,
+    ),
+    check(
+      'lv_data_snapshot_fact_definitions_type_chk',
+      sql`jsonb_typeof(${t.factDefinitions}) = 'array'`,
+    ),
+    check(
+      'lv_data_snapshot_resolver_recipes_type_chk',
+      sql`jsonb_typeof(${t.resolverRecipes}) = 'array'`,
+    ),
+    check(
+      'lv_data_snapshot_data_sources_type_chk',
+      sql`jsonb_typeof(${t.dataSources}) = 'array'`,
+    ),
+    check(
+      'lv_data_snapshot_reference_tables_type_chk',
+      sql`jsonb_typeof(${t.referenceTables}) = 'array'`,
+    ),
+    // Exactly one snapshot per published version.
+    unique('lv_data_snapshot_logic_version_id_uniq').on(t.logicVersionId),
+    foreignKey({
+      columns: [t.workspaceId, t.logicId, t.logicVersionId],
+      foreignColumns: [
+        logicVersion.workspaceId,
+        logicVersion.logicId,
+        logicVersion.id,
+      ],
+      name: 'lv_data_snapshot_version_fk',
+    }).onDelete('cascade'),
   ],
 );
 
