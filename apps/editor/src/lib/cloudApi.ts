@@ -200,7 +200,130 @@ export type RunnerLogicResponse = {
     role: CloudRole;
     canEdit: boolean;
   };
+  // Data-connected payload, present when the version has a published snapshot.
+  dataConnected?: boolean;
+  factDefinitions?: FactDefinition[] | null;
+  factBindings?: LogicFactBinding[] | null;
+  dataSnapshot?: { id: string; snapshotHash: string } | null;
 };
+
+export type ExtractedKey = {
+  factId: string;
+  label: string;
+  value: string;
+  confidence: number;
+  source: string;
+};
+
+export type ResolvedFactValue = {
+  factId: string;
+  fieldId?: string;
+  value?: string;
+  maskedValue?: string;
+  state: string;
+  sourceKind: string;
+  provenance: Record<string, unknown>;
+};
+
+export type DecisionSession = {
+  id: string;
+  workspaceId: string;
+  logicId: string;
+  logicVersionId: string;
+  status: string;
+  result:
+    | { status: 'ok'; outputs: Record<string, string> }
+    | { status: string }
+    | null;
+  createdAt: string;
+  completedAt?: string | null;
+};
+
+export type DecisionResult =
+  | { status: 'ok'; outputs: Record<string, string> }
+  | { status: 'no_match' };
+
+export type DecisionReportKind =
+  | 'no_match'
+  | 'wrong_fact'
+  | 'missing_source'
+  | 'confusing_question'
+  | 'wrong_result_text'
+  | 'exception_required';
+
+// Runner ref is a bare logicId (production) or logicId@vN (exact version).
+export async function getRunner(workspaceId: string, logicRef: string) {
+  return api<RunnerLogicResponse>(`/api/run/${workspaceId}/${logicRef}`);
+}
+
+export async function createCaseContext(
+  workspaceId: string,
+  logicRef: string,
+  text: string,
+  sourceKind = 'manual_paste',
+) {
+  return api<{
+    caseContext: {
+      id: string;
+      sourceKind: string;
+      extractedKeys: ExtractedKey[];
+    };
+  }>(`/api/run/${workspaceId}/${logicRef}/case-contexts`, {
+    method: 'POST',
+    body: { sourceKind, text },
+  });
+}
+
+export async function resolveFacts(
+  workspaceId: string,
+  logicRef: string,
+  input: {
+    caseContextId?: string | null;
+    facts: { factId: string; value: string; sourceKind?: string }[];
+  },
+) {
+  return api<{
+    values: ResolvedFactValue[];
+    unavailable: { factId: string; reason: string }[];
+  }>(`/api/run/${workspaceId}/${logicRef}/resolve`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function startDecisionSession(
+  workspaceId: string,
+  logicRef: string,
+  input: { caseContextId?: string | null },
+) {
+  return api<{ session: DecisionSession }>(
+    `/api/run/${workspaceId}/${logicRef}/sessions`,
+    { method: 'POST', body: input },
+  );
+}
+
+export async function completeDecisionSession(
+  sessionId: string,
+  input: {
+    factValues: ResolvedFactValue[];
+    result?: DecisionResult;
+  },
+) {
+  return api<{ session: DecisionSession; result: DecisionResult }>(
+    `/api/decision-sessions/${sessionId}/complete`,
+    { method: 'POST', body: input },
+  );
+}
+
+export async function createDecisionReport(
+  sessionId: string,
+  input: { kind: DecisionReportKind; note?: string },
+) {
+  return api<{ report: { id: string; kind: string; status: string } }>(
+    `/api/decision-sessions/${sessionId}/reports`,
+    { method: 'POST', body: input },
+  );
+}
 
 export type RunnerShareRole = Extract<CloudRole, 'viewer' | 'runner'>;
 

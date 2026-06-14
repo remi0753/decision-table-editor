@@ -2,9 +2,10 @@ import { WorkspaceRunner } from '@leverie/ui-runtime';
 import { ArrowLeft, ExternalLink, LockKeyhole, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import logoUrl from '@/assets/logo.svg';
+import { DataConnectedRunner } from '@/components/runner/DataConnectedRunner';
 import {
   CloudApiError,
-  getRunnerLogic,
+  getRunner,
   type RunnerLogicResponse,
 } from '@/lib/cloudApi';
 
@@ -13,15 +14,16 @@ type RunnerState =
   | { status: 'ready'; data: RunnerLogicResponse }
   | { status: 'error'; title: string; message: string; actionHref?: string };
 
+// Accepts /run/<workspaceId>/<logicId> (production) and
+// /run/<workspaceId>/<logicId>@vN (exact version).
 function parseRunnerPath(pathname: string) {
   const match = pathname.match(
-    /^\/run\/([^/]+)\/([0-9a-f-]{36})@v([1-9][0-9]*)$/i,
+    /^\/run\/([^/]+)\/([0-9a-f-]{36}(?:@v[1-9][0-9]*)?)$/i,
   );
   if (!match) return null;
   return {
     workspaceId: decodeURIComponent(match[1] ?? ''),
-    logicId: match[2] ?? '',
-    versionNumber: Number(match[3]),
+    logicRef: match[2] ?? '',
   };
 }
 
@@ -53,17 +55,14 @@ export function RunnerPage() {
       setState({
         status: 'error',
         title: 'Invalid runner URL',
-        message: 'Use /run/<workspaceId>/<logicId>@vN.',
+        message:
+          'Use /run/<workspaceId>/<logicId> or /run/<workspaceId>/<logicId>@vN.',
       });
       return;
     }
 
     let cancelled = false;
-    void getRunnerLogic(
-      runnerRef.workspaceId,
-      runnerRef.logicId,
-      runnerRef.versionNumber,
-    )
+    void getRunner(runnerRef.workspaceId, runnerRef.logicRef)
       .then((data) => {
         if (!cancelled) setState({ status: 'ready', data });
       })
@@ -164,17 +163,27 @@ export function RunnerPage() {
             ) : null}
           </div>
 
-          <section className="rounded border border-line bg-surface p-5 shadow-sm">
-            <WorkspaceRunner
-              logic={state.data.version.data}
-              workspaceConfig={state.data.version.workspaceConfig ?? undefined}
-              initialValues={runnerInitialValues()}
-              versionLabel={`v${state.data.version.versionNumber}`}
-              publishedAtLabel={formatPublishedAt(
-                state.data.version.publishedAt,
-              )}
+          {state.data.dataConnected ? (
+            <DataConnectedRunner
+              workspaceId={state.data.workspace.id}
+              logicRef={runnerRef?.logicRef ?? state.data.logic.id}
+              data={state.data}
             />
-          </section>
+          ) : (
+            <section className="rounded border border-line bg-surface p-5 shadow-sm">
+              <WorkspaceRunner
+                logic={state.data.version.data}
+                workspaceConfig={
+                  state.data.version.workspaceConfig ?? undefined
+                }
+                initialValues={runnerInitialValues()}
+                versionLabel={`v${state.data.version.versionNumber}`}
+                publishedAtLabel={formatPublishedAt(
+                  state.data.version.publishedAt,
+                )}
+              />
+            </section>
+          )}
         </main>
       )}
     </div>
