@@ -1,5 +1,20 @@
 import type { Logic } from '@leverie/engine';
-import type { WorkspaceConfig } from '@leverie/ui-runtime';
+import type {
+  FactDefinition,
+  FactKind,
+  FactLoggingPolicy,
+  FactStatus,
+  FactType,
+  WorkspaceConfig,
+} from '@leverie/ui-runtime';
+
+export type {
+  FactDefinition,
+  FactKind,
+  FactLoggingPolicy,
+  FactStatus,
+  FactType,
+} from '@leverie/ui-runtime';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -353,6 +368,49 @@ export async function updateWorkspace(
 
 export async function listLogics(workspaceId: string) {
   return api<{ logics: CloudLogic[] }>(`/api/workspaces/${workspaceId}/logics`);
+}
+
+export type CloudFact = FactDefinition & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FactInput = {
+  name: string;
+  description?: string | null;
+  type: FactType;
+  kind: FactKind;
+  enumValues?: string[] | null;
+  aliases?: string[];
+  question?: string | null;
+  sensitive?: boolean;
+  loggingPolicy?: FactLoggingPolicy;
+  status?: FactStatus;
+};
+
+export async function listFacts(workspaceId: string) {
+  return api<{ facts: CloudFact[] }>(`/api/workspaces/${workspaceId}/facts`);
+}
+
+export async function createFact(workspaceId: string, input: FactInput) {
+  return api<{ fact: CloudFact }>(`/api/workspaces/${workspaceId}/facts`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function updateFact(factId: string, input: Partial<FactInput>) {
+  return api<{ fact: CloudFact }>(`/api/facts/${factId}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export async function deprecateFact(factId: string) {
+  return api<{ fact: CloudFact }>(`/api/facts/${factId}/deprecate`, {
+    method: 'POST',
+    body: {},
+  });
 }
 
 export async function listApiKeys(workspaceId: string) {

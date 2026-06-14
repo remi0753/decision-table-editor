@@ -31,6 +31,11 @@ const WorkspaceSettingsPage = lazy(() =>
     default: m.WorkspaceSettingsPage,
   })),
 );
+const FactCatalogPage = lazy(() =>
+  import('@/components/data/FactCatalogPage').then((m) => ({
+    default: m.FactCatalogPage,
+  })),
+);
 const AuthPage = lazy(() =>
   import('@/components/auth/AuthPage').then((m) => ({ default: m.AuthPage })),
 );
@@ -50,6 +55,7 @@ function route() {
   if (path === '/invite') return <InvitePage />;
   if (path === '/settings/org') return <OrgSettingsPage />;
   if (path === '/settings/workspace') return <WorkspaceSettingsPage />;
+  if (path === '/settings/data') return <FactCatalogPage />;
   if (path === '/edit') return <EditorRoute />;
   // `/local` opens the editor in local mode regardless of any existing cloud
   // session: a stable, shareable/bookmarkable entry point that never depends on
