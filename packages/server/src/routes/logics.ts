@@ -740,56 +740,98 @@ logicRoutes.get('/api/me/logics', async (c) => {
   });
 });
 
+// Runner load. Accepts /run/<workspaceId>/<logicId> (production) and
+// /run/<workspaceId>/<logicId>@vN (exact version) (§5.5). When the resolved
+// version has a published data snapshot, the data-connected payload
+// (factDefinitions, factBindings, dataSnapshot) is included; otherwise the
+// response is the existing non-data-connected shape (§15).
 logicRoutes.get('/api/run/:workspaceId/:logicRef', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const workspaceId = c.req.param('workspaceId');
   const logicRef = c.req.param('logicRef');
   const match = logicRef.match(
-    /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})@v([1-9][0-9]*)$/i,
+    /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:@v([1-9][0-9]*))?$/i,
   );
-  if (!match) {
+  if (!match?.[1]) {
     return jsonError(
       c,
       400,
       'invalid_runner_ref',
-      'Use /run/<workspaceId>/<logicId>@vN.',
+      'Use /run/<workspaceId>/<logicId> or /run/<workspaceId>/<logicId>@vN.',
     );
   }
 
-  const logicId = match[1] as string;
-  const versionNumber = Number(match[2]);
+  const logicId = match[1];
+  const versionNumber = match[2] ? Number(match[2]) : null;
   const access = await loadWorkspaceAccess(c, db, workspaceId);
   if ('error' in access) return access.error;
 
-  const [row] = await db
-    .select({
-      logic,
-      version: logicVersion,
-    })
-    .from(logicVersion)
-    .innerJoin(logic, eq(logicVersion.logicId, logic.id))
+  const [logicRow] = await db
+    .select()
+    .from(logic)
     .where(
       and(
         eq(logic.workspaceId, workspaceId),
         eq(logic.id, logicId),
-        eq(logicVersion.versionNumber, versionNumber),
         isNull(logic.deletedAt),
       ),
     )
     .limit(1);
+  if (!logicRow) {
+    return jsonError(c, 404, 'not_found', 'Logic not found.');
+  }
 
-  if (!row) {
+  let version: RunnerVersionRow | undefined;
+  if (versionNumber === null) {
+    if (!logicRow.productionVersionId) {
+      return jsonError(
+        c,
+        404,
+        'no_production',
+        'This logic has no production version yet.',
+      );
+    }
+    [version] = await db
+      .select()
+      .from(logicVersion)
+      .where(eq(logicVersion.id, logicRow.productionVersionId))
+      .limit(1);
+  } else {
+    [version] = await db
+      .select()
+      .from(logicVersion)
+      .where(
+        and(
+          eq(logicVersion.logicId, logicId),
+          eq(logicVersion.versionNumber, versionNumber),
+        ),
+      )
+      .limit(1);
+  }
+  if (!version) {
     return jsonError(c, 404, 'not_found', 'Runner version not found.');
   }
 
+  const [snapshot] = await db
+    .select()
+    .from(logicVersionDataSnapshot)
+    .where(eq(logicVersionDataSnapshot.logicVersionId, version.id))
+    .limit(1);
+
   return c.json({
     workspace: access.workspace,
-    logic: serializeLogic(row.logic),
-    version: serializeRunnerVersion(row.version),
+    logic: serializeLogic(logicRow),
+    version: serializeRunnerVersion(version),
     runner: {
       role: access.member.role,
       canEdit: canEditLogics(access.member.role),
     },
+    dataConnected: Boolean(snapshot),
+    factDefinitions: snapshot ? snapshot.factDefinitions : null,
+    factBindings: snapshot ? snapshot.bindings : null,
+    dataSnapshot: snapshot
+      ? { id: snapshot.id, snapshotHash: snapshot.snapshotHash }
+      : null,
   });
 });
 

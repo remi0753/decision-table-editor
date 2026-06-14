@@ -50,6 +50,13 @@
       "when": 1781432137986,
       "tag": "0006_premium_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781432725592,
+      "tag": "0007_bent_rafael_vega",
+      "breakpoints": true
     }
   ]
 }

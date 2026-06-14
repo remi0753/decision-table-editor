@@ -386,6 +386,12 @@ export function canViewWorkspaceData(role: Role) {
   return roleRank[role] >= roleRank.viewer;
 }
 
+// Any workspace member (runner and up) may execute decisions: start a case,
+// resolve facts, and complete a session (§10.1, §15.1).
+export function canRunDecisions(role: Role) {
+  return roleRank[role] >= roleRank.runner;
+}
+
 // Admin/owner manage data sources, reference tables, sensitive logging
 // policies, and system/internal facts (§5.1, §10.1).
 export function canManageDataSources(role: Role) {

@@ -1487,6 +1487,51 @@ export const logicVersionDataSnapshot = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────
+// 3.20 case_context — short-lived intake context (§3.8). Stores only extracted
+//   key candidates by default, not raw pasted text (data minimization, §11.4).
+//   expires_at needs a periodic sweeper. created_by is NO ACTION DEFERRABLE
+//   (added in the migration). No updated_at, so no trigger.
+// ─────────────────────────────────────────────────────────────────────────
+export const caseContext = pgTable(
+  'case_context',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    sourceKind: text('source_kind').notNull(),
+    sourceRef: text('source_ref'),
+    rawPayloadRef: text('raw_payload_ref'),
+    extractedKeys: jsonb('extracted_keys').notNull().default(sql`'[]'::jsonb`),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    // NO ACTION (DEFERRABLE INITIALLY IMMEDIATE added in the migration)
+    createdBy: uuid('created_by').references(() => user.id, {
+      onDelete: 'no action',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    check(
+      'case_context_source_kind_chk',
+      sql`${t.sourceKind} IN ('manual_paste', 'url_query', 'clipboard', 'webhook', 'embed')`,
+    ),
+    check(
+      'case_context_extracted_keys_type_chk',
+      sql`jsonb_typeof(${t.extractedKeys}) = 'array'`,
+    ),
+    index('case_context_workspace_created_idx').on(
+      t.workspaceId,
+      t.createdAt.desc(),
+    ),
+    index('case_context_expires_idx')
+      .on(t.expiresAt)
+      .where(sql`expires_at IS NOT NULL`),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
 // Better Auth tables — session / account / verification.
 //
 // These are auth implementation detail and are not in the 12 production

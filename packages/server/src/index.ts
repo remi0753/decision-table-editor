@@ -17,6 +17,7 @@ import { mcpRoutes } from './routes/mcp.js';
 import { orgRoutes } from './routes/orgs.js';
 import { referenceTableRoutes } from './routes/referenceTables.js';
 import { resolverRoutes } from './routes/resolvers.js';
+import { runnerDataRoutes } from './routes/runnerData.js';
 import { workspaceRoutes } from './routes/workspaces.js';
 import {
   createKvSecondaryStorage,
@@ -352,6 +353,7 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
   app.route('/', factBindingRoutes);
   app.route('/', referenceTableRoutes);
   app.route('/', resolverRoutes);
+  app.route('/', runnerDataRoutes);
   app.route('/', apiKeyRoutes);
 
   // /v1/* — external public API surface (Bearer auth, no cookies, permissive
