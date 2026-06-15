@@ -187,12 +187,28 @@ async function parseUpload(
   return { ok: true, value: { csvText, metadata } };
 }
 
-async function activeFactIdSet(db: Database, workspaceId: string) {
+async function activeFactCatalog(db: Database, workspaceId: string) {
   const facts = await db
-    .select({ id: factDefinition.id, status: factDefinition.status })
+    .select({
+      id: factDefinition.id,
+      status: factDefinition.status,
+      type: factDefinition.type,
+      enumValues: factDefinition.enumValues,
+    })
     .from(factDefinition)
     .where(eq(factDefinition.workspaceId, workspaceId));
-  return new Set(facts.filter((f) => f.status === 'active').map((f) => f.id));
+  return new Map<string, FactView>(
+    facts
+      .filter((f) => f.status === 'active')
+      .map((f) => [
+        f.id,
+        {
+          id: f.id,
+          type: f.type as FactView['type'],
+          enumValues: (f.enumValues as string[] | null) ?? null,
+        },
+      ]),
+  );
 }
 
 // GET /api/workspaces/:workspaceId/reference-tables — list (viewer+).
@@ -257,7 +273,7 @@ referenceTableRoutes.post(
     if (!parsed.ok)
       return jsonError(c, 400, parsed.error.code, parsed.error.message);
 
-    const activeFacts = await activeFactIdSet(db, workspaceId);
+    const activeFacts = await activeFactCatalog(db, workspaceId);
     const built = await buildReferenceTable(parsed.data, metadata, activeFacts);
     if (!built.ok)
       return jsonError(c, 400, built.error.code, built.error.message);
@@ -393,7 +409,7 @@ async function createNewVersion(
     ];
   }
 
-  const activeFacts = await activeFactIdSet(db, access.source.workspaceId);
+  const activeFacts = await activeFactCatalog(db, access.source.workspaceId);
   const built = await buildReferenceTable(
     { headers: parsed.data.headers, rows: mergedRows },
     effectiveMeta,
@@ -492,6 +508,8 @@ referenceTableRoutes.get(
         version: v.version,
         status: v.status,
         rowCount: v.rowCount,
+        columns: v.columns as ColumnDef[],
+        keyColumns: v.keyColumns as string[],
         createdAt: v.createdAt,
       })),
     });
@@ -588,8 +606,37 @@ referenceTableRoutes.post(
       return jsonError(c, 403, 'forbidden', 'Viewer role or higher required.');
     }
 
-    const active = await getActiveVersion(db, access.source.id);
-    if (!active) {
+    const body = (await c.req.json().catch(() => null)) as {
+      keys?: Record<string, string>;
+      key?: string;
+      referenceTableVersionId?: string;
+    } | null;
+
+    let targetVersion: ReferenceTableRow | null = null;
+    if (typeof body?.referenceTableVersionId === 'string') {
+      const [version] = await db
+        .select()
+        .from(referenceTable)
+        .where(
+          and(
+            eq(referenceTable.id, body.referenceTableVersionId),
+            eq(referenceTable.dataSourceId, access.source.id),
+          ),
+        )
+        .limit(1);
+      targetVersion = version ?? null;
+      if (!targetVersion) {
+        return jsonError(
+          c,
+          404,
+          'version_not_found',
+          'Reference table version not found.',
+        );
+      }
+    } else {
+      targetVersion = await getActiveVersion(db, access.source.id);
+    }
+    if (!targetVersion) {
       return jsonError(
         c,
         409,
@@ -598,11 +645,7 @@ referenceTableRoutes.post(
       );
     }
 
-    const body = (await c.req.json().catch(() => null)) as {
-      keys?: Record<string, string>;
-      key?: string;
-    } | null;
-    const keyColumns = active.keyColumns as string[];
+    const keyColumns = targetVersion.keyColumns as string[];
     const valuesByColumn: Record<string, string | undefined> = {};
     const singleKeyColumn = keyColumns.length === 1 ? keyColumns[0] : undefined;
     if (body?.keys && typeof body.keys === 'object') {
@@ -633,7 +676,7 @@ referenceTableRoutes.post(
       .from(referenceTableRow)
       .where(
         and(
-          eq(referenceTableRow.referenceTableId, active.id),
+          eq(referenceTableRow.referenceTableId, targetVersion.id),
           eq(referenceTableRow.keyHash, hashResult.hash),
         ),
       )
@@ -643,7 +686,7 @@ referenceTableRoutes.post(
       return c.json({ matched: false, values: [] });
     }
 
-    const columns = active.columns as ColumnDef[];
+    const columns = targetVersion.columns as ColumnDef[];
     const outputMappings: OutputMapping[] = columns
       .filter((col) => col.factId)
       .map((col) => ({
@@ -682,8 +725,8 @@ referenceTableRoutes.post(
       factsById,
       {
         dataSourceId: access.source.id,
-        referenceTableId: active.id,
-        referenceTableVersion: active.version,
+        referenceTableId: targetVersion.id,
+        referenceTableVersion: targetVersion.version,
         retrievedAt: new Date().toISOString(),
       },
     );

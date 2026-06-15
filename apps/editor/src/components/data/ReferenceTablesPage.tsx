@@ -3,6 +3,8 @@ import {
   Ban,
   Boxes,
   Loader2,
+  Plus,
+  RefreshCw,
   Search,
   Table2,
   Upload,
@@ -23,6 +25,7 @@ import {
   type CloudWorkspace,
   disableReferenceTable,
   getMe,
+  getReferenceTable,
   listFacts,
   listReferenceTables,
   listWorkspaces,
@@ -45,7 +48,11 @@ export function ReferenceTablesPage() {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
   const [tables, setTables] = useState<CloudReferenceTable[]>([]);
   const [facts, setFacts] = useState<CloudFact[]>([]);
-  const [showWizard, setShowWizard] = useState(false);
+  const [wizardMode, setWizardMode] = useState<
+    | { kind: 'create' }
+    | { kind: 'replace' | 'append'; table: CloudReferenceTable }
+    | null
+  >(null);
   const [lookupTarget, setLookupTarget] = useState<CloudReferenceTable | null>(
     null,
   );
@@ -251,7 +258,7 @@ export function ReferenceTablesPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowWizard(true)}
+                onClick={() => setWizardMode({ kind: 'create' })}
                 className="inline-flex h-9 items-center gap-2 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong"
               >
                 <Upload className="h-4 w-4" />
@@ -268,7 +275,7 @@ export function ReferenceTablesPage() {
                     <th className="px-4 py-2">Rows</th>
                     <th className="px-4 py-2">Version</th>
                     <th className="px-4 py-2">Status</th>
-                    <th className="w-24 px-4 py-2 text-right">Actions</th>
+                    <th className="w-40 px-4 py-2 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -325,6 +332,34 @@ export function ReferenceTablesPage() {
                             </button>
                             <button
                               type="button"
+                              onClick={() =>
+                                setWizardMode({ kind: 'replace', table })
+                              }
+                              disabled={
+                                table.status !== 'active' ||
+                                !table.activeVersion
+                              }
+                              className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
+                              aria-label={`Replace ${table.name}`}
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setWizardMode({ kind: 'append', table })
+                              }
+                              disabled={
+                                table.status !== 'active' ||
+                                !table.activeVersion
+                              }
+                              className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
+                              aria-label={`Append rows to ${table.name}`}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => void handleDisable(table)}
                               disabled={table.status !== 'active'}
                               className="inline-flex h-8 w-8 items-center justify-center rounded border border-line text-fg-subtle hover:border-danger-border hover:bg-danger-bg hover:text-danger-fg disabled:cursor-not-allowed disabled:opacity-40"
@@ -344,13 +379,14 @@ export function ReferenceTablesPage() {
         )}
       </main>
 
-      {showWizard && selectedWorkspaceId ? (
+      {wizardMode && selectedWorkspaceId ? (
         <ReferenceTableWizard
           workspaceId={selectedWorkspaceId}
           facts={facts}
-          onClose={() => setShowWizard(false)}
+          mode={wizardMode}
+          onClose={() => setWizardMode(null)}
           onCreated={() => {
-            setShowWizard(false);
+            setWizardMode(null);
             void loadData(selectedWorkspaceId);
           }}
         />
@@ -377,13 +413,50 @@ function TestLookupDialog({
   facts: CloudFact[];
   onClose: () => void;
 }) {
-  const keyColumns = table.activeVersion?.keyColumns ?? [];
+  const [versions, setVersions] = useState<
+    {
+      referenceTableId: string;
+      version: number;
+      status: string;
+      rowCount: number;
+      keyColumns: string[];
+    }[]
+  >([]);
+  const [selectedVersionId, setSelectedVersionId] = useState(
+    table.activeVersion?.referenceTableId ?? '',
+  );
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{
     matched: boolean;
     values: ReferenceLookupValue[];
   } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const detail = await getReferenceTable(table.id);
+        if (cancelled) return;
+        setVersions(detail.versions);
+        const active =
+          detail.versions.find((v) => v.status === 'active') ??
+          detail.versions[0];
+        setSelectedVersionId(active?.referenceTableId ?? '');
+      } catch (error) {
+        toast.error(errorMessage(error));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [table.id]);
+
+  const selectedVersion =
+    versions.find((version) => version.referenceTableId === selectedVersionId) ??
+    null;
+  const keyColumns =
+    selectedVersion?.keyColumns ?? table.activeVersion?.keyColumns ?? [];
 
   const factName = (factId: string) =>
     facts.find((f) => f.id === factId)?.name ?? factId;
@@ -392,7 +465,10 @@ function TestLookupDialog({
     setRunning(true);
     setResult(null);
     try {
-      const res = await testReferenceLookup(table.id, { keys });
+      const res = await testReferenceLookup(table.id, {
+        keys,
+        referenceTableVersionId: selectedVersionId || undefined,
+      });
       setResult(res);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Lookup failed.');
@@ -422,6 +498,34 @@ function TestLookupDialog({
           </button>
         </div>
         <div className="space-y-3 px-5 py-4">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-fg-muted">
+              Version
+            </span>
+            <select
+              value={selectedVersionId}
+              onChange={(event) => {
+                setSelectedVersionId(event.target.value);
+                setKeys({});
+                setResult(null);
+              }}
+              className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
+            >
+              {versions.length === 0 && table.activeVersion ? (
+                <option value={table.activeVersion.referenceTableId}>
+                  v{table.activeVersion.version} active
+                </option>
+              ) : null}
+              {versions.map((version) => (
+                <option
+                  key={version.referenceTableId}
+                  value={version.referenceTableId}
+                >
+                  v{version.version} {version.status} ({version.rowCount} rows)
+                </option>
+              ))}
+            </select>
+          </label>
           {keyColumns.map((col) => (
             <label key={col} className="block">
               <span className="mb-1 block text-xs font-medium text-fg-muted">

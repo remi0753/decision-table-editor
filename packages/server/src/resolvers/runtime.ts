@@ -79,6 +79,7 @@ export interface SnapshotResolver {
   inputFactIds: string[];
   parameterKeyMappings: KeyColumnMapping[];
   outputMappings: OutputMapping[];
+  fallbackPolicy?: 'ask_operator' | 'mark_unavailable' | 'block';
 }
 
 export interface SnapshotTable {
@@ -104,6 +105,7 @@ export interface ResolveFactsInput {
 export interface ResolveFactsResult {
   values: ResolvedFactValue[];
   unavailable: { factId: string; reason: string }[];
+  blocked: { resolverId: string; reason: string; factIds: string[] }[];
 }
 
 // Run every active reference-table resolver in the snapshot whose input facts
@@ -121,11 +123,52 @@ export async function resolveFactsFromSnapshot(
   const tableBySource = new Map(input.tables.map((t) => [t.dataSourceId, t]));
   const values: ResolvedFactValue[] = [];
   const unavailable: { factId: string; reason: string }[] = [];
+  const blocked: { resolverId: string; reason: string; factIds: string[] }[] =
+    [];
   const resolvedFactIds = new Set<string>();
 
   const withField = (v: ResolvedFactValue): ResolvedFactValue => {
     const fieldId = fieldIdByFactId.get(v.factId);
     return fieldId ? { ...v, fieldId } : v;
+  };
+
+  const applyFallback = (
+    resolver: SnapshotResolver,
+    reason: string,
+    sourceKind: ResolvedFactValue['sourceKind'] = 'reference_table',
+  ) => {
+    const factIds = resolver.outputMappings
+      .map((m) => m.factId)
+      .filter((factId) => !resolvedFactIds.has(factId));
+    if (factIds.length === 0) return;
+
+    const policy = resolver.fallbackPolicy ?? 'ask_operator';
+    if (policy === 'block') {
+      blocked.push({ resolverId: resolver.id, reason, factIds });
+      return;
+    }
+    if (policy === 'mark_unavailable') {
+      for (const factId of factIds) unavailable.push({ factId, reason });
+      return;
+    }
+
+    for (const mapping of resolver.outputMappings) {
+      if (!factIds.includes(mapping.factId)) continue;
+      values.push(
+        withField({
+          factId: mapping.factId,
+          state: 'needs_confirmation',
+          sourceKind,
+          provenance: {
+            resolverRecipeId: resolver.id,
+            dataSourceId: resolver.dataSourceId,
+            sourceColumn: mapping.columnName,
+            retrievedAt: input.now.toISOString(),
+            evidenceLabel: reason,
+          },
+        }),
+      );
+    }
   };
 
   for (const resolver of input.resolvers) {
@@ -137,10 +180,7 @@ export async function resolveFactsFromSnapshot(
 
     const table = tableBySource.get(resolver.dataSourceId);
     if (!table) {
-      for (const m of resolver.outputMappings) {
-        if (resolvedFactIds.has(m.factId)) continue;
-        unavailable.push({ factId: m.factId, reason: 'no_reference_table' });
-      }
+      applyFallback(resolver, 'no_reference_table');
       continue;
     }
 
@@ -165,13 +205,10 @@ export async function resolveFactsFromSnapshot(
         values.push(withField(v));
       }
     } else if (result.missingKeys.length === 0) {
-      // Ran but no row matched: mark outputs unavailable.
-      for (const m of resolver.outputMappings) {
-        if (resolvedFactIds.has(m.factId)) continue;
-        unavailable.push({ factId: m.factId, reason: 'no_match' });
-      }
+      // Ran but no row matched: apply the resolver fallback policy.
+      applyFallback(resolver, 'no_match');
     }
   }
 
-  return { values, unavailable };
+  return { values, unavailable, blocked };
 }

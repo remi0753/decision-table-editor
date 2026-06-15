@@ -10,6 +10,10 @@ const parsed: ParsedCsv = {
   ],
 };
 const activeFacts = new Set(['fDate', 'fTier']);
+const activeFactCatalog = new Map([
+  ['fDate', { id: 'fDate', type: 'date' as const, enumValues: null }],
+  ['fTier', { id: 'fTier', type: 'enum' as const, enumValues: ['Gold', 'Silver'] }],
+]);
 
 describe('buildReferenceTable', () => {
   it('builds columns, key columns, and hashed rows', async () => {
@@ -81,5 +85,22 @@ describe('buildReferenceTable', () => {
     );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('key_columns_required');
+  });
+
+  it('rejects mapped values that cannot be converted to the fact type', async () => {
+    const invalid: ParsedCsv = {
+      headers: ['order_id', 'tier'],
+      rows: [{ order_id: '123', tier: 'Platinum' }],
+    };
+    const result = await buildReferenceTable(
+      invalid,
+      {
+        keyColumns: ['order_id'],
+        columnMappings: [{ columnName: 'tier', factId: 'fTier' }],
+      },
+      activeFactCatalog,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('invalid_mapped_value');
   });
 });

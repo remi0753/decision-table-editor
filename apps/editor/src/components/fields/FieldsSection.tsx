@@ -274,6 +274,10 @@ export function FieldsSection() {
                     ? t.createFieldTitle
                     : t.editFieldTitle}
                 </Dialog.Title>
+                <Dialog.Description className="sr-only">
+                  Create or edit a decision input field, including its type and
+                  workspace display settings.
+                </Dialog.Description>
                 <Dialog.Close asChild>
                   <button
                     type="button"

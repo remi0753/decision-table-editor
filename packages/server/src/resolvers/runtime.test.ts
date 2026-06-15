@@ -129,11 +129,33 @@ describe('resolveFactsFromSnapshot', () => {
     });
     expect(result.values).toEqual([]);
     expect(result.unavailable).toEqual([]);
+    expect(result.blocked).toEqual([]);
   });
 
-  it('marks outputs unavailable when no row matches', async () => {
+  it('asks for confirmation when no row matches and fallback asks the operator', async () => {
     const result = await resolveFactsFromSnapshot({
       resolvers,
+      tables,
+      bindings,
+      factsById,
+      availableFacts: new Map([['fOrder', '999']]),
+      fetchRowByHash: async () => null,
+      now: new Date(),
+    });
+    expect(result.values.map((u) => u.factId).sort()).toEqual([
+      'fDate',
+      'fTier',
+    ]);
+    expect(result.values[0]?.state).toBe('needs_confirmation');
+    expect(result.unavailable).toEqual([]);
+  });
+
+  it('marks outputs unavailable when no row matches and fallback says so', async () => {
+    const result = await resolveFactsFromSnapshot({
+      resolvers: resolvers.map((r) => ({
+        ...r,
+        fallbackPolicy: 'mark_unavailable',
+      })),
       tables,
       bindings,
       factsById,
@@ -147,5 +169,22 @@ describe('resolveFactsFromSnapshot', () => {
       'fTier',
     ]);
     expect(result.unavailable[0]?.reason).toBe('no_match');
+  });
+
+  it('blocks resolution when no row matches and fallback blocks', async () => {
+    const result = await resolveFactsFromSnapshot({
+      resolvers: resolvers.map((r) => ({ ...r, fallbackPolicy: 'block' })),
+      tables,
+      bindings,
+      factsById,
+      availableFacts: new Map([['fOrder', '999']]),
+      fetchRowByHash: async () => null,
+      now: new Date(),
+    });
+    expect(result.values).toEqual([]);
+    expect(result.unavailable).toEqual([]);
+    expect(result.blocked).toEqual([
+      { resolverId: 'r1', reason: 'no_match', factIds: ['fDate', 'fTier'] },
+    ]);
   });
 });

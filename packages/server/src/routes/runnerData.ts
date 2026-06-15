@@ -53,6 +53,7 @@ interface SnapshotResolverRow {
   id: string;
   status: string;
   dataSourceId: string;
+  fallbackPolicy?: 'ask_operator' | 'mark_unavailable' | 'block';
   inputFactIds: string[];
   parameterMappings: { keyColumns: KeyColumnMapping[] };
   outputMappings: OutputMapping[];
@@ -334,6 +335,7 @@ runnerDataRoutes.post('/api/run/:workspaceId/:logicRef/resolve', async (c) => {
     id: r.id,
     status: r.status,
     dataSourceId: r.dataSourceId,
+    fallbackPolicy: r.fallbackPolicy,
     inputFactIds: r.inputFactIds ?? [],
     parameterKeyMappings: r.parameterMappings?.keyColumns ?? [],
     outputMappings: r.outputMappings ?? [],

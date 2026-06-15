@@ -223,6 +223,10 @@ export type ResolvedFactValue = {
   state: string;
   sourceKind: string;
   provenance: Record<string, unknown>;
+  dataSourceId?: string;
+  resolverRecipeId?: string;
+  referenceTableId?: string;
+  referenceTableVersion?: number;
 };
 
 export type DecisionSession = {
@@ -285,6 +289,7 @@ export async function resolveFacts(
   return api<{
     values: ResolvedFactValue[];
     unavailable: { factId: string; reason: string }[];
+    blocked: { resolverId: string; reason: string; factIds: string[] }[];
   }>(`/api/run/${workspaceId}/${logicRef}/resolve`, {
     method: 'POST',
     body: input,
@@ -631,6 +636,34 @@ export async function createReferenceTable(
   );
 }
 
+export async function replaceReferenceTable(
+  referenceTableId: string,
+  file: File,
+  metadata: ReferenceUploadMetadata,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('metadata', JSON.stringify(metadata));
+  return apiForm<{ referenceTable: CloudReferenceTable }>(
+    `/api/reference-tables/${referenceTableId}/replace`,
+    form,
+  );
+}
+
+export async function appendReferenceTable(
+  referenceTableId: string,
+  file: File,
+  metadata: ReferenceUploadMetadata,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('metadata', JSON.stringify(metadata));
+  return apiForm<{ referenceTable: CloudReferenceTable }>(
+    `/api/reference-tables/${referenceTableId}/append`,
+    form,
+  );
+}
+
 export async function getReferenceTable(referenceTableId: string) {
   return api<{
     referenceTable: CloudReferenceTable;
@@ -639,6 +672,8 @@ export async function getReferenceTable(referenceTableId: string) {
       version: number;
       status: string;
       rowCount: number;
+      columns: ReferenceColumnDef[];
+      keyColumns: string[];
       createdAt: string;
     }[];
   }>(`/api/reference-tables/${referenceTableId}`);
@@ -646,7 +681,11 @@ export async function getReferenceTable(referenceTableId: string) {
 
 export async function testReferenceLookup(
   referenceTableId: string,
-  input: { key?: string; keys?: Record<string, string> },
+  input: {
+    key?: string;
+    keys?: Record<string, string>;
+    referenceTableVersionId?: string;
+  },
 ) {
   return api<{ matched: boolean; values: ReferenceLookupValue[] }>(
     `/api/reference-tables/${referenceTableId}/test-lookup`,

@@ -23,6 +23,9 @@ import {
 } from '@/lib/cloudApi';
 
 type Phase = 'start' | 'review' | 'result';
+type FactProvenanceInput = Record<string, unknown>;
+type UnavailableFact = { factId: string; reason: string };
+type BlockedResolver = { resolverId: string; reason: string; factIds: string[] };
 
 export function DataConnectedRunner({
   workspaceId,
@@ -54,8 +57,17 @@ export function DataConnectedRunner({
   const [resolving, setResolving] = useState(false);
   const [caseContextId, setCaseContextId] = useState<string | null>(null);
   const [keyValues, setKeyValues] = useState<Record<string, string>>({});
+  const [keyProvenance, setKeyProvenance] = useState<
+    Record<string, FactProvenanceInput>
+  >({});
+  const [keyCandidates, setKeyCandidates] = useState<ExtractedKey[]>([]);
   const [resolved, setResolved] = useState<ResolvedFactValue[]>([]);
+  const [unavailable, setUnavailable] = useState<UnavailableFact[]>([]);
+  const [blocked, setBlocked] = useState<BlockedResolver[]>([]);
   const [manualValues, setManualValues] = useState<Record<string, string>>({});
+  const [manualProvenance, setManualProvenance] = useState<
+    Record<string, FactProvenanceInput>
+  >({});
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<DecisionResult | null>(null);
   const [showReport, setShowReport] = useState(false);
@@ -78,6 +90,8 @@ export function DataConnectedRunner({
       facts: factInputs,
     });
     setResolved(res.values);
+    setUnavailable(res.unavailable ?? []);
+    setBlocked(res.blocked ?? []);
   };
 
   const handleStart = async (text: string) => {
@@ -89,20 +103,70 @@ export function DataConnectedRunner({
         text,
       );
       setCaseContextId(caseContext.id);
+      setKeyCandidates(caseContext.extractedKeys);
       // Take the highest-confidence candidate per fact as the starting key.
       const keys: Record<string, string> = {};
+      const provenance: Record<string, FactProvenanceInput> = {};
+      const now = new Date().toISOString();
       for (const k of [...caseContext.extractedKeys].sort(
         (a, b) => b.confidence - a.confidence,
       ) as ExtractedKey[]) {
-        if (!(k.factId in keys)) keys[k.factId] = k.value;
+        if (!(k.factId in keys)) {
+          keys[k.factId] = k.value;
+          provenance[k.factId] = {
+            retrievedAt: now,
+            confidence: k.confidence,
+            evidenceLabel: `${k.source} extraction`,
+          };
+        }
       }
       setKeyValues(keys);
+      setKeyProvenance(provenance);
       await runResolve(caseContext.id, keys, {});
       setPhase('review');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not start.');
     } finally {
       setStarting(false);
+    }
+  };
+
+  const commitFactValue = async (factId: string, value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const fact = factById.get(factId);
+    const now = new Date().toISOString();
+    setResolving(true);
+    try {
+      if (fact?.kind === 'key') {
+        const nextKeys = { ...keyValues, [factId]: trimmed };
+        const nextProvenance = {
+          ...keyProvenance,
+          [factId]: {
+            retrievedAt: now,
+            evidenceLabel: 'operator edited key',
+          },
+        };
+        setKeyValues(nextKeys);
+        setKeyProvenance(nextProvenance);
+        await runResolve(caseContextId, nextKeys, manualValues);
+      } else {
+        const nextManual = { ...manualValues, [factId]: trimmed };
+        const nextProvenance = {
+          ...manualProvenance,
+          [factId]: {
+            retrievedAt: now,
+            evidenceLabel: 'operator answer',
+          },
+        };
+        setManualValues(nextManual);
+        setManualProvenance(nextProvenance);
+        await runResolve(caseContextId, keyValues, nextManual);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Resolve failed.');
+    } finally {
+      setResolving(false);
     }
   };
 
@@ -125,6 +189,7 @@ export function DataConnectedRunner({
       // (which override) — each carries its field id for server re-evaluation.
       const byFact = new Map<string, ResolvedFactValue>();
       for (const v of resolved) byFact.set(v.factId, v);
+      const now = new Date().toISOString();
       for (const [factId, value] of Object.entries(keyValues)) {
         if (value === '') continue;
         byFact.set(factId, {
@@ -133,7 +198,11 @@ export function DataConnectedRunner({
           value,
           state: 'manual',
           sourceKind: 'manual',
-          provenance: {},
+          provenance: {
+            retrievedAt: now,
+            evidenceLabel: 'operator confirmed key',
+            ...(keyProvenance[factId] ?? {}),
+          },
         });
       }
       for (const [factId, value] of Object.entries(manualValues)) {
@@ -144,7 +213,11 @@ export function DataConnectedRunner({
           value,
           state: 'manual',
           sourceKind: 'manual',
-          provenance: {},
+          provenance: {
+            retrievedAt: now,
+            evidenceLabel: 'operator answer',
+            ...(manualProvenance[factId] ?? {}),
+          },
         });
       }
 
@@ -168,8 +241,13 @@ export function DataConnectedRunner({
     setPhase('start');
     setCaseContextId(null);
     setKeyValues({});
+    setKeyProvenance({});
+    setKeyCandidates([]);
     setResolved([]);
+    setUnavailable([]);
+    setBlocked([]);
     setManualValues({});
+    setManualProvenance({});
     setSessionId(null);
     setResult(null);
   };
@@ -178,42 +256,78 @@ export function DataConnectedRunner({
     return <StartCasePanel onStart={handleStart} starting={starting} />;
   }
 
-  // Rows for the fact sheet: resolved system facts + confirmed keys.
-  const sheetRows: FactSheetRow[] = [];
+  const canViewSensitive =
+    data.runner.role === 'admin' || data.runner.role === 'owner';
+  const displayValue = (fact: FactDefinition | undefined, value?: string) => {
+    if (value === undefined) return undefined;
+    if (fact?.sensitive && !canViewSensitive) return maskValue(value);
+    return value;
+  };
+
+  // Rows for the fact sheet: keys, resolved values, unresolved fallbacks, and
+  // manual corrections. The map keeps the latest operator correction visible.
+  const sheetRowsByFactId = new Map<string, FactSheetRow>();
   for (const fact of keyFacts) {
     if (keyValues[fact.id]) {
-      sheetRows.push({
+      sheetRowsByFactId.set(fact.id, {
         factId: fact.id,
         name: fact.name,
-        value: keyValues[fact.id],
+        value: displayValue(fact, keyValues[fact.id]),
+        rawValue: keyValues[fact.id],
         state: 'manual',
         sourceKind: 'manual',
+        provenance: keyProvenance[fact.id],
+        sensitive: fact.sensitive,
+        editable: true,
       });
     }
   }
   for (const value of resolved) {
     const fact = factById.get(value.factId);
-    sheetRows.push({
+    sheetRowsByFactId.set(value.factId, {
       factId: value.factId,
       name: fact?.name ?? value.factId,
-      value: value.value ?? value.maskedValue,
+      value:
+        value.maskedValue ??
+        displayValue(fact, value.value) ??
+        (value.state === 'needs_confirmation' ? undefined : value.value),
+      rawValue: value.value,
       state: value.state,
       sourceKind: value.sourceKind,
       sensitive: fact?.sensitive,
+      provenance: value.provenance,
+      editable: value.state !== 'hidden',
+    });
+  }
+  for (const missing of unavailable) {
+    const fact = factById.get(missing.factId);
+    if (sheetRowsByFactId.has(missing.factId)) continue;
+    sheetRowsByFactId.set(missing.factId, {
+      factId: missing.factId,
+      name: fact?.name ?? missing.factId,
+      state: 'unavailable',
+      sourceKind: 'reference_table',
+      sensitive: fact?.sensitive,
+      provenance: { evidenceLabel: missing.reason },
+      editable: true,
     });
   }
   for (const [factId, value] of Object.entries(manualValues)) {
-    if (!value || resolvedByFactId.has(factId)) continue;
+    if (!value) continue;
     const fact = factById.get(factId);
-    sheetRows.push({
+    sheetRowsByFactId.set(factId, {
       factId,
       name: fact?.name ?? factId,
-      value,
+      value: displayValue(fact, value),
+      rawValue: value,
       state: 'manual',
       sourceKind: 'manual',
       sensitive: fact?.sensitive,
+      provenance: manualProvenance[factId],
+      editable: true,
     });
   }
+  const sheetRows = Array.from(sheetRowsByFactId.values());
 
   // Project the current facts into field-keyed values and run partial decision
   // analysis, so we ask only the manual facts the decision still needs (§9.4).
@@ -273,6 +387,34 @@ export function DataConnectedRunner({
     // Unbound manual facts can't drive the engine, so fall back to asking them.
     return fieldId ? missingFieldIds.has(fieldId) : true;
   });
+  const currentManual = pendingManual.slice(0, 1);
+  const needsConfirmation = sheetRows.some(
+    (row) =>
+      (row.state === 'needs_confirmation' || row.state === 'invalid') &&
+      !manualValues[row.factId],
+  );
+  const canDecide =
+    !deciding &&
+    blocked.length === 0 &&
+    !needsConfirmation &&
+    pendingManual.length === 0 &&
+    (analysis.status === 'decision_ready' || analysis.status === 'no_match');
+  const decideBlockedReason =
+    blocked.length > 0
+      ? 'Resolve the blocked data issue before deciding.'
+      : needsConfirmation
+        ? 'Confirm or correct highlighted facts before deciding.'
+        : pendingManual.length > 0
+          ? 'Answer the current question before deciding.'
+          : analysis.status === 'needs_input'
+            ? analysis.reason
+            : null;
+  const factsUsed = sheetRows.filter((row) => row.value);
+  const skippedFacts = facts.filter((fact) => {
+    if (factsUsed.some((row) => row.factId === fact.id)) return false;
+    const fieldId = bindingByFactId.get(fact.id);
+    return fieldId ? !missingFieldIds.has(fieldId) : false;
+  });
 
   if (phase === 'review') {
     return (
@@ -298,6 +440,27 @@ export function DataConnectedRunner({
                   />
                 </label>
               ))}
+              {keyCandidates.length > 0 ? (
+                <div className="rounded border border-line-subtle bg-surface-muted px-3 py-2">
+                  <div className="text-xs font-medium text-fg-subtle">
+                    Extracted candidates
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {keyCandidates.slice(0, 6).map((candidate) => (
+                      <button
+                        key={`${candidate.factId}:${candidate.value}:${candidate.source}`}
+                        type="button"
+                        onClick={() =>
+                          void commitFactValue(candidate.factId, candidate.value)
+                        }
+                        className="rounded border border-line bg-surface px-2 py-1 text-xs text-fg-muted hover:bg-surface-muted"
+                      >
+                        {candidate.label}: {candidate.value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <button
                 type="button"
                 onClick={() => void handleReResolve()}
@@ -315,26 +478,28 @@ export function DataConnectedRunner({
           </div>
         ) : null}
 
-        <FactSheet rows={sheetRows} />
+        <FactSheet rows={sheetRows} onCorrect={commitFactValue} />
 
-        {pendingManual.length > 0 ? (
+        {blocked.length > 0 ? (
+          <div className="rounded border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-fg">
+            A resolver fallback blocked this case. Review the data source or
+            correct the missing facts before deciding.
+          </div>
+        ) : null}
+
+        {currentManual.length > 0 ? (
           <div className="rounded border border-line bg-surface p-4">
             <h2 className="text-sm font-semibold text-fg">Questions</h2>
             <p className="mt-1 text-xs text-fg-subtle">
               Answer what systems can't know.
             </p>
             <div className="mt-3 space-y-4">
-              {pendingManual.map((fact) => (
+              {currentManual.map((fact) => (
                 <ManualQuestion
                   key={fact.id}
                   fact={fact}
                   value={manualValues[fact.id] ?? ''}
-                  onChange={(value) =>
-                    setManualValues((current) => ({
-                      ...current,
-                      [fact.id]: value,
-                    }))
-                  }
+                  onAnswer={(value) => void commitFactValue(fact.id, value)}
                 />
               ))}
             </div>
@@ -357,8 +522,9 @@ export function DataConnectedRunner({
           <button
             type="button"
             onClick={() => void handleDecide()}
-            disabled={deciding}
+            disabled={!canDecide}
             className="inline-flex h-10 items-center gap-2 rounded bg-brand px-5 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
+            title={decideBlockedReason ?? undefined}
           >
             {deciding ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -368,6 +534,11 @@ export function DataConnectedRunner({
             Decide
           </button>
         </div>
+        {decideBlockedReason ? (
+          <p className="text-right text-xs text-fg-subtle">
+            {decideBlockedReason}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -382,18 +553,21 @@ export function DataConnectedRunner({
           versionNumber={data.version.versionNumber}
           snapshotHash={data.dataSnapshot?.snapshotHash}
           sessionId={sessionId}
+          factsUsed={factsUsed}
+          skippedFacts={skippedFacts}
           onReport={() => setShowReport(true)}
         />
       ) : (
         <NoMatchCard
           logicName={data.logic.name}
           versionNumber={data.version.versionNumber}
+          snapshotHash={data.dataSnapshot?.snapshotHash}
           sessionId={sessionId}
           facts={sheetRows}
           onReport={() => setShowReport(true)}
         />
       )}
-      <FactSheet rows={sheetRows} />
+      <FactSheet rows={sheetRows} onCorrect={commitFactValue} />
       <button
         type="button"
         onClick={reset}
@@ -419,12 +593,13 @@ export function DataConnectedRunner({
 function ManualQuestion({
   fact,
   value,
-  onChange,
+  onAnswer,
 }: {
   fact: FactDefinition;
   value: string;
-  onChange: (value: string) => void;
+  onAnswer: (value: string) => void;
 }) {
+  const [draft, setDraft] = useState(value);
   const question = fact.question ?? fact.name;
   if (fact.type === 'bool') {
     return (
@@ -438,7 +613,7 @@ function ManualQuestion({
             <button
               key={opt.v}
               type="button"
-              onClick={() => onChange(opt.v)}
+              onClick={() => onAnswer(opt.v)}
               className={`h-9 px-4 text-sm font-medium ${
                 value === opt.v
                   ? 'bg-brand text-white'
@@ -460,7 +635,9 @@ function ManualQuestion({
         </span>
         <select
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            if (event.target.value) onAnswer(event.target.value);
+          }}
           className="h-10 w-full max-w-sm rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
         >
           <option value="">— choose —</option>
@@ -479,10 +656,21 @@ function ManualQuestion({
         {question}
       </span>
       <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') onAnswer(draft);
+        }}
         className="h-10 w-full max-w-sm rounded border border-line px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
       />
+      <button
+        type="button"
+        onClick={() => onAnswer(draft)}
+        disabled={!draft.trim()}
+        className="mt-2 inline-flex h-9 items-center rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
+      >
+        Save answer
+      </button>
     </label>
   );
 }
@@ -493,6 +681,8 @@ function ResultCard({
   versionNumber,
   snapshotHash,
   sessionId,
+  factsUsed,
+  skippedFacts,
   onReport,
 }: {
   result: { status: 'ok'; outputs: Record<string, string> };
@@ -500,10 +690,23 @@ function ResultCard({
   versionNumber: number;
   snapshotHash?: string;
   sessionId: string | null;
+  factsUsed: FactSheetRow[];
+  skippedFacts: FactDefinition[];
   onReport: () => void;
 }) {
   const outputs = Object.entries(result.outputs);
-  const copyText = outputs.map(([k, v]) => `${k}: ${v}`).join('\n');
+  const reason =
+    outputs.find(([key]) => key.toLowerCase() === 'reason')?.[1] ??
+    `Evaluated by ${logicName} v${versionNumber}.`;
+  const copyText = [
+    ...outputs.map(([k, v]) => `${k}: ${v}`),
+    `Reason: ${reason}`,
+    `Logic version: v${versionNumber}`,
+    snapshotHash ? `Data definition: ${snapshotHash}` : undefined,
+    sessionId ? `Decision session: ${sessionId}` : undefined,
+  ]
+    .filter(Boolean)
+    .join('\n');
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(copyText);
@@ -515,6 +718,7 @@ function ResultCard({
   return (
     <div className="rounded border border-success-border bg-success-bg/30 p-5">
       <h2 className="text-lg font-semibold text-fg">Decision</h2>
+      <p className="mt-2 text-sm leading-6 text-fg-muted">{reason}</p>
       <dl className="mt-3 space-y-1.5">
         {outputs.map(([key, value]) => (
           <div key={key} className="flex gap-2 text-sm">
@@ -528,6 +732,23 @@ function ResultCard({
         {snapshotHash ? ` Data definition ${snapshotHash.slice(0, 8)}.` : ''}
         {sessionId ? ` Decision session ${sessionId.slice(0, 8)}.` : ''}
       </p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <FactSummaryList title="Facts used" rows={factsUsed} />
+        <div className="rounded border border-line-subtle bg-surface px-3 py-2">
+          <div className="text-xs font-medium text-fg-subtle">
+            Facts skipped
+          </div>
+          {skippedFacts.length > 0 ? (
+            <ul className="mt-1 space-y-1 text-xs text-fg-muted">
+              {skippedFacts.slice(0, 6).map((fact) => (
+                <li key={fact.id}>{fact.name}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-xs text-fg-faint">None</p>
+          )}
+        </div>
+      </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
@@ -553,12 +774,14 @@ function ResultCard({
 function NoMatchCard({
   logicName,
   versionNumber,
+  snapshotHash,
   sessionId,
   facts,
   onReport,
 }: {
   logicName: string;
   versionNumber: number;
+  snapshotHash?: string;
   sessionId: string | null;
   facts: FactSheetRow[];
   onReport: () => void;
@@ -569,6 +792,8 @@ function NoMatchCard({
     ...facts.filter((f) => f.value).map((f) => `- ${f.name}: ${f.value}`),
     '',
     'Please review this case or update the rule.',
+    `Logic version: v${versionNumber}`,
+    snapshotHash ? `Data definition: ${snapshotHash}` : '',
     sessionId ? `Decision session: ${sessionId}` : '',
   ]
     .filter(Boolean)
@@ -590,6 +815,11 @@ function NoMatchCard({
         The current rules don't cover this case. Escalate it or report a rule
         gap so the logic owner can review.
       </p>
+      <p className="mt-3 text-xs text-fg-subtle">
+        Based on company rule {logicName} v{versionNumber}.
+        {snapshotHash ? ` Data definition ${snapshotHash.slice(0, 8)}.` : ''}
+        {sessionId ? ` Decision session ${sessionId.slice(0, 8)}.` : ''}
+      </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
@@ -610,4 +840,33 @@ function NoMatchCard({
       </div>
     </div>
   );
+}
+
+function FactSummaryList({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: FactSheetRow[];
+}) {
+  return (
+    <div className="rounded border border-line-subtle bg-surface px-3 py-2">
+      <div className="text-xs font-medium text-fg-subtle">{title}</div>
+      {rows.length > 0 ? (
+        <ul className="mt-1 space-y-1 text-xs text-fg-muted">
+          {rows.slice(0, 6).map((row) => (
+            <li key={row.factId}>
+              {row.name}: {row.value}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-1 text-xs text-fg-faint">None</p>
+      )}
+    </div>
+  );
+}
+
+function maskValue(raw: string) {
+  return raw.length > 8 ? `••••${raw.slice(-4)}` : '••••';
 }

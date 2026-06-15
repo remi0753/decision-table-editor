@@ -5,7 +5,8 @@
 // upload policy (§6.4).
 
 import { buildRowKeyHash } from '../resolvers/referenceTable.js';
-import type { Normalizer } from '../resolvers/types.js';
+import { normalizeFactValue } from '../resolvers/normalize.js';
+import type { FactView, Normalizer } from '../resolvers/types.js';
 import type { ParsedCsv } from './csv.js';
 
 export const MAX_REFERENCE_ROWS = 20_000;
@@ -48,12 +49,25 @@ export interface ReferenceBuildError {
   message: string;
 }
 
+type ActiveFactCatalog = Set<string> | Map<string, FactView>;
+
+function hasActiveFact(catalog: ActiveFactCatalog, factId: string): boolean {
+  return catalog.has(factId);
+}
+
+function factViewFor(
+  catalog: ActiveFactCatalog,
+  factId: string,
+): FactView | null {
+  return catalog instanceof Map ? catalog.get(factId) ?? null : null;
+}
+
 // Validate metadata against the parsed CSV and an allowlist of active fact ids,
 // then build the persistable column/key/row structures.
 export async function buildReferenceTable(
   parsed: ParsedCsv,
   metadata: ReferenceUploadMetadata,
-  activeFactIds: Set<string>,
+  activeFacts: ActiveFactCatalog,
 ): Promise<
   | { ok: true; value: BuiltReferenceTable }
   | { ok: false; error: ReferenceBuildError }
@@ -126,7 +140,7 @@ export async function buildReferenceTable(
         },
       };
     }
-    if (!activeFactIds.has(m.factId)) {
+    if (!hasActiveFact(activeFacts, m.factId)) {
       return {
         ok: false,
         error: {
@@ -155,6 +169,23 @@ export async function buildReferenceTable(
     }
     mappingByColumn.set(m.columnName, m);
     seenFact.add(m.factId);
+  }
+
+  for (const m of mappings) {
+    const fact = factViewFor(activeFacts, m.factId);
+    if (!fact) continue;
+    for (const [i, data] of rows.entries()) {
+      const result = normalizeFactValue(data[m.columnName], fact, m.normalizer);
+      if (!result.ok && result.state === 'invalid') {
+        return {
+          ok: false,
+          error: {
+            code: 'invalid_mapped_value',
+            message: `Column "${m.columnName}" cannot be converted for row ${i + 1}: ${result.message}`,
+          },
+        };
+      }
+    }
   }
 
   const columns: ColumnDef[] = headers.map((name) => {

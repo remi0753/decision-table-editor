@@ -1,5 +1,5 @@
 import { type EvalResult, evaluateTable, type Logic } from '@leverie/engine';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { applyLoggingPolicy } from '../dataWorkspace/masking.js';
 import { stableStringify } from '../dataWorkspace/snapshot.js';
@@ -8,6 +8,7 @@ import {
   decisionFactValue,
   decisionReport,
   decisionSession,
+  caseContext,
   logicVersion,
   logicVersionDataSnapshot,
   workspace,
@@ -35,6 +36,19 @@ interface SnapshotFact {
   id: string;
   loggingPolicy?: string;
   sensitive?: boolean;
+}
+
+interface SnapshotBinding {
+  fieldId: string;
+  factId: string;
+}
+
+interface SnapshotEntity {
+  id: string;
+}
+
+interface SnapshotReferenceTable {
+  referenceTableId: string;
 }
 
 interface IncomingFactValue {
@@ -152,6 +166,26 @@ decisionSessionRoutes.post(
     } | null;
     const caseContextId =
       typeof body?.caseContextId === 'string' ? body.caseContextId : null;
+    if (caseContextId) {
+      const [ctxRow] = await db
+        .select({ id: caseContext.id })
+        .from(caseContext)
+        .where(
+          and(
+            eq(caseContext.id, caseContextId),
+            eq(caseContext.workspaceId, ctx.access.workspace.id),
+          ),
+        )
+        .limit(1);
+      if (!ctxRow) {
+        return jsonError(
+          c,
+          400,
+          'invalid_case_context',
+          'caseContextId is not valid for this workspace.',
+        );
+      }
+    }
 
     const [created] = await db
       .insert(decisionSession)
@@ -264,10 +298,51 @@ decisionSessionRoutes.post(
     } | null;
     const incoming = Array.isArray(body?.factValues) ? body.factValues : [];
 
-    // Dedupe by factId (last wins) and validate enum-ish fields.
+    const snapshotFactById = new Map<string, SnapshotFact>(
+      (snapshot.factDefinitions as SnapshotFact[]).map((f) => [f.id, f]),
+    );
+    const fieldIdByFactId = new Map<string, string>(
+      (snapshot.bindings as SnapshotBinding[]).map((b) => [
+        b.factId,
+        b.fieldId,
+      ]),
+    );
+    const snapshotDataSourceIds = new Set(
+      (snapshot.dataSources as SnapshotEntity[]).map((s) => s.id),
+    );
+    const snapshotResolverIds = new Set(
+      (snapshot.resolverRecipes as SnapshotEntity[]).map((r) => r.id),
+    );
+    const snapshotReferenceTableIds = new Set(
+      (snapshot.referenceTables as SnapshotReferenceTable[]).map(
+        (t) => t.referenceTableId,
+      ),
+    );
+
+    const incomingString = (
+      fv: IncomingFactValue,
+      key: 'dataSourceId' | 'resolverRecipeId' | 'referenceTableId',
+    ) => {
+      if (typeof fv[key] === 'string') return fv[key] as string;
+      if (fv.provenance && typeof fv.provenance === 'object') {
+        const value = (fv.provenance as Record<string, unknown>)[key];
+        if (typeof value === 'string') return value;
+      }
+      return null;
+    };
+
+    // Dedupe by factId (last wins) and validate against the pinned snapshot.
     const byFactId = new Map<string, IncomingFactValue>();
     for (const fv of incoming) {
       if (typeof fv.factId !== 'string') continue;
+      if (!snapshotFactById.has(fv.factId)) {
+        return jsonError(
+          c,
+          400,
+          'unknown_fact',
+          `Fact ${fv.factId} is not part of this published data snapshot.`,
+        );
+      }
       if (typeof fv.state !== 'string' || !FACT_STATES.includes(fv.state)) {
         return jsonError(
           c,
@@ -287,14 +362,72 @@ decisionSessionRoutes.post(
           `Invalid sourceKind for ${fv.factId}.`,
         );
       }
+      const expectedFieldId = fieldIdByFactId.get(fv.factId);
+      if (
+        typeof fv.fieldId === 'string' &&
+        expectedFieldId !== undefined &&
+        fv.fieldId !== expectedFieldId
+      ) {
+        return jsonError(
+          c,
+          400,
+          'invalid_field_binding',
+          `Field ${fv.fieldId} is not bound to fact ${fv.factId} in this snapshot.`,
+        );
+      }
+      if (typeof fv.fieldId === 'string' && expectedFieldId === undefined) {
+        return jsonError(
+          c,
+          400,
+          'invalid_field_binding',
+          `Fact ${fv.factId} is not bound to a logic field in this snapshot.`,
+        );
+      }
+      const incomingDataSourceId = incomingString(fv, 'dataSourceId');
+      if (
+        incomingDataSourceId &&
+        !snapshotDataSourceIds.has(incomingDataSourceId)
+      ) {
+        return jsonError(
+          c,
+          400,
+          'invalid_data_source',
+          `Data source ${incomingDataSourceId} is not part of this snapshot.`,
+        );
+      }
+      const incomingResolverRecipeId = incomingString(fv, 'resolverRecipeId');
+      if (
+        incomingResolverRecipeId &&
+        !snapshotResolverIds.has(incomingResolverRecipeId)
+      ) {
+        return jsonError(
+          c,
+          400,
+          'invalid_resolver',
+          `Resolver ${incomingResolverRecipeId} is not part of this snapshot.`,
+        );
+      }
+      const incomingReferenceTableId = incomingString(fv, 'referenceTableId');
+      if (
+        incomingReferenceTableId &&
+        !snapshotReferenceTableIds.has(incomingReferenceTableId)
+      ) {
+        return jsonError(
+          c,
+          400,
+          'invalid_reference_table',
+          `Reference table ${incomingReferenceTableId} is not part of this snapshot.`,
+        );
+      }
       byFactId.set(fv.factId, fv);
     }
 
     // Build field-keyed inputs and re-evaluate server-side.
     const inputs: Record<string, string> = {};
     for (const fv of byFactId.values()) {
-      if (typeof fv.fieldId === 'string' && typeof fv.value === 'string') {
-        inputs[fv.fieldId] = fv.value;
+      const fieldId = fieldIdByFactId.get(fv.factId as string);
+      if (fieldId && typeof fv.value === 'string') {
+        inputs[fieldId] = fv.value;
       }
     }
     const logicData = version.data as Logic;
@@ -343,13 +476,11 @@ decisionSessionRoutes.post(
         : { status: 'no_match' };
 
     // Persist fact values with masking per the fact's logging policy.
-    const factById = new Map<string, SnapshotFact>(
-      (snapshot.factDefinitions as SnapshotFact[]).map((f) => [f.id, f]),
-    );
     const rows: (typeof decisionFactValue.$inferInsert)[] = [];
+    const completedAt = new Date();
     for (const fv of byFactId.values()) {
       const factId = fv.factId as string;
-      const policy = (factById.get(factId)?.loggingPolicy ?? 'full') as
+      const policy = (snapshotFactById.get(factId)?.loggingPolicy ?? 'full') as
         | 'full'
         | 'masked'
         | 'hash'
@@ -362,28 +493,50 @@ decisionSessionRoutes.post(
             access.workspace.id,
           )
         : { value: null, maskedValue: null };
+      const provenance =
+        fv.provenance && typeof fv.provenance === 'object'
+          ? ({
+              retrievedAt: completedAt.toISOString(),
+              ...(fv.provenance as Record<string, unknown>),
+            } as Record<string, unknown>)
+          : { retrievedAt: completedAt.toISOString() };
+      const provenanceString = (key: string) =>
+        typeof provenance[key] === 'string' ? (provenance[key] as string) : null;
+      const provenanceNumber = (key: string) =>
+        typeof provenance[key] === 'number'
+          ? (provenance[key] as number)
+          : null;
       rows.push({
         decisionSessionId: access.session.id,
         factId,
-        fieldId: typeof fv.fieldId === 'string' ? fv.fieldId : null,
+        fieldId: fieldIdByFactId.get(factId) ?? null,
         value: stored.value,
         maskedValue: stored.maskedValue,
         state: fv.state as string,
         sourceKind: fv.sourceKind as string,
         dataSourceId:
-          typeof fv.dataSourceId === 'string' ? fv.dataSourceId : null,
+          typeof fv.dataSourceId === 'string'
+            ? fv.dataSourceId
+            : provenanceString('dataSourceId'),
         resolverRecipeId:
-          typeof fv.resolverRecipeId === 'string' ? fv.resolverRecipeId : null,
+          typeof fv.resolverRecipeId === 'string'
+            ? fv.resolverRecipeId
+            : provenanceString('resolverRecipeId'),
         referenceTableId:
-          typeof fv.referenceTableId === 'string' ? fv.referenceTableId : null,
+          typeof fv.referenceTableId === 'string'
+            ? fv.referenceTableId
+            : provenanceString('referenceTableId'),
         referenceTableVersion:
           typeof fv.referenceTableVersion === 'number'
             ? fv.referenceTableVersion
+            : provenanceNumber('referenceTableVersion'),
+        provenance,
+        confirmedBy:
+          fv.sourceKind === 'manual' ||
+          fv.state === 'manual' ||
+          fv.state === 'confirmed'
+            ? access.user.id
             : null,
-        provenance:
-          fv.provenance && typeof fv.provenance === 'object'
-            ? (fv.provenance as Record<string, unknown>)
-            : {},
       });
     }
 
@@ -397,7 +550,7 @@ decisionSessionRoutes.post(
         status: serverStatus,
         result: resultJson,
         trace: serverResult.trace ?? null,
-        completedAt: new Date(),
+        completedAt,
       })
       .where(eq(decisionSession.id, access.session.id));
     if (rows.length > 0) {
