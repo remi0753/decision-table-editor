@@ -6,12 +6,14 @@ import {
   evaluateTable,
   type FieldDef,
   type Logic,
+  type Operator,
   type Row,
   today,
 } from '@leverie/engine';
 import type {
   WorkspaceConfig,
   WorkspaceDecisionState,
+  WorkspaceNextAction,
   WorkspaceOutcomeCandidate,
   WorkspaceRecommendedCheck,
   WorkspaceResultTemplate,
@@ -32,6 +34,15 @@ type PathCandidate = {
   missingFieldIds: Set<string>;
 };
 
+export type RenderedNextAction = {
+  id: string;
+  label: string;
+  kind: WorkspaceNextAction['kind'];
+  text?: string;
+  url?: string;
+  primary?: boolean;
+};
+
 export type WorkspaceFormattedResult = {
   title: string;
   reason: string;
@@ -39,7 +50,16 @@ export type WorkspaceFormattedResult = {
   customerMessage?: string;
   internalNote?: string;
   template?: WorkspaceResultTemplate;
+  nextActions: RenderedNextAction[];
   outputsByName: Record<string, string>;
+};
+
+export type WorkspaceDecisionFactor = {
+  fieldId: string;
+  fieldName: string;
+  op: Operator;
+  val?: string | string[];
+  label: string;
 };
 
 export function normalizeWorkspaceInputs(
@@ -305,6 +325,16 @@ export function formatWorkspaceResultSummary(
     context,
   );
   const internalNote = renderTemplate(template?.internalNoteTemplate, context);
+  const nextActions: RenderedNextAction[] = (template?.nextActions ?? []).map(
+    (action) => ({
+      id: action.id,
+      label: action.label,
+      kind: action.kind,
+      primary: action.primary,
+      text: renderTemplate(action.textTemplate, context),
+      url: renderTemplate(action.urlTemplate, context),
+    }),
+  );
   const copyText =
     customerMessage ||
     [
@@ -324,8 +354,81 @@ export function formatWorkspaceResultSummary(
     customerMessage,
     internalNote,
     template,
+    nextActions,
     outputsByName,
   };
+}
+
+const OPERATOR_LABEL: Record<Operator, string> = {
+  '=': 'is',
+  '!=': 'is not',
+  '<': 'is less than',
+  '<=': 'is at most',
+  '>': 'is greater than',
+  '>=': 'is at least',
+  between: 'is between',
+  contains: 'contains',
+  starts_with: 'starts with',
+  ends_with: 'ends with',
+  in: 'is one of',
+  before_today: 'is before today',
+  today_or_before: 'is today or earlier',
+  after_today: 'is after today',
+  today_or_after: 'is today or later',
+  null: 'is empty',
+};
+
+const VALUELESS_OPS: ReadonlySet<Operator> = new Set([
+  'before_today',
+  'today_or_before',
+  'after_today',
+  'today_or_after',
+  'null',
+]);
+
+function formatCondition(fieldName: string, cell: Cell): string {
+  const opLabel = OPERATOR_LABEL[cell.op] ?? cell.op;
+  if (VALUELESS_OPS.has(cell.op)) return `${fieldName} ${opLabel}`;
+  if (cell.op === 'between' && Array.isArray(cell.val)) {
+    return `${fieldName} ${opLabel} ${cell.val[0]} and ${cell.val[1]}`;
+  }
+  const valStr = Array.isArray(cell.val)
+    ? cell.val.join(', ')
+    : (cell.val ?? '');
+  return `${fieldName} ${opLabel} ${valStr}`.trim();
+}
+
+// Decision factors (§9.5): the actual condition cells of the rows that matched
+// during evaluation, in trace order, de-duplicated by field. This explains
+// *why* the decision fired, distinct from the broader "facts used" list.
+export function extractDecisionFactors(
+  logic: Logic,
+  result: EvalResult | undefined,
+): WorkspaceDecisionFactor[] {
+  if (!result || result.status !== 'ok') return [];
+  const factors: WorkspaceDecisionFactor[] = [];
+  const seen = new Set<string>();
+  for (const step of result.trace) {
+    if (!step.matchedRowId) continue;
+    const table = logic.tables[step.tableId];
+    const row = table?.rows.find((r) => r.id === step.matchedRowId);
+    if (!table || !row) continue;
+    for (const col of table.cols) {
+      if (!col.fieldId || seen.has(col.fieldId)) continue;
+      const cell = row.cells[col.id];
+      if (!cell) continue;
+      seen.add(col.fieldId);
+      const fieldName = logic.fieldDefs[col.fieldId]?.name ?? col.fieldId;
+      factors.push({
+        fieldId: col.fieldId,
+        fieldName,
+        op: cell.op,
+        val: cell.val,
+        label: formatCondition(fieldName, cell),
+      });
+    }
+  }
+  return factors;
 }
 
 export function selectResultTemplate(

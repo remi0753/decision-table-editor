@@ -24,7 +24,16 @@ export {
   type UiRuntimeTranslations,
 } from './translations.js';
 export { WorkspaceRunner } from './WorkspaceRunner.js';
-export { analyzeWorkspaceDecision } from './workspaceAnalysis.js';
+export type {
+  RenderedNextAction,
+  WorkspaceDecisionFactor,
+  WorkspaceFormattedResult,
+} from './workspaceAnalysis.js';
+export {
+  analyzeWorkspaceDecision,
+  extractDecisionFactors,
+  formatWorkspaceResultSummary,
+} from './workspaceAnalysis.js';
 export type {
   WorkspaceConfig,
   WorkspaceDecisionState,

@@ -1,11 +1,23 @@
 import {
   analyzeWorkspaceDecision,
+  type DecisionFactSourceKind,
+  extractDecisionFactors,
   type FactDefinition,
   factSourceToWorkspaceSource,
   factStateToWorkspaceStatus,
+  formatWorkspaceResultSummary,
+  type WorkspaceDecisionFactor,
+  type WorkspaceFormattedResult,
   type WorkspaceValueState,
 } from '@leverie/ui-runtime';
-import { Copy, Flag, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import {
+  Copy,
+  ExternalLink,
+  Flag,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { FactSheet, type FactSheetRow } from '@/components/runner/FactSheet';
@@ -25,7 +37,11 @@ import {
 type Phase = 'start' | 'review' | 'result';
 type FactProvenanceInput = Record<string, unknown>;
 type UnavailableFact = { factId: string; reason: string };
-type BlockedResolver = { resolverId: string; reason: string; factIds: string[] };
+type BlockedResolver = {
+  resolverId: string;
+  reason: string;
+  factIds: string[];
+};
 
 export function DataConnectedRunner({
   workspaceId,
@@ -60,6 +76,15 @@ export function DataConnectedRunner({
   const [keyProvenance, setKeyProvenance] = useState<
     Record<string, FactProvenanceInput>
   >({});
+  // Per-key provenance fidelity (§14.2): remember how each key value arrived so
+  // a confirmed auto-extracted key is not flattened to "manual". `state` is the
+  // decision-fact state, `sourceKind` the channel/extraction it came from.
+  const [keyOrigin, setKeyOrigin] = useState<
+    Record<
+      string,
+      { state: 'resolved' | 'manual'; sourceKind: DecisionFactSourceKind }
+    >
+  >({});
   const [keyCandidates, setKeyCandidates] = useState<ExtractedKey[]>([]);
   const [resolved, setResolved] = useState<ResolvedFactValue[]>([]);
   const [unavailable, setUnavailable] = useState<UnavailableFact[]>([]);
@@ -70,6 +95,7 @@ export function DataConnectedRunner({
   >({});
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<DecisionResult | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
 
   const resolvedByFactId = useMemo(
@@ -94,19 +120,27 @@ export function DataConnectedRunner({
     setBlocked(res.blocked ?? []);
   };
 
-  const handleStart = async (text: string) => {
+  const handleStart = async (
+    text: string,
+    intakeKind: 'manual_paste' | 'clipboard',
+  ) => {
     setStarting(true);
     try {
       const { caseContext } = await createCaseContext(
         workspaceId,
         logicRef,
         text,
+        intakeKind,
       );
       setCaseContextId(caseContext.id);
       setKeyCandidates(caseContext.extractedKeys);
       // Take the highest-confidence candidate per fact as the starting key.
       const keys: Record<string, string> = {};
       const provenance: Record<string, FactProvenanceInput> = {};
+      const origin: Record<
+        string,
+        { state: 'resolved' | 'manual'; sourceKind: DecisionFactSourceKind }
+      > = {};
       const now = new Date().toISOString();
       for (const k of [...caseContext.extractedKeys].sort(
         (a, b) => b.confidence - a.confidence,
@@ -118,10 +152,15 @@ export function DataConnectedRunner({
             confidence: k.confidence,
             evidenceLabel: `${k.source} extraction`,
           };
+          origin[k.factId] = {
+            state: 'resolved',
+            sourceKind: extractionSourceKind(k.source, intakeKind),
+          };
         }
       }
       setKeyValues(keys);
       setKeyProvenance(provenance);
+      setKeyOrigin(origin);
       await runResolve(caseContext.id, keys, {});
       setPhase('review');
     } catch (error) {
@@ -149,6 +188,11 @@ export function DataConnectedRunner({
         };
         setKeyValues(nextKeys);
         setKeyProvenance(nextProvenance);
+        // An operator-edited key is a manual value, not an auto-extracted one.
+        setKeyOrigin((current) => ({
+          ...current,
+          [factId]: { state: 'manual', sourceKind: 'manual' },
+        }));
         await runResolve(caseContextId, nextKeys, manualValues);
       } else {
         const nextManual = { ...manualValues, [factId]: trimmed };
@@ -182,56 +226,79 @@ export function DataConnectedRunner({
     }
   };
 
+  // Build the fact-value set: resolved values, then keys and manual answers
+  // (which override) — each carries its field id for server re-evaluation, and
+  // keys keep their true origin (auto-extracted vs operator-edited).
+  const buildFactValues = (): ResolvedFactValue[] => {
+    const byFact = new Map<string, ResolvedFactValue>();
+    for (const v of resolved) byFact.set(v.factId, v);
+    const now = new Date().toISOString();
+    for (const [factId, value] of Object.entries(keyValues)) {
+      if (value === '') continue;
+      const origin = keyOrigin[factId] ?? {
+        state: 'manual' as const,
+        sourceKind: 'manual' as DecisionFactSourceKind,
+      };
+      byFact.set(factId, {
+        factId,
+        fieldId: bindingByFactId.get(factId),
+        value,
+        state: origin.state,
+        sourceKind: origin.sourceKind,
+        provenance: {
+          retrievedAt: now,
+          evidenceLabel:
+            origin.state === 'manual'
+              ? 'operator entered key'
+              : 'auto-extracted key',
+          ...(keyProvenance[factId] ?? {}),
+        },
+      });
+    }
+    for (const [factId, value] of Object.entries(manualValues)) {
+      if (value === '') continue;
+      byFact.set(factId, {
+        factId,
+        fieldId: bindingByFactId.get(factId),
+        value,
+        state: 'manual',
+        sourceKind: 'manual',
+        provenance: {
+          retrievedAt: now,
+          evidenceLabel: 'operator answer',
+          ...(manualProvenance[factId] ?? {}),
+        },
+      });
+    }
+    return Array.from(byFact.values());
+  };
+
   const handleDecide = async () => {
     setDeciding(true);
+    setSaveError(null);
     try {
-      // Build the fact-value set: resolved values, then keys and manual answers
-      // (which override) — each carries its field id for server re-evaluation.
-      const byFact = new Map<string, ResolvedFactValue>();
-      for (const v of resolved) byFact.set(v.factId, v);
-      const now = new Date().toISOString();
-      for (const [factId, value] of Object.entries(keyValues)) {
-        if (value === '') continue;
-        byFact.set(factId, {
-          factId,
-          fieldId: bindingByFactId.get(factId),
-          value,
-          state: 'manual',
-          sourceKind: 'manual',
-          provenance: {
-            retrievedAt: now,
-            evidenceLabel: 'operator confirmed key',
-            ...(keyProvenance[factId] ?? {}),
-          },
+      const factValues = buildFactValues();
+      // Reuse an already-started session on retry so we don't orphan sessions.
+      let activeSessionId = sessionId;
+      if (!activeSessionId) {
+        const { session } = await startDecisionSession(workspaceId, logicRef, {
+          caseContextId,
         });
+        activeSessionId = session.id;
+        setSessionId(session.id);
       }
-      for (const [factId, value] of Object.entries(manualValues)) {
-        if (value === '') continue;
-        byFact.set(factId, {
-          factId,
-          fieldId: bindingByFactId.get(factId),
-          value,
-          state: 'manual',
-          sourceKind: 'manual',
-          provenance: {
-            retrievedAt: now,
-            evidenceLabel: 'operator answer',
-            ...(manualProvenance[factId] ?? {}),
-          },
-        });
-      }
-
-      const { session } = await startDecisionSession(workspaceId, logicRef, {
-        caseContextId,
-      });
-      setSessionId(session.id);
-      const completion = await completeDecisionSession(session.id, {
-        factValues: Array.from(byFact.values()),
+      const completion = await completeDecisionSession(activeSessionId, {
+        factValues,
       });
       setResult(completion.result);
       setPhase('result');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not decide.');
+      // Saving failed: keep the operator in review with a non-blocking warning
+      // and a retry path (§8.5), rather than losing their work.
+      setSaveError(
+        error instanceof Error ? error.message : 'Could not save the decision.',
+      );
+      toast.error('Decision not saved. You can retry.');
     } finally {
       setDeciding(false);
     }
@@ -248,8 +315,10 @@ export function DataConnectedRunner({
     setBlocked([]);
     setManualValues({});
     setManualProvenance({});
+    setKeyOrigin({});
     setSessionId(null);
     setResult(null);
+    setSaveError(null);
   };
 
   if (phase === 'start') {
@@ -377,6 +446,11 @@ export function DataConnectedRunner({
     data.version.workspaceConfig ?? undefined,
   );
   const missingFieldIds = new Set(analysis.missingFieldIds);
+  // Outcome labels the still-pending questions are choosing between, used to
+  // explain to the operator why each manual question matters (§9.4).
+  const outcomeLabels = Array.from(
+    new Set(analysis.possibleOutcomes.map((o) => o.label).filter(Boolean)),
+  );
 
   // Ask a manual fact only when its bound field is still needed by the decision
   // and it has not already been resolved or answered.
@@ -451,7 +525,10 @@ export function DataConnectedRunner({
                         key={`${candidate.factId}:${candidate.value}:${candidate.source}`}
                         type="button"
                         onClick={() =>
-                          void commitFactValue(candidate.factId, candidate.value)
+                          void commitFactValue(
+                            candidate.factId,
+                            candidate.value,
+                          )
                         }
                         className="rounded border border-line bg-surface px-2 py-1 text-xs text-fg-muted hover:bg-surface-muted"
                       >
@@ -499,6 +576,7 @@ export function DataConnectedRunner({
                   key={fact.id}
                   fact={fact}
                   value={manualValues[fact.id] ?? ''}
+                  outcomes={outcomeLabels}
                   onAnswer={(value) => void commitFactValue(fact.id, value)}
                 />
               ))}
@@ -539,16 +617,50 @@ export function DataConnectedRunner({
             {decideBlockedReason}
           </p>
         ) : null}
+        {saveError ? (
+          <div className="flex items-center justify-between gap-3 rounded border border-warning-border bg-warning-bg/30 px-4 py-3 text-sm text-fg-muted">
+            <span>Decision not saved: {saveError}</span>
+            <button
+              type="button"
+              onClick={() => void handleDecide()}
+              disabled={deciding}
+              className="inline-flex h-8 items-center gap-2 rounded border border-line bg-surface px-3 text-xs font-medium text-fg-secondary hover:bg-surface-muted disabled:opacity-50"
+            >
+              {deciding ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RotateCcw className="h-3.5 w-3.5" />
+              )}
+              Retry save
+            </button>
+          </div>
+        ) : null}
       </div>
     );
   }
 
   // phase === 'result'
+  const resultSummary =
+    result?.status === 'ok'
+      ? formatWorkspaceResultSummary(
+          data.version.data,
+          result.outputs,
+          data.version.workspaceConfig ?? undefined,
+          fieldValues,
+          `v${data.version.versionNumber}`,
+        )
+      : null;
+  const decisionFactors = extractDecisionFactors(
+    data.version.data,
+    analysis.finalResult,
+  );
   return (
     <div className="space-y-5">
-      {result?.status === 'ok' ? (
+      {result?.status === 'ok' && resultSummary ? (
         <ResultCard
           result={result}
+          summary={resultSummary}
+          decisionFactors={decisionFactors}
           logicName={data.logic.name}
           versionNumber={data.version.versionNumber}
           snapshotHash={data.dataSnapshot?.snapshotHash}
@@ -590,13 +702,25 @@ export function DataConnectedRunner({
   );
 }
 
+function WhyItMatters({ outcomes }: { outcomes: string[] }) {
+  if (outcomes.length < 2) return null;
+  return (
+    <p className="mb-1.5 text-xs text-fg-subtle">
+      Helps decide between: {outcomes.slice(0, 4).join(', ')}
+      {outcomes.length > 4 ? '…' : ''}.
+    </p>
+  );
+}
+
 function ManualQuestion({
   fact,
   value,
+  outcomes,
   onAnswer,
 }: {
   fact: FactDefinition;
   value: string;
+  outcomes: string[];
   onAnswer: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
@@ -605,6 +729,7 @@ function ManualQuestion({
     return (
       <div>
         <p className="mb-1.5 text-sm font-medium text-fg">{question}</p>
+        <WhyItMatters outcomes={outcomes} />
         <div className="inline-flex overflow-hidden rounded border border-line">
           {[
             { v: 'true', label: 'Yes' },
@@ -633,6 +758,7 @@ function ManualQuestion({
         <span className="mb-1.5 block text-sm font-medium text-fg">
           {question}
         </span>
+        <WhyItMatters outcomes={outcomes} />
         <select
           value={value}
           onChange={(event) => {
@@ -655,6 +781,7 @@ function ManualQuestion({
       <span className="mb-1.5 block text-sm font-medium text-fg">
         {question}
       </span>
+      <WhyItMatters outcomes={outcomes} />
       <input
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
@@ -677,6 +804,8 @@ function ManualQuestion({
 
 function ResultCard({
   result,
+  summary,
+  decisionFactors,
   logicName,
   versionNumber,
   snapshotHash,
@@ -686,6 +815,8 @@ function ResultCard({
   onReport,
 }: {
   result: { status: 'ok'; outputs: Record<string, string> };
+  summary: WorkspaceFormattedResult;
+  decisionFactors: WorkspaceDecisionFactor[];
   logicName: string;
   versionNumber: number;
   snapshotHash?: string;
@@ -695,30 +826,45 @@ function ResultCard({
   onReport: () => void;
 }) {
   const outputs = Object.entries(result.outputs);
-  const reason =
-    outputs.find(([key]) => key.toLowerCase() === 'reason')?.[1] ??
-    `Evaluated by ${logicName} v${versionNumber}.`;
-  const copyText = [
-    ...outputs.map(([k, v]) => `${k}: ${v}`),
-    `Reason: ${reason}`,
-    `Logic version: v${versionNumber}`,
+  const provenanceFooter = [
+    `Based on company rule ${logicName} v${versionNumber}.`,
     snapshotHash ? `Data definition: ${snapshotHash}` : undefined,
     sessionId ? `Decision session: ${sessionId}` : undefined,
   ]
     .filter(Boolean)
     .join('\n');
-  const handleCopy = async () => {
+  // Internal note: the configured internal-note template when present, else a
+  // decision summary built from the title, reason, and outputs — always with
+  // the provenance footer so it carries the decision reason and version (§13.2).
+  const decisionLines = summary.internalNote
+    ? [summary.internalNote]
+    : [
+        summary.title,
+        summary.reason ? `Reason: ${summary.reason}` : undefined,
+        ...Object.entries(summary.outputsByName).map(
+          ([name, value]) => `${name}: ${value}`,
+        ),
+      ];
+  const internalNoteText = [...decisionLines, '', provenanceFooter]
+    .filter((part) => part !== undefined)
+    .join('\n');
+  const openUrlActions = summary.nextActions.filter(
+    (action) => action.kind === 'open_url' && action.url,
+  );
+
+  const copyTo = async (text: string, label: string) => {
     try {
-      await navigator.clipboard.writeText(copyText);
-      toast.success('Copied.');
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copied.`);
     } catch {
       toast.error('Could not copy.');
     }
   };
+
   return (
     <div className="rounded border border-success-border bg-success-bg/30 p-5">
-      <h2 className="text-lg font-semibold text-fg">Decision</h2>
-      <p className="mt-2 text-sm leading-6 text-fg-muted">{reason}</p>
+      <h2 className="text-lg font-semibold text-fg">{summary.title}</h2>
+      <p className="mt-2 text-sm leading-6 text-fg-muted">{summary.reason}</p>
       <dl className="mt-3 space-y-1.5">
         {outputs.map(([key, value]) => (
           <div key={key} className="flex gap-2 text-sm">
@@ -727,11 +873,24 @@ function ResultCard({
           </div>
         ))}
       </dl>
-      <p className="mt-4 text-xs text-fg-subtle">
-        Based on company rule {logicName} v{versionNumber}.
-        {snapshotHash ? ` Data definition ${snapshotHash.slice(0, 8)}.` : ''}
-        {sessionId ? ` Decision session ${sessionId.slice(0, 8)}.` : ''}
+
+      {decisionFactors.length > 0 ? (
+        <div className="mt-4 rounded border border-line-subtle bg-surface px-3 py-2">
+          <div className="text-xs font-medium text-fg-subtle">
+            Decision factors
+          </div>
+          <ul className="mt-1 space-y-1 text-xs text-fg-muted">
+            {decisionFactors.map((factor) => (
+              <li key={factor.fieldId}>{factor.label}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <p className="mt-4 whitespace-pre-line text-xs text-fg-subtle">
+        {provenanceFooter}
       </p>
+
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <FactSummaryList title="Facts used" rows={factsUsed} />
         <div className="rounded border border-line-subtle bg-surface px-3 py-2">
@@ -749,15 +908,50 @@ function ResultCard({
           )}
         </div>
       </div>
+
       <div className="mt-4 flex flex-wrap gap-2">
+        {summary.customerMessage ? (
+          <button
+            type="button"
+            onClick={() =>
+              void copyTo(summary.customerMessage as string, 'Customer message')
+            }
+            className="inline-flex h-9 items-center gap-2 rounded bg-brand px-3 text-sm font-medium text-white hover:bg-brand-strong"
+          >
+            <Copy className="h-4 w-4" />
+            Copy customer message
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={() => void handleCopy()}
+          onClick={() => void copyTo(internalNoteText, 'Internal note')}
           className="inline-flex h-9 items-center gap-2 rounded border border-line bg-surface px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
         >
           <Copy className="h-4 w-4" />
-          Copy result
+          Copy internal note
         </button>
+        {summary.customerMessage ? null : (
+          <button
+            type="button"
+            onClick={() => void copyTo(summary.copyText, 'Result')}
+            className="inline-flex h-9 items-center gap-2 rounded border border-line bg-surface px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
+          >
+            <Copy className="h-4 w-4" />
+            Copy result
+          </button>
+        )}
+        {openUrlActions.map((action) => (
+          <a
+            key={action.id}
+            href={action.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex h-9 items-center gap-2 rounded border border-line bg-surface px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
+          >
+            <ExternalLink className="h-4 w-4" />
+            {action.label}
+          </a>
+        ))}
         <button
           type="button"
           onClick={onReport}
@@ -869,4 +1063,16 @@ function FactSummaryList({
 
 function maskValue(raw: string) {
   return raw.length > 8 ? `••••${raw.slice(-4)}` : '••••';
+}
+
+// Map an extracted key's origin to a decision-fact source kind (§14.2): a key
+// pulled out of a URL is url_query; otherwise it inherits the intake channel
+// (clipboard vs a normal paste, which has no dedicated kind and stays manual).
+function extractionSourceKind(
+  source: string,
+  intakeKind: 'manual_paste' | 'clipboard',
+): DecisionFactSourceKind {
+  if (source === 'url') return 'url_query';
+  if (intakeKind === 'clipboard') return 'clipboard';
+  return 'manual';
 }

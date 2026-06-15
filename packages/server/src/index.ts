@@ -459,4 +459,13 @@ export async function runScheduledMaintenance(env: Env) {
       )
       AND accepted_at IS NULL
   `);
+  // Sweep expired case contexts (data-connected intake, §3.8). These hold only
+  // extracted key candidates, but they carry an expires_at and must not linger
+  // past it; decision_session.case_context_id is ON DELETE SET NULL, so a
+  // completed session survives its context being swept.
+  await db.execute(sql`
+    DELETE FROM case_context
+    WHERE expires_at IS NOT NULL
+      AND expires_at < now()
+  `);
 }

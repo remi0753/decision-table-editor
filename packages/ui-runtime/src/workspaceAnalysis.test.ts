@@ -1,8 +1,10 @@
 import type { Logic } from '@leverie/engine';
+import { evaluateTable } from '@leverie/engine';
 import { describe, expect, it } from 'vitest';
 import {
   analyzeWorkspaceDecision,
   buildRuntimeGroups,
+  extractDecisionFactors,
   formatWorkspaceResultSummary,
   valuesFromInitialInputs,
 } from './workspaceAnalysis.js';
@@ -108,6 +110,23 @@ describe('analyzeWorkspaceDecision', () => {
     if (state.finalResult?.status === 'ok') {
       expect(state.finalResult.outputs).toEqual({ oc1: 'Approve' });
     }
+  });
+});
+
+describe('extractDecisionFactors', () => {
+  it('returns the matched row condition cells as readable factors', () => {
+    const result = evaluateTable('t1', { f1: 'Gold', f2: 'false' }, logic);
+    const factors = extractDecisionFactors(logic, result);
+    expect(factors.map((f) => f.label)).toEqual([
+      'Customer Tier is Gold',
+      'Opened is false',
+    ]);
+  });
+
+  it('returns nothing for a no-match result', () => {
+    const result = evaluateTable('t1', { f1: 'Silver' }, logic);
+    expect(result.status).toBe('no_match');
+    expect(extractDecisionFactors(logic, result)).toEqual([]);
   });
 });
 

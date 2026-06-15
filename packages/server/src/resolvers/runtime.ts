@@ -109,11 +109,13 @@ export interface ResolveFactsResult {
 }
 
 // Run every active reference-table resolver in the snapshot whose input facts
-// are available, once each, and project the results into field-keyed fact
-// values. The MVP has only reference-table lookup, so there are no resolver
-// cycles. A resolver whose inputs are not yet available is simply skipped (it
-// may run after manual answers); a resolver that runs but finds no row marks
-// its output facts unavailable.
+// are available, project the results into field-keyed fact values, and feed
+// resolved values back so a resolver keyed on another resolver's output (e.g.
+// ticket -> order id -> order facts) can run on a later pass. Each resolver runs
+// at most once; iteration is bounded by the resolver count, so a cycle cannot
+// loop forever. A resolver whose inputs never become available is simply skipped
+// (it may be answered manually); a resolver that runs but finds no row applies
+// its fallback policy.
 export async function resolveFactsFromSnapshot(
   input: ResolveFactsInput,
 ): Promise<ResolveFactsResult> {
@@ -121,11 +123,15 @@ export async function resolveFactsFromSnapshot(
     input.bindings.map((b) => [b.factId, b.fieldId]),
   );
   const tableBySource = new Map(input.tables.map((t) => [t.dataSourceId, t]));
+  // Local working copy so resolved values can become inputs for later passes
+  // without mutating the caller's map.
+  const availableFacts = new Map(input.availableFacts);
   const values: ResolvedFactValue[] = [];
   const unavailable: { factId: string; reason: string }[] = [];
   const blocked: { resolverId: string; reason: string; factIds: string[] }[] =
     [];
   const resolvedFactIds = new Set<string>();
+  const ranResolverIds = new Set<string>();
 
   const withField = (v: ResolvedFactValue): ResolvedFactValue => {
     const fieldId = fieldIdByFactId.get(v.factId);
@@ -171,42 +177,55 @@ export async function resolveFactsFromSnapshot(
     }
   };
 
-  for (const resolver of input.resolvers) {
-    if (resolver.status !== 'active') continue;
-    const inputsReady = resolver.inputFactIds.every((id) =>
-      input.availableFacts.has(id),
-    );
-    if (!inputsReady) continue;
+  const activeResolvers = input.resolvers.filter((r) => r.status === 'active');
+  let progressed = true;
+  while (progressed) {
+    progressed = false;
+    for (const resolver of activeResolvers) {
+      if (ranResolverIds.has(resolver.id)) continue;
+      const inputsReady = resolver.inputFactIds.every((id) =>
+        availableFacts.has(id),
+      );
+      if (!inputsReady) continue;
+      ranResolverIds.add(resolver.id);
+      progressed = true;
 
-    const table = tableBySource.get(resolver.dataSourceId);
-    if (!table) {
-      applyFallback(resolver, 'no_reference_table');
-      continue;
-    }
-
-    const result = await resolveReferenceTableRecipe({
-      recipeId: resolver.id,
-      dataSourceId: resolver.dataSourceId,
-      referenceTableId: table.referenceTableId,
-      referenceTableVersion: table.version,
-      keyColumns: table.keyColumns,
-      parameterKeyMappings: resolver.parameterKeyMappings,
-      outputMappings: resolver.outputMappings,
-      availableFacts: input.availableFacts,
-      factsById: input.factsById,
-      fetchRowByHash: input.fetchRowByHash,
-      now: input.now,
-    });
-
-    if (result.matched) {
-      for (const v of result.values) {
-        if (resolvedFactIds.has(v.factId)) continue;
-        if (v.state === 'resolved') resolvedFactIds.add(v.factId);
-        values.push(withField(v));
+      const table = tableBySource.get(resolver.dataSourceId);
+      if (!table) {
+        applyFallback(resolver, 'no_reference_table');
+        continue;
       }
-    } else if (result.missingKeys.length === 0) {
-      // Ran but no row matched: apply the resolver fallback policy.
-      applyFallback(resolver, 'no_match');
+
+      const result = await resolveReferenceTableRecipe({
+        recipeId: resolver.id,
+        dataSourceId: resolver.dataSourceId,
+        referenceTableId: table.referenceTableId,
+        referenceTableVersion: table.version,
+        keyColumns: table.keyColumns,
+        parameterKeyMappings: resolver.parameterKeyMappings,
+        outputMappings: resolver.outputMappings,
+        availableFacts,
+        factsById: input.factsById,
+        fetchRowByHash: input.fetchRowByHash,
+        now: input.now,
+      });
+
+      if (result.matched) {
+        for (const v of result.values) {
+          if (resolvedFactIds.has(v.factId)) continue;
+          if (v.state === 'resolved') {
+            resolvedFactIds.add(v.factId);
+            // Feed a resolved value back as a potential key for later passes.
+            if (v.value !== undefined && !availableFacts.has(v.factId)) {
+              availableFacts.set(v.factId, v.value);
+            }
+          }
+          values.push(withField(v));
+        }
+      } else if (result.missingKeys.length === 0) {
+        // Ran but no row matched: apply the resolver fallback policy.
+        applyFallback(resolver, 'no_match');
+      }
     }
   }
 

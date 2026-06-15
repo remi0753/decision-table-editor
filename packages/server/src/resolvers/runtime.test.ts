@@ -171,6 +171,75 @@ describe('resolveFactsFromSnapshot', () => {
     expect(result.unavailable[0]?.reason).toBe('no_match');
   });
 
+  it('chains resolvers: one resolver output feeds another resolver key', async () => {
+    // r_ticket: ticket -> order id (ticket table). r_order: order id -> facts.
+    // r_order's key only becomes available after r_ticket runs, so the fixpoint
+    // loop must run r_ticket first and then r_order on a later pass.
+    const chainFacts = new Map<string, FactView>([
+      ['fOrder', { id: 'fOrder', type: 'string' }],
+      ['fDate', { id: 'fDate', type: 'date' }],
+    ]);
+    const chainResolvers: SnapshotResolver[] = [
+      // Intentionally list the order resolver first to prove ordering does not
+      // matter — it cannot run until the ticket resolver produces fOrder.
+      {
+        id: 'r_order',
+        status: 'active',
+        dataSourceId: 's_order',
+        inputFactIds: ['fOrder'],
+        parameterKeyMappings: [{ columnName: 'order_id', factId: 'fOrder' }],
+        outputMappings: [{ columnName: 'purchase_date', factId: 'fDate' }],
+      },
+      {
+        id: 'r_ticket',
+        status: 'active',
+        dataSourceId: 's_ticket',
+        inputFactIds: ['fTicket'],
+        parameterKeyMappings: [{ columnName: 'ticket_id', factId: 'fTicket' }],
+        outputMappings: [{ columnName: 'order_id', factId: 'fOrder' }],
+      },
+    ];
+    const chainTables: SnapshotTable[] = [
+      {
+        dataSourceId: 's_ticket',
+        referenceTableId: 't_ticket',
+        version: 1,
+        keyColumns: ['ticket_id'],
+      },
+      {
+        dataSourceId: 's_order',
+        referenceTableId: 't_order',
+        version: 1,
+        keyColumns: ['order_id'],
+      },
+    ];
+    const result = await resolveFactsFromSnapshot({
+      resolvers: chainResolvers,
+      tables: chainTables,
+      bindings: [
+        { fieldId: 'f_order', factId: 'fOrder' },
+        { fieldId: 'f_date', factId: 'fDate' },
+      ],
+      factsById: chainFacts,
+      availableFacts: new Map([['fTicket', 'TKT-1']]),
+      fetchRowByHash: async (tableId) =>
+        tableId === 't_ticket'
+          ? { order_id: 'ORD-9' }
+          : { purchase_date: '2026-05-28' },
+      now: new Date('2026-06-14T00:00:00Z'),
+    });
+    expect(result.values.find((v) => v.factId === 'fOrder')?.value).toBe(
+      'ORD-9',
+    );
+    expect(result.values.find((v) => v.factId === 'fDate')).toMatchObject({
+      fieldId: 'f_date',
+      value: '2026-05-28',
+      state: 'resolved',
+    });
+    expect(result.unavailable).toEqual([]);
+    expect(result.blocked).toEqual([]);
+  });
+
   it('blocks resolution when no row matches and fallback blocks', async () => {
     const result = await resolveFactsFromSnapshot({
       resolvers: resolvers.map((r) => ({ ...r, fallbackPolicy: 'block' })),

@@ -7,15 +7,22 @@ export function StartCasePanel({
   onStart,
   starting,
 }: {
-  onStart: (text: string) => void;
+  onStart: (text: string, sourceKind: 'manual_paste' | 'clipboard') => void;
   starting: boolean;
 }) {
   const [text, setText] = useState('');
+  // Track whether the current text came from the clipboard button so the
+  // case-context source kind is recorded faithfully (§3.8, §11.1). Any manual
+  // edit demotes it back to a normal paste.
+  const [fromClipboard, setFromClipboard] = useState(false);
 
   const handleClipboard = async () => {
     try {
       const clip = await navigator.clipboard.readText();
-      if (clip) setText(clip);
+      if (clip) {
+        setText(clip);
+        setFromClipboard(true);
+      }
     } catch {
       // Clipboard permission denied — the operator can paste manually.
     }
@@ -30,7 +37,10 @@ export function StartCasePanel({
       </p>
       <textarea
         value={text}
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => {
+          setText(event.target.value);
+          setFromClipboard(false);
+        }}
         rows={4}
         placeholder={'Order #12345\nCustomer tier: Gold'}
         className="mt-3 w-full rounded border border-line px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
@@ -46,7 +56,9 @@ export function StartCasePanel({
         </button>
         <button
           type="button"
-          onClick={() => onStart(text)}
+          onClick={() =>
+            onStart(text, fromClipboard ? 'clipboard' : 'manual_paste')
+          }
           disabled={starting || !text.trim()}
           className="inline-flex h-10 items-center justify-center gap-2 rounded bg-brand px-5 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
         >
