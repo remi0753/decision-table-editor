@@ -1180,7 +1180,7 @@ export const dataSource = pgTable(
     check('data_source_name_length_chk', sql`length(${t.name}) <= 120`),
     check(
       'data_source_kind_chk',
-      sql`${t.kind} IN ('reference_table', 'spreadsheet', 'managed_connector', 'openapi_http', 'graphql')`,
+      sql`${t.kind} IN ('reference_table', 'spreadsheet', 'managed_connector', 'openapi_http', 'graphql', 'database')`,
     ),
     check(
       'data_source_auth_type_chk',
@@ -1223,6 +1223,47 @@ export const dataSource = pgTable(
       t.status,
       t.createdAt.desc(),
     ),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3.15b connector_secret — encrypted credentials for live data sources (WP0).
+//   Server-side only; never serialized to the browser. data_source.secret_ref
+//   points here. The ciphertext is AES-256-GCM (iv + auth_tag stored alongside).
+// ─────────────────────────────────────────────────────────────────────────
+export const connectorSecret = pgTable(
+  'connector_secret',
+  {
+    id: uuid('id').primaryKey().default(uuidv7),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    authType: text('auth_type').notNull(),
+    ciphertext: text('ciphertext').notNull(),
+    iv: text('iv').notNull(),
+    authTag: text('auth_tag').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdActorType: text('created_actor_type').notNull(),
+    createdActorId: uuid('created_actor_id'),
+    updatedActorType: text('updated_actor_type'),
+    updatedActorId: uuid('updated_actor_id'),
+  },
+  (t) => [
+    check(
+      'connector_secret_auth_type_chk',
+      sql`${t.authType} IN ('api_key', 'bearer', 'basic', 'oauth', 'database_url')`,
+    ),
+    check(
+      'connector_secret_created_actor_consistency_chk',
+      sql`(${t.createdActorType} = 'user' AND ${t.createdActorId} IS NOT NULL)
+          OR (${t.createdActorType} = 'system' AND ${t.createdActorId} IS NULL)`,
+    ),
+    index('connector_secret_workspace_idx').on(t.workspaceId),
   ],
 );
 
@@ -1349,6 +1390,10 @@ export const resolverRecipe = pgTable(
     outputMappings: jsonb('output_mappings').notNull(),
     normalizers: jsonb('normalizers').notNull().default(sql`'{}'::jsonb`),
     fallbackPolicy: text('fallback_policy').notNull().default('ask_operator'),
+    // Live-source execution policy (WP3/WP4). NULL = connector default. Only
+    // used by db_query / http_operation; reference_table_lookup ignores them.
+    timeoutPolicy: jsonb('timeout_policy'),
+    cachePolicy: jsonb('cache_policy'),
     status: text('status').notNull().default('active'),
     version: integer('version').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true })

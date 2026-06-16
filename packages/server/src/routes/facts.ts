@@ -198,6 +198,7 @@ factRoutes.post('/api/workspaces/:workspaceId/facts', async (c) => {
         question: fact.question,
         sensitive: fact.sensitive,
         loggingPolicy: fact.loggingPolicy,
+        retentionPolicy: fact.retentionPolicy,
         status: fact.status,
         createdActorType: 'user',
         createdActorId: access.user.id,

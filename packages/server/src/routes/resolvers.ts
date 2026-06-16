@@ -92,12 +92,31 @@ async function buildFactContext(db: Database, workspaceId: string) {
   );
 }
 
-// Load the active reference table version for a data source in the workspace.
-async function loadActiveTable(
+// Operation kind required for each data source kind.
+const OPERATION_BY_SOURCE_KIND: Record<string, string> = {
+  reference_table: 'reference_table_lookup',
+  database: 'db_query',
+  openapi_http: 'http_operation',
+};
+
+interface ResolverSourceContext {
+  kind: string;
+  tableKeyColumns?: string[];
+  tableColumns?: string[];
+  referenceTableId?: string;
+  referenceTableVersion?: number;
+}
+
+// Load and validate the data source a resolver targets. For reference tables it
+// also returns the active version's key/columns; for live sources (database,
+// openapi_http) only the kind is needed (the recipe carries the query/URL).
+async function loadResolverSource(
   db: Database,
   workspaceId: string,
   dataSourceId: string,
-) {
+): Promise<
+  { ok: true; ctx: ResolverSourceContext } | { ok: false; message: string }
+> {
   const [src] = await db
     .select()
     .from(dataSource)
@@ -108,18 +127,43 @@ async function loadActiveTable(
       ),
     )
     .limit(1);
-  if (!src || src.kind !== 'reference_table') return null;
-  const [active] = await db
-    .select()
-    .from(referenceTable)
-    .where(
-      and(
-        eq(referenceTable.dataSourceId, dataSourceId),
-        eq(referenceTable.status, 'active'),
-      ),
-    )
-    .limit(1);
-  return active ?? null;
+  if (!src)
+    return { ok: false, message: 'dataSourceId not found in workspace.' };
+  if (src.status !== 'active') {
+    return { ok: false, message: 'Data source is not active.' };
+  }
+  if (!(src.kind in OPERATION_BY_SOURCE_KIND)) {
+    return {
+      ok: false,
+      message: `Unsupported data source kind "${src.kind}".`,
+    };
+  }
+  if (src.kind === 'reference_table') {
+    const [active] = await db
+      .select()
+      .from(referenceTable)
+      .where(
+        and(
+          eq(referenceTable.dataSourceId, dataSourceId),
+          eq(referenceTable.status, 'active'),
+        ),
+      )
+      .limit(1);
+    if (!active) {
+      return { ok: false, message: 'Reference table has no active version.' };
+    }
+    return {
+      ok: true,
+      ctx: {
+        kind: src.kind,
+        tableKeyColumns: active.keyColumns as string[],
+        tableColumns: (active.columns as ColumnDef[]).map((col) => col.name),
+        referenceTableId: active.id,
+        referenceTableVersion: active.version,
+      },
+    };
+  }
+  return { ok: true, ctx: { kind: src.kind } };
 }
 
 // GET /api/workspaces/:workspaceId/resolvers — list (viewer+).
@@ -164,25 +208,28 @@ resolverRoutes.post('/api/workspaces/:workspaceId/resolvers', async (c) => {
     );
   }
 
-  const active = await loadActiveTable(db, workspaceId, body.dataSourceId);
-  if (!active) {
-    return jsonError(
-      c,
-      400,
-      'invalid_data_source',
-      'dataSourceId must reference a reference table with an active version.',
-    );
+  const source = await loadResolverSource(db, workspaceId, body.dataSourceId);
+  if (!source.ok) {
+    return jsonError(c, 400, 'invalid_data_source', source.message);
   }
 
   const facts = await buildFactContext(db, workspaceId);
   const result = validateResolverRecipe(body, {
     facts,
-    tableKeyColumns: active.keyColumns as string[],
-    tableColumns: (active.columns as ColumnDef[]).map((col) => col.name),
+    tableKeyColumns: source.ctx.tableKeyColumns,
+    tableColumns: source.ctx.tableColumns,
   });
   if (!result.ok)
     return jsonError(c, 400, result.error.code, result.error.message);
   const recipe = result.value;
+  if (recipe.operationRef.kind !== OPERATION_BY_SOURCE_KIND[source.ctx.kind]) {
+    return jsonError(
+      c,
+      400,
+      'operation_source_mismatch',
+      `A ${source.ctx.kind} source requires a ${OPERATION_BY_SOURCE_KIND[source.ctx.kind]} operation.`,
+    );
+  }
 
   const [created] = await db
     .insert(resolverRecipe)
@@ -241,28 +288,31 @@ resolverRoutes.patch('/api/resolvers/:resolverId', async (c) => {
     return jsonError(c, 400, 'invalid_body', 'Request body is required.');
   }
 
-  const active = await loadActiveTable(
+  const source = await loadResolverSource(
     db,
     existing.workspaceId,
     existing.dataSourceId,
   );
-  if (!active) {
-    return jsonError(
-      c,
-      400,
-      'invalid_data_source',
-      'The resolver data source no longer has an active version.',
-    );
+  if (!source.ok) {
+    return jsonError(c, 400, 'invalid_data_source', source.message);
   }
   const facts = await buildFactContext(db, existing.workspaceId);
   const result = validateResolverRecipe(body, {
     facts,
-    tableKeyColumns: active.keyColumns as string[],
-    tableColumns: (active.columns as ColumnDef[]).map((col) => col.name),
+    tableKeyColumns: source.ctx.tableKeyColumns,
+    tableColumns: source.ctx.tableColumns,
   });
   if (!result.ok)
     return jsonError(c, 400, result.error.code, result.error.message);
   const recipe = result.value;
+  if (recipe.operationRef.kind !== OPERATION_BY_SOURCE_KIND[source.ctx.kind]) {
+    return jsonError(
+      c,
+      400,
+      'operation_source_mismatch',
+      `A ${source.ctx.kind} source requires a ${OPERATION_BY_SOURCE_KIND[source.ctx.kind]} operation.`,
+    );
+  }
 
   let status = existing.status;
   if (body.status !== undefined) {
@@ -346,19 +396,27 @@ resolverRoutes.post('/api/resolvers/:resolverId/test', async (c) => {
   }
   const recipe = access.recipe;
 
-  const active = await loadActiveTable(
+  const source = await loadResolverSource(
     db,
     recipe.workspaceId,
     recipe.dataSourceId,
   );
-  if (!active) {
+  if (!source.ok) {
+    return jsonError(c, 409, 'no_active_version', source.message);
+  }
+  if (source.ctx.kind !== 'reference_table') {
     return jsonError(
       c,
-      409,
-      'no_active_version',
-      'No active reference table version.',
+      400,
+      'test_not_supported',
+      'Test lookup is available for reference tables only. Test live database/HTTP connectors from the runner.',
     );
   }
+  const active = {
+    id: source.ctx.referenceTableId as string,
+    version: source.ctx.referenceTableVersion as number,
+    keyColumns: source.ctx.tableKeyColumns as string[],
+  };
 
   const body = (await c.req.json().catch(() => null)) as {
     facts?: Array<{ factId?: unknown; value?: unknown }>;

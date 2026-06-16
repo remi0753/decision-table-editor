@@ -12,7 +12,10 @@ const parsed: ParsedCsv = {
 const activeFacts = new Set(['fDate', 'fTier']);
 const activeFactCatalog = new Map([
   ['fDate', { id: 'fDate', type: 'date' as const, enumValues: null }],
-  ['fTier', { id: 'fTier', type: 'enum' as const, enumValues: ['Gold', 'Silver'] }],
+  [
+    'fTier',
+    { id: 'fTier', type: 'enum' as const, enumValues: ['Gold', 'Silver'] },
+  ],
 ]);
 
 describe('buildReferenceTable', () => {

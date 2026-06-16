@@ -1,5 +1,7 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { getDbQueryExecutor } from '../connectors/dbExecutorRegistry.js';
+import { getConnectorSecret } from '../connectors/secrets.js';
 import {
   type ExtractedKey,
   extractKeyCandidates,
@@ -15,6 +17,7 @@ import {
   referenceTableRow,
 } from '../db/schema.js';
 import type { Env } from '../env.js';
+import type { DriverDataSource, DriverDeps } from '../resolvers/driver.js';
 import {
   resolveFactsFromSnapshot,
   type SnapshotResolver,
@@ -23,6 +26,7 @@ import {
 import type {
   FactView,
   KeyColumnMapping,
+  OperationRef,
   OutputMapping,
 } from '../resolvers/types.js';
 import {
@@ -57,6 +61,15 @@ interface SnapshotResolverRow {
   inputFactIds: string[];
   parameterMappings: { keyColumns: KeyColumnMapping[] };
   outputMappings: OutputMapping[];
+  operationRef?: OperationRef;
+  timeoutPolicy?: { timeoutMs?: number } | null;
+}
+
+interface SnapshotDataSourceRow {
+  id: string;
+  kind: string;
+  secretRef?: string | null;
+  allowedDomains?: string[] | null;
 }
 interface SnapshotReferenceTableRef {
   dataSourceId: string;
@@ -203,6 +216,7 @@ runnerDataRoutes.post(
     const body = (await c.req.json().catch(() => null)) as {
       sourceKind?: unknown;
       text?: unknown;
+      facts?: Array<{ factId?: unknown; value?: unknown }>;
     } | null;
     const sourceKind =
       typeof body?.sourceKind === 'string' ? body.sourceKind : 'manual_paste';
@@ -212,10 +226,6 @@ runnerDataRoutes.post(
       )
     ) {
       return jsonError(c, 400, 'invalid_source_kind', 'sourceKind is invalid.');
-    }
-    const text = typeof body?.text === 'string' ? body.text : '';
-    if (!text.trim()) {
-      return jsonError(c, 400, 'text_required', 'text is required.');
     }
 
     const keyFacts: KeyFactView[] = (
@@ -227,8 +237,42 @@ runnerDataRoutes.post(
         label: f.name ?? f.id,
         aliases: f.aliases ?? [],
       }));
+    const keyFactById = new Map(keyFacts.map((f) => [f.factId, f]));
 
-    const extractedKeys: ExtractedKey[] = extractKeyCandidates(text, keyFacts);
+    // Two intake modes:
+    //  - host push (webhook/embed): the host system supplies key facts directly,
+    //    so no text parsing is needed (the value is trusted, confidence 1).
+    //  - paste/clipboard/url: rule-based extraction from the supplied text.
+    const extractedKeys: ExtractedKey[] = [];
+    if (Array.isArray(body?.facts) && body.facts.length > 0) {
+      for (const f of body.facts) {
+        if (typeof f.factId !== 'string' || typeof f.value !== 'string')
+          continue;
+        const keyFact = keyFactById.get(f.factId);
+        if (!keyFact || !f.value.trim()) continue;
+        extractedKeys.push({
+          factId: keyFact.factId,
+          label: keyFact.label,
+          value: f.value.trim(),
+          confidence: 1,
+          source: 'host',
+        });
+      }
+      if (extractedKeys.length === 0) {
+        return jsonError(
+          c,
+          400,
+          'no_pushed_keys',
+          'facts must include at least one known key fact.',
+        );
+      }
+    } else {
+      const text = typeof body?.text === 'string' ? body.text : '';
+      if (!text.trim()) {
+        return jsonError(c, 400, 'text_required', 'text or facts is required.');
+      }
+      extractedKeys.push(...extractKeyCandidates(text, keyFacts));
+    }
 
     // Data minimization (§11.4): persist only extracted candidates, expire 24h.
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -329,9 +373,8 @@ runnerDataRoutes.post('/api/run/:workspaceId/:logicRef/resolve', async (c) => {
       },
     ]),
   );
-  const resolvers: SnapshotResolver[] = (
-    snapshot.resolverRecipes as SnapshotResolverRow[]
-  ).map((r) => ({
+  const resolverRows = snapshot.resolverRecipes as SnapshotResolverRow[];
+  const resolvers: SnapshotResolver[] = resolverRows.map((r) => ({
     id: r.id,
     status: r.status,
     dataSourceId: r.dataSourceId,
@@ -339,7 +382,37 @@ runnerDataRoutes.post('/api/run/:workspaceId/:logicRef/resolve', async (c) => {
     inputFactIds: r.inputFactIds ?? [],
     parameterKeyMappings: r.parameterMappings?.keyColumns ?? [],
     outputMappings: r.outputMappings ?? [],
+    operationRef: r.operationRef ?? { kind: 'reference_table_lookup' },
   }));
+
+  // Live data sources (database / http) the runtime may dispatch to. Each
+  // resolver's timeout is folded into the driver source config.
+  const timeoutBySource = new Map<string, number>();
+  for (const r of resolverRows) {
+    const ms = r.timeoutPolicy?.timeoutMs;
+    if (typeof ms === 'number') timeoutBySource.set(r.dataSourceId, ms);
+  }
+  const sources = new Map<string, DriverDataSource>(
+    (snapshot.dataSources as SnapshotDataSourceRow[]).map((s) => [
+      s.id,
+      {
+        id: s.id,
+        kind: s.kind,
+        secretRef: s.secretRef ?? null,
+        config: {
+          allowedDomains: s.allowedDomains ?? [],
+          ...(timeoutBySource.has(s.id)
+            ? { timeoutMs: timeoutBySource.get(s.id) }
+            : {}),
+        },
+      },
+    ]),
+  );
+  const deps: DriverDeps = {
+    fetchFn: globalThis.fetch,
+    queryExecutor: getDbQueryExecutor(),
+    getSecret: (secretRef) => getConnectorSecret({ db, env: c.env, secretRef }),
+  };
 
   // Fetch the pinned reference tables' key columns (immutable for the version).
   const refRefs = snapshot.referenceTables as SnapshotReferenceTableRef[];
@@ -382,6 +455,8 @@ runnerDataRoutes.post('/api/run/:workspaceId/:logicRef/resolve', async (c) => {
         .limit(1);
       return row ? (row.data as Record<string, unknown>) : null;
     },
+    sources,
+    deps,
     now: new Date(),
   });
 

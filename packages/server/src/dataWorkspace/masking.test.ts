@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { applyLoggingPolicy, maskString } from './masking.js';
+import {
+  applyLoggingPolicy,
+  maskString,
+  resolveStoredValue,
+} from './masking.js';
 
 describe('maskString', () => {
   it('keeps the last 4 chars when longer than 8', () => {
@@ -42,5 +46,25 @@ describe('applyLoggingPolicy', () => {
       value: null,
       maskedValue: null,
     });
+  });
+});
+
+describe('resolveStoredValue', () => {
+  it('persists nothing when retention is no_store, ignoring logging policy', async () => {
+    expect(
+      await resolveStoredValue('Gold', {
+        loggingPolicy: 'full',
+        retentionPolicy: 'no_store',
+      }),
+    ).toEqual({ value: null, maskedValue: null });
+  });
+
+  it('falls back to the logging policy when retention allows storage', async () => {
+    expect(
+      await resolveStoredValue('Gold', {
+        loggingPolicy: 'full',
+        retentionPolicy: 'workspace_default',
+      }),
+    ).toEqual({ value: 'Gold', maskedValue: null });
   });
 });

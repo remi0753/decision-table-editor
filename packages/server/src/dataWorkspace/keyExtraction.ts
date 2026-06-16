@@ -15,7 +15,8 @@ export interface ExtractedKey {
   label: string;
   value: string;
   confidence: number;
-  source: 'alias' | 'url' | 'regex';
+  // 'host' = pushed by a webhook/embed host system (trusted, not text-parsed).
+  source: 'alias' | 'url' | 'regex' | 'host';
 }
 
 function escapeRegExp(s: string): string {

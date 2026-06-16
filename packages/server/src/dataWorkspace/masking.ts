@@ -12,6 +12,14 @@ export interface StoredValue {
   maskedValue: string | null;
 }
 
+// `no_store` means the value is used for evaluation but never persisted — the
+// data-minimization default for sensitive facts resolved from live sources
+// (WP0). It overrides the logging policy entirely (not even a masked rendering
+// is kept; only state + provenance survive on the decision_fact_value row).
+export function isNoStoreRetention(retentionPolicy?: string | null): boolean {
+  return retentionPolicy === 'no_store';
+}
+
 // Mask a string for display: keep the last 4 characters when longer than 8,
 // otherwise a fixed dot run (§10.2). Non-string domains have no special rule
 // yet, so they pass through this same string masking.
@@ -26,6 +34,19 @@ async function sha256Hex(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+// Decide what to persist for a fact value given both its retention policy and
+// its logging policy. `no_store` retention wins over any logging policy.
+export async function resolveStoredValue(
+  rawValue: string,
+  opts: { loggingPolicy: FactLoggingPolicy; retentionPolicy?: string | null },
+  hashKey?: string,
+): Promise<StoredValue> {
+  if (isNoStoreRetention(opts.retentionPolicy)) {
+    return { value: null, maskedValue: null };
+  }
+  return applyLoggingPolicy(rawValue, opts.loggingPolicy, hashKey);
 }
 
 // Apply a logging policy to a raw value, producing the (value, masked_value)

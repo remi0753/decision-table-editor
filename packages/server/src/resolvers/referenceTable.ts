@@ -3,7 +3,13 @@
 // turn a matched row into normalized fact values with provenance.
 
 import { normalizeFactValue } from './normalize.js';
-import type { FactView, OutputMapping, ResolvedFactValue } from './types.js';
+import type {
+  DecisionFactSourceKind,
+  FactProvenance,
+  FactView,
+  OutputMapping,
+  ResolvedFactValue,
+} from './types.js';
 
 // Key normalization before hashing (§6.4). Trim only: order IDs and similar
 // keys are case-sensitive, so we do not case-fold. Upload and lookup MUST use
@@ -69,47 +75,57 @@ export function projectRow(
   rowData: Record<string, unknown>,
   outputMappings: OutputMapping[],
   factsById: Map<string, FactView>,
-  provenanceBase: {
-    resolverRecipeId?: string;
-    dataSourceId?: string;
-    referenceTableId?: string;
-    referenceTableVersion?: number;
-    retrievedAt: string;
-  },
+  provenanceBase: Partial<FactProvenance> & { retrievedAt: string },
+  sourceKind: DecisionFactSourceKind = 'reference_table',
 ): ResolvedFactValue[] {
   const values: ResolvedFactValue[] = [];
   for (const mapping of outputMappings) {
     const fact = factsById.get(mapping.factId);
-    const provenance = {
-      resolverRecipeId: provenanceBase.resolverRecipeId,
-      dataSourceId: provenanceBase.dataSourceId,
-      referenceTableId: provenanceBase.referenceTableId,
-      referenceTableVersion: provenanceBase.referenceTableVersion,
+    const provenance: FactProvenance = {
+      ...provenanceBase,
       sourceColumn: mapping.columnName,
-      retrievedAt: provenanceBase.retrievedAt,
     };
     if (!fact) {
       // Output maps to a fact not present in the catalog/snapshot: skip safely.
       continue;
     }
-    const raw = rowData[mapping.columnName];
+    // Read by source field name. For HTTP records a dotted field path is
+    // supported so nested response objects can be mapped.
+    const raw = readField(rowData, mapping.columnName);
     const result = normalizeFactValue(raw, fact, mapping.normalizer);
     if (result.ok) {
       values.push({
         factId: mapping.factId,
         value: result.value,
         state: 'resolved',
-        sourceKind: 'reference_table',
+        sourceKind,
         provenance,
       });
     } else {
       values.push({
         factId: mapping.factId,
         state: result.state,
-        sourceKind: 'reference_table',
+        sourceKind,
         provenance,
       });
     }
   }
   return values;
+}
+
+// Read a (possibly dotted) field path from a record. A non-dotted name reads the
+// top-level key directly, so reference-table / DB column names with dots are
+// still matched first.
+export function readField(
+  record: Record<string, unknown>,
+  field: string,
+): unknown {
+  if (field in record) return record[field];
+  if (!field.includes('.')) return undefined;
+  let cursor: unknown = record;
+  for (const part of field.split('.')) {
+    if (cursor === null || typeof cursor !== 'object') return undefined;
+    cursor = (cursor as Record<string, unknown>)[part];
+  }
+  return cursor;
 }

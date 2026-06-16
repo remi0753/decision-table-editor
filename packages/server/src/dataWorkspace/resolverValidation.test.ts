@@ -103,4 +103,82 @@ describe('validateResolverRecipe', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('invalid_fallback_policy');
   });
+
+  // Live sources need no table columns in the context (data is not copied in).
+  const liveCtx: ResolverValidationContext = { facts };
+
+  it('accepts a db_query recipe and normalizes its operation', () => {
+    const result = validateResolverRecipe(
+      {
+        name: 'Resolve order facts (DB)',
+        inputFactIds: ['fOrder'],
+        operationRef: {
+          kind: 'db_query',
+          query: 'SELECT purchase_date FROM orders WHERE order_id = :order_id',
+          params: [{ name: 'order_id', factId: 'fOrder' }],
+        },
+        outputMappings: [{ columnName: 'purchase_date', factId: 'fDate' }],
+      },
+      liveCtx,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.operationRef.kind).toBe('db_query');
+  });
+
+  it('rejects a non-read-only db_query', () => {
+    const result = validateResolverRecipe(
+      {
+        name: 'bad',
+        inputFactIds: ['fOrder'],
+        operationRef: {
+          kind: 'db_query',
+          query: 'UPDATE orders SET x = 1 WHERE order_id = :order_id',
+          params: [{ name: 'order_id', factId: 'fOrder' }],
+        },
+        outputMappings: [{ columnName: 'purchase_date', factId: 'fDate' }],
+      },
+      liveCtx,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('unsafe_query');
+  });
+
+  it('accepts an http_operation recipe', () => {
+    const result = validateResolverRecipe(
+      {
+        name: 'Resolve order facts (HTTP)',
+        inputFactIds: ['fOrder'],
+        operationRef: {
+          kind: 'http_operation',
+          method: 'GET',
+          urlTemplate: 'https://api.shop.test/orders/{orderId}',
+          params: [{ name: 'orderId', factId: 'fOrder' }],
+          recordPath: 'order',
+        },
+        outputMappings: [{ columnName: 'created_at', factId: 'fDate' }],
+      },
+      liveCtx,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok)
+      expect(result.value.operationRef.kind).toBe('http_operation');
+  });
+
+  it('rejects an http_operation with a non-http url', () => {
+    const result = validateResolverRecipe(
+      {
+        name: 'bad',
+        inputFactIds: ['fOrder'],
+        operationRef: {
+          kind: 'http_operation',
+          urlTemplate: 'ftp://api.shop.test/{orderId}',
+          params: [{ name: 'orderId', factId: 'fOrder' }],
+        },
+        outputMappings: [{ columnName: 'created_at', factId: 'fDate' }],
+      },
+      liveCtx,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('invalid_url_template');
+  });
 });

@@ -152,4 +152,32 @@ describe('checkDataReadiness', () => {
       ),
     ).toBe(true);
   });
+
+  it('warns when a sensitive fact is resolved from a copied reference table', () => {
+    const input = fullSetup();
+    input.dataSources = [
+      { id: 's1', status: 'active', kind: 'reference_table' },
+    ];
+    input.facts = input.facts.map((f) =>
+      f.id === 'date' ? { ...f, sensitive: true, loggingPolicy: 'masked' } : f,
+    );
+    const r = checkDataReadiness(input);
+    expect(r.ok).toBe(true);
+    expect(
+      r.issues.some(
+        (i) => i.code === 'sensitive_from_copy_source' && i.severity === 'warn',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not require a reference table for a live (database) source', () => {
+    const input = fullSetup();
+    input.dataSources = [{ id: 's1', status: 'active', kind: 'database' }];
+    input.referenceTables = [];
+    const r = checkDataReadiness(input);
+    expect(r.ok).toBe(true);
+    expect(r.issues.some((i) => i.code === 'resolver_no_active_table')).toBe(
+      false,
+    );
+  });
 });

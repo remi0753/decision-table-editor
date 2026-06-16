@@ -62,6 +62,10 @@ export interface FactProvenance {
   referenceTableId?: string;
   referenceTableVersion?: number;
   sourceColumn?: string;
+  // Live-source provenance (DB query / HTTP operation). The value was read at
+  // decision time from an external system, never copied into LEVERIE.
+  sourceKindLabel?: 'reference_table' | 'database' | 'http';
+  operationLabel?: string;
   retrievedAt?: string;
   confidence?: number;
   evidenceLabel?: string;
@@ -99,6 +103,32 @@ export interface OutputMapping {
 
 export type OutputMappings = OutputMapping[];
 
-export interface OperationRef {
-  kind: 'reference_table_lookup';
+// A parameter binding: a query/request parameter filled from an input fact.
+export interface ParameterBinding {
+  name: string;
+  factId: string;
 }
+
+// reference_table_lookup: the original CSV/policy-table lookup (data copied in).
+// db_query: a read-only parameterized SELECT against an external database (data
+//   stays in the source; only one row is read at decision time).
+// http_operation: a read-only HTTP/OpenAPI GET against an external API.
+export type OperationRef =
+  | { kind: 'reference_table_lookup' }
+  | {
+      kind: 'db_query';
+      // Parameterized SQL with :name placeholders bound from input facts.
+      query: string;
+      params: ParameterBinding[];
+    }
+  | {
+      kind: 'http_operation';
+      method: 'GET';
+      // URL template with {name} path/query placeholders bound from input facts.
+      urlTemplate: string;
+      params: ParameterBinding[];
+      // dot-path into the JSON response that holds the record object, optional.
+      recordPath?: string;
+    };
+
+export type OperationKind = OperationRef['kind'];

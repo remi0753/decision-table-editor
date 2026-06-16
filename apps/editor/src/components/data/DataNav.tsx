@@ -1,6 +1,6 @@
-import { Database, Link2, Table2, Workflow } from 'lucide-react';
+import { Database, Link2, Plug, Table2, Workflow } from 'lucide-react';
 
-type DataTab = 'facts' | 'tables' | 'resolvers' | 'bindings';
+type DataTab = 'facts' | 'tables' | 'connectors' | 'resolvers' | 'bindings';
 
 const TABS: {
   id: DataTab;
@@ -14,6 +14,12 @@ const TABS: {
     label: 'Reference tables',
     path: '/settings/data/tables',
     icon: Table2,
+  },
+  {
+    id: 'connectors',
+    label: 'Live connectors',
+    path: '/settings/data/connectors',
+    icon: Plug,
   },
   {
     id: 'resolvers',

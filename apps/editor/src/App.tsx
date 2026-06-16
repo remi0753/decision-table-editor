@@ -46,6 +46,11 @@ const ResolverRecipePage = lazy(() =>
     default: m.ResolverRecipePage,
   })),
 );
+const ConnectorsPage = lazy(() =>
+  import('@/components/data/ConnectorsPage').then((m) => ({
+    default: m.ConnectorsPage,
+  })),
+);
 const LogicBindingsPage = lazy(() =>
   import('@/components/data/LogicBindingsPage').then((m) => ({
     default: m.LogicBindingsPage,
@@ -72,6 +77,7 @@ function route() {
   if (path === '/settings/workspace') return <WorkspaceSettingsPage />;
   if (path === '/settings/data') return <FactCatalogPage />;
   if (path === '/settings/data/tables') return <ReferenceTablesPage />;
+  if (path === '/settings/data/connectors') return <ConnectorsPage />;
   if (path === '/settings/data/resolvers') return <ResolverRecipePage />;
   if (path === '/settings/data/bindings') return <LogicBindingsPage />;
   if (path === '/edit') return <EditorRoute />;

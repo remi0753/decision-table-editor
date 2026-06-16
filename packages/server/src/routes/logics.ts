@@ -344,7 +344,11 @@ function runReadiness(logicData: Logic, layer: LogicDataLayer) {
     bindings: layer.bindings,
     facts,
     resolvers,
-    dataSources: layer.dataSources.map((s) => ({ id: s.id, status: s.status })),
+    dataSources: layer.dataSources.map((s) => ({
+      id: s.id,
+      status: s.status,
+      kind: s.kind,
+    })),
     referenceTables: layer.activeTables.map((t) => ({
       dataSourceId: t.dataSourceId,
       status: t.status,

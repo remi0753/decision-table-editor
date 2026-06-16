@@ -28,6 +28,7 @@ export interface ReadinessResolver {
 export interface ReadinessDataSource {
   id: string;
   status: string;
+  kind?: string;
 }
 
 export interface ReadinessReferenceTable {
@@ -181,6 +182,23 @@ export function checkDataReadiness(input: ReadinessInput): ReadinessResult {
         factId: fact.id,
       });
     }
+
+    // Data-minimization (WP1): a sensitive fact resolved from a copied
+    // reference table means PII is being uploaded into LEVERIE. Warn and steer
+    // toward a live connector (database / HTTP) that reads at decision time.
+    if (fact.sensitive) {
+      const fromCopySource = (resolversProducingFact.get(fact.id) ?? []).some(
+        (r) => sourceById.get(r.dataSourceId)?.kind === 'reference_table',
+      );
+      if (fromCopySource) {
+        issues.push({
+          code: 'sensitive_from_copy_source',
+          severity: 'warn',
+          message: `Sensitive fact "${fact.name}" is resolved from a copied reference table. Prefer a live database/HTTP connector so personal data is not stored in LEVERIE.`,
+          factId: fact.id,
+        });
+      }
+    }
   }
 
   // Validate only resolvers relevant to this logic (those producing a bound
@@ -210,20 +228,27 @@ export function checkDataReadiness(input: ReadinessInput): ReadinessResult {
           'A resolver used by this logic has no active key fact among its inputs.',
       });
     }
-    const table = activeTableBySource.get(resolver.dataSourceId);
-    if (!table) {
-      issues.push({
-        code: 'resolver_no_active_table',
-        severity: 'block',
-        message:
-          'A resolver used by this logic has no active reference table version.',
-      });
-    } else if (table.rowCount <= 0) {
-      issues.push({
-        code: 'empty_reference_table',
-        severity: 'block',
-        message: 'A reference table used by this logic has no rows.',
-      });
+    // Reference-table sources must have a non-empty active version. Live
+    // sources (database / http) have no copied data to validate at publish — the
+    // data is read at decision time — so skip the table checks for them.
+    const isReferenceTable =
+      source.kind === undefined || source.kind === 'reference_table';
+    if (isReferenceTable) {
+      const table = activeTableBySource.get(resolver.dataSourceId);
+      if (!table) {
+        issues.push({
+          code: 'resolver_no_active_table',
+          severity: 'block',
+          message:
+            'A resolver used by this logic has no active reference table version.',
+        });
+      } else if (table.rowCount <= 0) {
+        issues.push({
+          code: 'empty_reference_table',
+          severity: 'block',
+          message: 'A reference table used by this logic has no rows.',
+        });
+      }
     }
   }
 

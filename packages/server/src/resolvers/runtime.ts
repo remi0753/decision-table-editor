@@ -2,13 +2,27 @@
 // the only kind in the MVP. The DB row fetch is injected so this stays unit
 // testable without a database.
 
+import { databaseDriver } from '../connectors/database.js';
+import { httpDriver } from '../connectors/http.js';
+import {
+  type DriverDataSource,
+  type DriverDeps,
+  getDriver,
+  registerDriver,
+} from './driver.js';
 import { buildLookupKeyHash, projectRow } from './referenceTable.js';
 import type {
   FactView,
   KeyColumnMapping,
+  OperationRef,
   OutputMapping,
   ResolvedFactValue,
 } from './types.js';
+
+// Register the live-source drivers once at module load. Reference-table lookup
+// stays inline below for backward compatibility with the original fast path.
+registerDriver(databaseDriver);
+registerDriver(httpDriver);
 
 export interface ReferenceTableResolverInput {
   recipeId?: string;
@@ -80,6 +94,8 @@ export interface SnapshotResolver {
   parameterKeyMappings: KeyColumnMapping[];
   outputMappings: OutputMapping[];
   fallbackPolicy?: 'ask_operator' | 'mark_unavailable' | 'block';
+  // Defaults to reference_table_lookup when absent (backward compatible).
+  operationRef?: OperationRef;
 }
 
 export interface SnapshotTable {
@@ -100,6 +116,10 @@ export interface ResolveFactsInput {
     keyHash: string,
   ) => Promise<Record<string, unknown> | null>;
   now: Date;
+  // Live-source dispatch (database / http). Absent for the reference-table-only
+  // path, keeping existing callers/tests unchanged.
+  sources?: Map<string, DriverDataSource>;
+  deps?: DriverDeps;
 }
 
 export interface ResolveFactsResult {
@@ -190,25 +210,61 @@ export async function resolveFactsFromSnapshot(
       ranResolverIds.add(resolver.id);
       progressed = true;
 
-      const table = tableBySource.get(resolver.dataSourceId);
-      if (!table) {
-        applyFallback(resolver, 'no_reference_table');
-        continue;
-      }
+      const opKind = resolver.operationRef?.kind ?? 'reference_table_lookup';
+      let result: {
+        matched: boolean;
+        values: ResolvedFactValue[];
+        missingKeys: string[];
+      };
 
-      const result = await resolveReferenceTableRecipe({
-        recipeId: resolver.id,
-        dataSourceId: resolver.dataSourceId,
-        referenceTableId: table.referenceTableId,
-        referenceTableVersion: table.version,
-        keyColumns: table.keyColumns,
-        parameterKeyMappings: resolver.parameterKeyMappings,
-        outputMappings: resolver.outputMappings,
-        availableFacts,
-        factsById: input.factsById,
-        fetchRowByHash: input.fetchRowByHash,
-        now: input.now,
-      });
+      if (opKind === 'reference_table_lookup') {
+        const table = tableBySource.get(resolver.dataSourceId);
+        if (!table) {
+          applyFallback(resolver, 'no_reference_table');
+          continue;
+        }
+        result = await resolveReferenceTableRecipe({
+          recipeId: resolver.id,
+          dataSourceId: resolver.dataSourceId,
+          referenceTableId: table.referenceTableId,
+          referenceTableVersion: table.version,
+          keyColumns: table.keyColumns,
+          parameterKeyMappings: resolver.parameterKeyMappings,
+          outputMappings: resolver.outputMappings,
+          availableFacts,
+          factsById: input.factsById,
+          fetchRowByHash: input.fetchRowByHash,
+          now: input.now,
+        });
+      } else {
+        // Live-source dispatch (database / http).
+        const driver = getDriver(opKind);
+        const source = input.sources?.get(resolver.dataSourceId);
+        if (!driver || !source || !resolver.operationRef) {
+          applyFallback(resolver, 'no_connector');
+          continue;
+        }
+        try {
+          result = await driver.resolve({
+            resolverId: resolver.id,
+            operation: resolver.operationRef,
+            source,
+            outputMappings: resolver.outputMappings,
+            availableFacts,
+            factsById: input.factsById,
+            now: input.now,
+            deps: input.deps ?? {},
+          });
+        } catch (error) {
+          // A live source failed (timeout, auth, denied domain): apply the
+          // resolver's fallback policy with the error as evidence.
+          applyFallback(
+            resolver,
+            error instanceof Error ? error.message : 'connector_error',
+          );
+          continue;
+        }
+      }
 
       if (result.matched) {
         for (const v of result.values) {

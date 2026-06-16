@@ -13,6 +13,10 @@ export type Env = {
   GOOGLE_CLIENT_SECRET?: string;
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
+  // Base64 32-byte key used to encrypt live-connector credentials (WP0). When
+  // unset, creating credentialed connectors fails and stored secrets cannot be
+  // decrypted, so credentialed live resolvers fall back per policy.
+  CONNECTOR_SECRET_KEY?: string;
   // Optional Cloudflare KV namespace. It is used only when the server is
   // created with `secondaryStorage: { type: 'kv', binding: 'RATE_LIMIT_KV' }`.
   RATE_LIMIT_KV?: KvLikeNamespace;

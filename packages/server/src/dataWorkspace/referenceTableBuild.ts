@@ -4,8 +4,8 @@
 // uses Web Crypto. Enforces the MVP limits (§3.5) and the reject-duplicate-keys
 // upload policy (§6.4).
 
-import { buildRowKeyHash } from '../resolvers/referenceTable.js';
 import { normalizeFactValue } from '../resolvers/normalize.js';
+import { buildRowKeyHash } from '../resolvers/referenceTable.js';
 import type { FactView, Normalizer } from '../resolvers/types.js';
 import type { ParsedCsv } from './csv.js';
 
@@ -59,7 +59,7 @@ function factViewFor(
   catalog: ActiveFactCatalog,
   factId: string,
 ): FactView | null {
-  return catalog instanceof Map ? catalog.get(factId) ?? null : null;
+  return catalog instanceof Map ? (catalog.get(factId) ?? null) : null;
 }
 
 // Validate metadata against the parsed CSV and an allowlist of active fact ids,

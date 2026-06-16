@@ -1,14 +1,14 @@
 import { type EvalResult, evaluateTable, type Logic } from '@leverie/engine';
 import { and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { applyLoggingPolicy } from '../dataWorkspace/masking.js';
+import { resolveStoredValue } from '../dataWorkspace/masking.js';
 import { stableStringify } from '../dataWorkspace/snapshot.js';
 import { createDb, type Database } from '../db/client.js';
 import {
+  caseContext,
   decisionFactValue,
   decisionReport,
   decisionSession,
-  caseContext,
   logicVersion,
   logicVersionDataSnapshot,
   workspace,
@@ -35,6 +35,7 @@ type ReportRow = typeof decisionReport.$inferSelect;
 interface SnapshotFact {
   id: string;
   loggingPolicy?: string;
+  retentionPolicy?: string;
   sensitive?: boolean;
 }
 
@@ -480,16 +481,20 @@ decisionSessionRoutes.post(
     const completedAt = new Date();
     for (const fv of byFactId.values()) {
       const factId = fv.factId as string;
-      const policy = (snapshotFactById.get(factId)?.loggingPolicy ?? 'full') as
+      const snapshotFact = snapshotFactById.get(factId);
+      const policy = (snapshotFact?.loggingPolicy ?? 'full') as
         | 'full'
         | 'masked'
         | 'hash'
         | 'omit';
       const hasValue = typeof fv.value === 'string';
       const stored = hasValue
-        ? await applyLoggingPolicy(
+        ? await resolveStoredValue(
             fv.value as string,
-            policy,
+            {
+              loggingPolicy: policy,
+              retentionPolicy: snapshotFact?.retentionPolicy,
+            },
             access.workspace.id,
           )
         : { value: null, maskedValue: null };
@@ -501,7 +506,9 @@ decisionSessionRoutes.post(
             } as Record<string, unknown>)
           : { retrievedAt: completedAt.toISOString() };
       const provenanceString = (key: string) =>
-        typeof provenance[key] === 'string' ? (provenance[key] as string) : null;
+        typeof provenance[key] === 'string'
+          ? (provenance[key] as string)
+          : null;
       const provenanceNumber = (key: string) =>
         typeof provenance[key] === 'number'
           ? (provenance[key] as number)

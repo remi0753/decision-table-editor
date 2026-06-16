@@ -728,11 +728,27 @@ export type CloudResolver = {
   updatedAt: string;
 };
 
+export type ResolverParameterBinding = { name: string; factId: string };
+
+// Operation refs by data-source kind. Reference tables copy data into LEVERIE;
+// database / http operations read one record live at decision time.
+export type ResolverOperationRef =
+  | { kind: 'reference_table_lookup' }
+  | { kind: 'db_query'; query: string; params: ResolverParameterBinding[] }
+  | {
+      kind: 'http_operation';
+      method: 'GET';
+      urlTemplate: string;
+      params: ResolverParameterBinding[];
+      recordPath?: string;
+    };
+
 export type ResolverInput = {
   name: string;
   dataSourceId: string;
   inputFactIds: string[];
-  parameterMappings: { keyColumns: ResolverKeyColumnMapping[] };
+  operationRef?: ResolverOperationRef;
+  parameterMappings?: { keyColumns: ResolverKeyColumnMapping[] };
   outputMappings: ResolverOutputMapping[];
   fallbackPolicy?: string;
 };
@@ -751,8 +767,54 @@ export async function createResolver(
     `/api/workspaces/${workspaceId}/resolvers`,
     {
       method: 'POST',
-      body: { ...input, operationRef: { kind: 'reference_table_lookup' } },
+      body: {
+        ...input,
+        operationRef: input.operationRef ?? { kind: 'reference_table_lookup' },
+        parameterMappings: input.parameterMappings ?? { keyColumns: [] },
+      },
     },
+  );
+}
+
+// ── Live data-source connectors (database / HTTP) ─────────────────────────────
+
+export type CloudDataSource = {
+  id: string;
+  name: string;
+  kind: string;
+  authType: string;
+  allowedDomains: string[];
+  status: string;
+  createdAt: string;
+};
+
+export type DataSourceInput = {
+  name: string;
+  kind: 'database' | 'openapi_http';
+  allowedDomains?: string[];
+  auth?: { type: string; value: Record<string, string> };
+};
+
+export async function listDataSources(workspaceId: string) {
+  return api<{ dataSources: CloudDataSource[] }>(
+    `/api/workspaces/${workspaceId}/data-sources`,
+  );
+}
+
+export async function createDataSource(
+  workspaceId: string,
+  input: DataSourceInput,
+) {
+  return api<{ dataSource: CloudDataSource }>(
+    `/api/workspaces/${workspaceId}/data-sources`,
+    { method: 'POST', body: input },
+  );
+}
+
+export async function disableDataSource(dataSourceId: string) {
+  return api<{ dataSource: CloudDataSource }>(
+    `/api/data-sources/${dataSourceId}/disable`,
+    { method: 'POST', body: {} },
   );
 }
 

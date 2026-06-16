@@ -188,8 +188,14 @@ export interface NormalizedFactInput {
   question: string | null;
   sensitive: boolean;
   loggingPolicy: FactLoggingPolicy;
+  retentionPolicy: string;
   status: FactStatus;
 }
+
+export const FACT_RETENTION_POLICIES = [
+  'workspace_default',
+  'no_store',
+] as const;
 
 export interface FactInputDraft {
   name?: unknown;
@@ -201,6 +207,7 @@ export interface FactInputDraft {
   question?: unknown;
   sensitive?: unknown;
   loggingPolicy?: unknown;
+  retentionPolicy?: unknown;
   status?: unknown;
 }
 
@@ -354,6 +361,27 @@ export function validateFactCreate(
     loggingPolicy = 'masked';
   }
 
+  // Retention policy. Sensitive facts default to no_store (data minimization,
+  // WP0): used for evaluation, never persisted on the decision record.
+  let retentionPolicy = sensitive ? 'no_store' : 'workspace_default';
+  if (body.retentionPolicy !== undefined) {
+    if (
+      !isString(body.retentionPolicy) ||
+      !FACT_RETENTION_POLICIES.includes(
+        body.retentionPolicy as (typeof FACT_RETENTION_POLICIES)[number],
+      )
+    ) {
+      return {
+        ok: false,
+        error: {
+          code: 'invalid_retention_policy',
+          message: 'retentionPolicy is invalid.',
+        },
+      };
+    }
+    retentionPolicy = body.retentionPolicy;
+  }
+
   return {
     ok: true,
     value: {
@@ -366,6 +394,7 @@ export function validateFactCreate(
       question,
       sensitive,
       loggingPolicy,
+      retentionPolicy,
       status,
     },
   };

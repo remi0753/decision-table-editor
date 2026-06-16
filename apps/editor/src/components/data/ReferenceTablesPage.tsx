@@ -183,8 +183,17 @@ export function ReferenceTablesPage() {
             </div>
             <h1 className="text-2xl font-semibold text-fg">Reference tables</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-muted">
-              Admin-maintained lookup tables. Upload a CSV, choose key columns,
-              and map output columns to facts so resolvers can fill them in.
+              Policy / lookup tables for small, non-personal data (tier → refund
+              days, zone → SLA). Upload a CSV, choose key columns, and map
+              columns to facts. For large datasets or personal data, use a{' '}
+              <a
+                href="/settings/data/connectors"
+                className="font-medium text-brand-fg underline"
+              >
+                live connector
+              </a>{' '}
+              instead — it reads one record at decision time without copying
+              data into LEVERIE.
             </p>
           </div>
 
@@ -453,8 +462,9 @@ function TestLookupDialog({
   }, [table.id]);
 
   const selectedVersion =
-    versions.find((version) => version.referenceTableId === selectedVersionId) ??
-    null;
+    versions.find(
+      (version) => version.referenceTableId === selectedVersionId,
+    ) ?? null;
   const keyColumns =
     selectedVersion?.keyColumns ?? table.activeVersion?.keyColumns ?? [];
 

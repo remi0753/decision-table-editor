@@ -263,6 +263,15 @@ export function FactEditorDialog({
             </label>
           </div>
 
+          {sensitive ? (
+            <p className="rounded border border-line-subtle bg-surface-muted px-3 py-2 text-xs leading-5 text-fg-subtle">
+              Sensitive facts default to masked logging and are not stored on
+              the decision record (used for evaluation only). Resolve them from
+              a live database / HTTP connector rather than a copied reference
+              table so personal data is never kept in LEVERIE.
+            </p>
+          ) : null}
+
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <button
               type="button"
