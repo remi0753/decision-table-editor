@@ -2,14 +2,24 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
+  ClipboardCheck,
+  ClipboardPaste,
+  Copy,
+  Database,
+  FileText,
   GitBranch,
   Github,
+  GripHorizontal,
+  GripVertical,
   KeyRound,
+  MoreHorizontal,
   Play,
   Server,
+  Settings,
   ShieldCheck,
   Sparkles,
   Table2,
+  Trash2,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import logoUrl from '@/assets/logo.svg';
@@ -19,7 +29,7 @@ const GITHUB_URL = 'https://github.com/remi0753/leverie';
 
 export function TopPage() {
   return (
-    <div className="min-h-screen bg-brand-subtle text-fg">
+    <div className="min-h-screen overflow-x-hidden bg-brand-subtle text-fg">
       <header className="fixed inset-x-0 top-0 z-30 border-b border-brand-border bg-surface/90 px-4 backdrop-blur md:px-8">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4">
           <a href="/" aria-label="LEVERIE top">
@@ -31,6 +41,9 @@ export function TopPage() {
             </a>
             <a href="#flow" className="hover:text-brand-fg-strong">
               How it works
+            </a>
+            <a href="#workspace" className="hover:text-brand-fg-strong">
+              In operation
             </a>
             <a href="#integrations" className="hover:text-brand-fg-strong">
               Integrations
@@ -84,21 +97,22 @@ export function TopPage() {
           <div className="absolute right-[-10vw] top-20 hidden h-[76vh] w-[60vw] rotate-[-5deg] rounded-[32px] border border-brand-border bg-surface/88 shadow-2xl shadow-violet-950/15 lg:block">
             <DecisionWorkspacePreview />
           </div>
-          <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="flex min-h-[64vh] flex-col justify-center pb-4">
+          <div className="relative mx-auto grid min-w-0 max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="flex min-h-[64vh] min-w-0 flex-col justify-center pb-4">
               <p className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-brand-border bg-surface/85 px-3 py-1 text-sm font-semibold text-brand-fg">
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
-                Business rules, readable to humans &amp; AI
+                Business-owned rules, runnable by apps &amp; AI
               </p>
               <h1 className="max-w-3xl text-5xl font-semibold leading-[1.06] tracking-normal text-fg md:text-7xl">
-                Grow decision rules
+                Turn policy tables
                 <br />
-                in tables, not code.
+                into running decisions.
               </h1>
               <p className="mt-7 max-w-2xl text-lg leading-8 text-fg-secondary md:text-xl">
-                LEVERIE turns "if this, then that" logic — for triage, reviews,
-                approvals, and routing — into spreadsheet-style decision tables
-                your team can build, verify, and share.
+                LEVERIE gives operations teams one table-shaped source of truth
+                for approvals, routing, refunds, and reviews. Build the rules
+                without JSON, verify why each row wins, then publish the same
+                logic as a guided workspace, HTTP API, or MCP tool.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <a
@@ -122,15 +136,15 @@ export function TopPage() {
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-brand-fg" />
-                  Conflict detection
+                  Traceable results
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-brand-fg" />
-                  AI-ready output
+                  API &amp; MCP ready
                 </span>
               </div>
             </div>
-            <div className="relative lg:hidden">
+            <div className="relative min-w-0 lg:hidden">
               <div className="overflow-hidden rounded-2xl border border-brand-border bg-surface shadow-2xl shadow-violet-950/15">
                 <DecisionWorkspacePreview />
               </div>
@@ -148,32 +162,33 @@ export function TopPage() {
                 Why LEVERIE
               </p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
-                One place to write, inspect, and trust every rule.
+                One source of truth for rules that used to drift.
               </h2>
               <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-fg-muted">
-                LEVERIE keeps business rules in the shape teams already
-                understand: a table. The editor makes the important parts
-                visible without exposing JSON or implementation details.
+                When policies live across spreadsheets, docs, code, and agent
+                prompts, teams lose ownership of the decision. LEVERIE keeps the
+                rule readable to business users and executable by the systems
+                that need it.
               </p>
             </div>
-            <div className="mt-16 overflow-hidden rounded-[28px] border border-brand-border bg-brand-subtle shadow-2xl shadow-violet-950/10">
+            <div className="mt-16 min-w-0 overflow-hidden rounded-[28px] border border-brand-border bg-brand-subtle shadow-2xl shadow-violet-950/10">
               <DecisionWorkspacePreview />
             </div>
             <div className="mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
               <FeaturePoint
                 icon={<Table2 />}
-                title="Spreadsheet-shaped"
-                body="Rows, conditions, and outcomes stay readable to operators and managers."
+                title="Business-readable"
+                body="Rows, conditions, and outcomes stay in the table format operations teams already understand."
               />
               <FeaturePoint
                 icon={<ShieldCheck />}
-                title="Quality visible"
-                body="Coverage warnings and duplicate checks appear beside the table."
+                title="Problems surface early"
+                body="Duplicate, unreachable, contradictory, and missing rule patterns are shown before the logic is published."
               />
               <FeaturePoint
                 icon={<Bot />}
-                title="Executable by AI"
-                body="The same table can become deterministic logic for agents and systems."
+                title="Executable everywhere"
+                body="The same approved table can run in the workspace, through an API, or as a deterministic MCP tool."
               />
             </div>
           </div>
@@ -189,12 +204,12 @@ export function TopPage() {
                 From Rulebook To Running Logic
               </p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
-                Test the rule while the reasoning is still in front of you.
+                Change rules without guessing what broke.
               </h2>
               <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-fg-muted">
-                Instead of asking someone to re-create a decision in code, try
-                real inputs in the editor and see the matched row, output, and
-                explanation immediately.
+                Instead of handing a rulebook to engineering and waiting for a
+                rebuild, authors can inspect the table, run a case, and review
+                exactly which rows changed before production moves.
               </p>
             </div>
             <div className="mt-16 grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-stretch">
@@ -206,13 +221,13 @@ export function TopPage() {
                 />
                 <FlowStep
                   number="02"
-                  title="Run a real case"
-                  body="Enter a sample case in the evaluation panel and let the engine pick the first matching row."
+                  title="Verify the reasoning"
+                  body="Run a case in the editor and see the matched row, skipped rows, output, and explanation immediately."
                 />
                 <FlowStep
                   number="03"
-                  title="Show the trace"
-                  body="The answer is paired with the exact rule path, so reviewers can confirm why it happened."
+                  title="Publish a stable snapshot"
+                  body="Review changed rows before publishing, while existing API and MCP callers keep using the current production version."
                 />
               </div>
               <EvaluationWorkbenchPreview />
@@ -221,8 +236,51 @@ export function TopPage() {
         </section>
 
         <section
-          id="integrations"
+          id="workspace"
           className="border-y border-brand-border bg-surface px-4 py-28 md:px-8 md:py-36"
+        >
+          <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-fg">
+                In Operation
+              </p>
+              <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-normal md:text-6xl">
+                From a single key to a decided case.
+              </h2>
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-fg-muted">
+                A rule is only useful when it runs. In the LEVERIE workspace,
+                operators start from the key they already have — an order
+                number, ticket, or customer ID. LEVERIE collects the known facts
+                from your data, asks only what software can't know, and returns
+                the decision with its reason and next action.
+              </p>
+            </div>
+            <div className="mt-16 grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-stretch">
+              <div className="grid gap-4">
+                <ApiPoint
+                  icon={<KeyRound />}
+                  title="Start from a key"
+                  body="No JSON payloads. Paste an order number or ticket and LEVERIE extracts the case."
+                />
+                <ApiPoint
+                  icon={<Database />}
+                  title="Facts resolved for you"
+                  body="Connect reference tables or live data sources. Known facts arrive automatically, each tagged with its source."
+                />
+                <ApiPoint
+                  icon={<ClipboardCheck />}
+                  title="Decision, reason, next action"
+                  body="Every result keeps the matched rule and fact provenance, with a copy-ready response for the operator."
+                />
+              </div>
+              <ConnectedRunPreview />
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="integrations"
+          className="bg-brand-subtle px-4 py-28 md:px-8 md:py-36"
         >
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-3xl text-center">
@@ -276,7 +334,8 @@ export function TopPage() {
               <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70">
                 Refunds, approvals, eligibility, routing: if the same input
                 should always reach the same answer, LEVERIE gives the team a
-                shared surface to review it before it reaches production.
+                shared way to run it consistently after the rule reaches
+                production.
               </p>
             </div>
             <div className="mt-16 overflow-hidden rounded-[28px] border border-white/12 bg-surface/[0.04] shadow-2xl shadow-black/30">
@@ -307,9 +366,9 @@ export function TopPage() {
                 LEVERIE
               </a>
               <p className="mt-4 max-w-sm text-sm leading-6 text-white/60">
-                Business rules in the shape teams already understand — a
-                spreadsheet-style decision table your team can build, verify,
-                and share.
+                Business rules in the shape teams already understand — a table
+                your team can build, verify, publish, and run from the tools
+                that need the decision.
               </p>
             </div>
             <div>
@@ -325,6 +384,11 @@ export function TopPage() {
                 <li>
                   <a href="#flow" className="hover:text-white">
                     How it works
+                  </a>
+                </li>
+                <li>
+                  <a href="#workspace" className="hover:text-white">
+                    In operation
                   </a>
                 </li>
                 <li>
@@ -439,83 +503,200 @@ function ApiPoint({
 
 function ApiExecutionPreview() {
   return (
-    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-brand-border bg-brand-deep shadow-2xl shadow-violet-950/20">
-      <div className="flex items-center justify-between border-b border-white/10 bg-surface/[0.04] px-5 py-4">
+    <div className="flex h-full min-w-0 flex-col rounded-md border border-line bg-surface shadow-xl">
+      <div className="flex items-center justify-between border-b border-line-subtle px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-white">Production logic</p>
-          <p className="mt-1 text-xs text-brand-fg-light/80">
-            Called from checkout, CRM, MCP clients, or internal systems
+          <p className="text-sm font-semibold text-fg">
+            Use this logic via API
+          </p>
+          <p className="mt-0.5 text-xs text-fg-subtle">
+            Call Refund policy from your backend, automation, or agent.
           </p>
         </div>
-        <span className="rounded-md bg-success px-3 py-1.5 text-xs font-bold text-success-fg">
-          200 OK
-        </span>
+        <PreviewIconButton>
+          <MoreHorizontal className="h-4 w-4" />
+        </PreviewIconButton>
       </div>
-      <div className="grid flex-1 gap-0 lg:grid-cols-[1.02fr_0.98fr]">
-        <div className="min-w-0 border-b border-white/10 bg-surface/[0.03] p-5 lg:border-b-0 lg:border-r">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-1 text-xs font-bold uppercase tracking-[0.16em] text-brand-fg-light">
-              Invocation
-            </p>
-            <span className="rounded-full bg-surface/10 px-2.5 py-1 text-[11px] font-semibold text-brand-fg-light">
-              HTTP API
-            </span>
-            <span className="rounded-full bg-surface/10 px-2.5 py-1 text-[11px] font-semibold text-brand-fg-light">
-              MCP tool
+
+      <div className="min-h-0 flex-1 space-y-4 overflow-hidden p-4">
+        <div className="flex items-center gap-2 rounded border border-warning-border bg-warning-bg px-3 py-2">
+          <KeyRound className="h-4 w-4 shrink-0 text-warning-fg" />
+          <p className="min-w-0 flex-1 text-xs leading-5 text-warning-fg">
+            Replace <code className="font-mono">$LEVERIE_API_KEY</code> with a
+            key for this workspace.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-fg-faint">
+            Input fields
+          </div>
+          <div className="overflow-hidden rounded border border-line">
+            {[
+              ['Customer tier', 'enum: Gold, Standard'],
+              ['Order amount', 'number'],
+              ['Opened', 'boolean'],
+            ].map(([name, type], index) => (
+              <div
+                key={name}
+                className={`flex items-baseline gap-3 px-3 py-1.5 text-xs ${
+                  index % 2 === 1 ? 'bg-surface-muted' : 'bg-surface'
+                }`}
+              >
+                <span className="font-mono font-medium text-fg-secondary">
+                  {name}
+                </span>
+                <span className="min-w-0 truncate text-fg-subtle">{type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-1">
+              {['curl', 'JS', 'MCP'].map((label, index) => (
+                <span
+                  key={label}
+                  className={`h-7 rounded px-2.5 py-1.5 text-xs font-medium ${
+                    index === 0
+                      ? 'bg-brand text-white'
+                      : 'border border-line bg-surface text-fg-muted'
+                  }`}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+            <span className="h-7 rounded border border-line bg-surface px-1.5 py-1.5 text-xs text-fg-muted">
+              Production v3
             </span>
           </div>
-          <pre className="mt-4 max-w-full overflow-x-auto rounded-md border border-white/10 bg-black/30 p-4 text-sm leading-6 text-brand-fg-light">
-            <code>{`POST /v1/logics/loan-review/evaluate
-
-{
-  "inputs": {
-    "customer": "Business",
-    "amount": 7200000,
-    "kyc": "Verified"
-  }
+          <pre className="max-h-72 overflow-auto rounded border border-line bg-ink p-3 pr-12 text-xs leading-5 text-fg-faint">
+            <code>{`curl https://leverie.dev/v1/logics/.../evaluate \\
+  -H "Authorization: Bearer $LEVERIE_API_KEY" \\
+  -d '{"inputs":{"Customer tier":"Gold"}}'`}</code>
+          </pre>
+          <p className="text-xs leading-5 text-fg-subtle">
+            MCP <code className="font-mono">tools/call</code> evaluates the
+            production snapshot.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-tools/call leverie.loan_review`}</code>
-          </pre>
+function ConnectedRunPreview() {
+  const facts = [
+    ['Purchase date', '2026-05-28', 'reference table', 'resolved'],
+    ['Order amount', '¥7,200,000', 'reference table', 'resolved'],
+    ['Customer tier', 'Gold', 'api', 'resolved'],
+  ] as const;
+
+  return (
+    <div className="flex h-full flex-col gap-4 rounded border border-line bg-surface-muted p-5 shadow-xl">
+      <div className="rounded border border-line bg-surface p-5">
+        <h2 className="text-base font-semibold text-fg">Start a case</h2>
+        <p className="mt-1 text-sm leading-6 text-fg-muted">
+          Paste an order number, ticket URL, or copied case details.
+        </p>
+        <div className="mt-3 h-24 rounded border border-line bg-surface px-3 py-2 text-sm leading-6 text-fg-secondary">
+          Order #A-10293
+          <br />
+          Customer asked for refund
         </div>
-        <div className="min-w-0 bg-surface p-5 text-fg">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-fg">
-            Response
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-between">
+          <button
+            type="button"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded border border-line px-4 text-sm font-medium text-fg-secondary"
+          >
+            <ClipboardPaste className="h-4 w-4" />
+            Use clipboard
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded bg-brand px-5 text-sm font-medium text-white"
+          >
+            <Play className="h-4 w-4" />
+            Start
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded border border-line bg-surface">
+        <div className="flex items-center gap-2 border-b border-line-subtle px-4 py-3">
+          <FileText className="h-4 w-4 text-fg-faint" />
+          <h2 className="text-sm font-semibold text-fg">Facts</h2>
+        </div>
+        <table className="w-full border-collapse text-sm">
+          <tbody>
+            {facts.map(([name, value, source, state]) => (
+              <tr
+                key={name}
+                className="border-b border-line-subtle last:border-0 align-top"
+              >
+                <td className="px-4 py-2.5 text-fg-muted">{name}</td>
+                <td className="px-4 py-2.5 font-medium text-fg">{value}</td>
+                <td className="px-4 py-2.5">
+                  <span className="rounded bg-surface-subtle px-2 py-0.5 text-xs text-fg-subtle">
+                    {source}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  <span className="rounded bg-success-bg px-2 py-0.5 text-xs font-medium text-success-fg">
+                    {state}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded border border-line bg-surface p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-fg">Questions</h2>
+          <p className="mt-1 text-xs text-fg-subtle">
+            Answer what systems can't know.
           </p>
-          <div className="mt-4 rounded-md border border-brand-border bg-brand-subtle p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-fg">
-              Result
-            </p>
-            <p className="mt-3 text-2xl font-semibold text-brand-fg-strong">
-              Manager review
-            </p>
-            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
-              <PreviewMetric label="Matched row" value="Intake row 1" />
-              <PreviewMetric label="Decision" value="review_required" />
+          <p className="mt-3 text-sm font-medium text-fg">
+            Was the item opened?
+          </p>
+          <div className="mt-3 inline-flex overflow-hidden rounded border border-line">
+            <span className="h-9 bg-surface px-4 py-2 text-sm font-medium text-fg-muted">
+              Yes
+            </span>
+            <span className="h-9 bg-brand px-4 py-2 text-sm font-medium text-white">
+              No
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded border border-brand-border bg-surface p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-fg">
+                Full refund approved
+              </h2>
+              <p className="mt-1 text-sm text-fg-muted">
+                Within 30 days, unopened, Gold tier.
+              </p>
             </div>
-          </div>
-          <div className="mt-4 rounded-md border border-brand-border bg-surface p-4">
-            <TraceItem
-              status="checked"
-              title="Trace returned"
-              body="Customer is Business and amount is at least the manager threshold."
-            />
-          </div>
-          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3">
-            <a
-              href="/docs/hosted-api"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-brand-fg hover:text-brand-fg-strong"
+            <button
+              type="button"
+              className="rounded border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg-muted"
             >
-              API docs
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </a>
-            <a
-              href="/docs/hosted-mcp"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-brand-fg hover:text-brand-fg-strong"
-            >
-              MCP docs
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </a>
+              Copy result
+            </button>
+          </div>
+          <div className="mt-4 rounded border border-line bg-surface-muted p-3">
+            <div className="text-xs font-medium text-fg-faint">
+              Copy-ready text
+            </div>
+            <p className="mt-2 text-sm leading-6 text-fg-muted">
+              Refund approved based on Refund policy v3.
+            </p>
           </div>
         </div>
       </div>
@@ -525,90 +706,76 @@ tools/call leverie.loan_review`}</code>
 
 function EvaluationWorkbenchPreview() {
   return (
-    <div className="rounded-[28px] border border-brand-border bg-surface p-4 shadow-2xl shadow-violet-950/10">
-      <div className="flex items-center justify-between border-b border-brand-border-subtle px-2 pb-4">
-        <div>
-          <p className="text-sm font-semibold text-fg">Evaluation panel</p>
-          <p className="mt-1 text-xs text-fg-subtle">
-            Try a case without leaving the rule table
-          </p>
-        </div>
-        <span className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white">
-          Run test
-        </span>
+    <div className="grid min-w-0 overflow-hidden rounded border border-line bg-surface shadow-xl md:grid-cols-[1fr_360px]">
+      <div className="min-w-0 overflow-hidden border-b border-line bg-surface md:border-b-0 md:border-r">
+        <DecisionWorkspacePreview compact />
       </div>
-      <div className="grid gap-4 pt-4 md:grid-cols-[0.85fr_1.15fr]">
-        <div className="space-y-3">
-          {[
-            ['Customer', 'Individual'],
-            ['Amount', '¥320,000'],
-            ['KYC', 'Verified'],
-            ['Request', 'New application'],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className="rounded-md border border-brand-border-subtle bg-brand-subtle/70 p-3"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-fg-mid">
-                {label}
-              </p>
-              <p className="mt-1 text-sm font-semibold text-fg">{value}</p>
-            </div>
-          ))}
-        </div>
-        <div className="rounded-md border border-brand-border bg-surface">
-          <div className="border-b border-brand-border-subtle bg-brand-subtle px-4 py-3">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-fg">
-              Trace
-            </p>
-          </div>
-          <div className="space-y-3 p-4">
-            <TraceItem
-              status="checked"
-              title="Intake decision"
-              body="Row 2 matched: Individual + verified + under ¥500K."
-            />
-            <TraceItem status="checked" title="Output" body="Auto-approve" />
-            <TraceItem
-              status="warning"
-              title="Coverage"
-              body="Two edge cases still need explicit rules."
-            />
+      <aside className="flex min-h-[520px] flex-col bg-surface">
+        <div className="border-b border-brand-border-subtle">
+          <div className="flex min-h-11 items-center justify-between bg-brand-subtle/50 px-4">
+            <span className="font-medium text-sm text-fg-secondary">
+              Evaluation
+            </span>
+            <PreviewIconButton>
+              <MoreHorizontal className="h-4 w-4" />
+            </PreviewIconButton>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-function TraceItem({
-  status,
-  title,
-  body,
-}: {
-  status: 'checked' | 'warning';
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="grid grid-cols-[1.75rem_1fr] gap-3">
-      <div
-        className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full ${
-          status === 'checked'
-            ? 'bg-brand text-white'
-            : 'bg-brand-soft text-brand-fg'
-        }`}
-      >
-        {status === 'checked' ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : (
-          <ShieldCheck className="h-4 w-4" />
-        )}
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-fg">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-fg-muted">{body}</p>
-      </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+          <div className="space-y-3">
+            {[
+              ['Customer', 'Individual'],
+              ['Amount', '320000'],
+              ['KYC', 'Verified'],
+              ['Request', 'New application'],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">
+                  {label}
+                </span>
+                <span className="block h-9 rounded border border-line-strong bg-surface px-2.5 py-1.5 text-sm text-fg">
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="flex items-center gap-1 rounded bg-brand px-3 py-1.5 text-sm text-white"
+            >
+              <Play className="h-3.5 w-3.5" /> Run
+            </button>
+            <button
+              type="button"
+              className="rounded border border-line px-3 py-1.5 text-sm text-fg-muted"
+            >
+              Reset
+            </button>
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="mb-2 text-xs font-medium text-fg-subtle">
+              Execution Trace
+            </div>
+            <TraceCard
+              title="1. Intake decision"
+              skipped={['1: Customer condition not met']}
+              matched="Row 2 matched"
+            />
+            <div className="rounded border border-success-border bg-success-bg p-3">
+              <div className="mb-1 text-sm font-medium text-success-fg">
+                Evaluation succeeded
+              </div>
+              <div className="text-sm">
+                <span className="text-fg-subtle">Decision: </span>
+                <span className="font-medium">Auto-approve</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }
@@ -624,39 +791,129 @@ function RunnerReviewPreview() {
   return (
     <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
       <div className="border-b border-white/10 bg-surface/[0.03] p-6 lg:border-b-0 lg:border-r">
-        <div className="rounded-2xl border border-white/12 bg-surface text-fg shadow-2xl shadow-black/25">
-          <div className="border-b border-brand-border-subtle px-5 py-4">
-            <p className="text-sm font-semibold">Shared runner</p>
-            <p className="mt-1 text-xs text-fg-subtle">
-              Review a published rule as a business user
-            </p>
+        <div className="space-y-4 rounded border border-white/12 bg-surface p-5 text-fg shadow-2xl shadow-black/25">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-medium uppercase tracking-wide text-fg-faint">
+                LEVERIE Workspace
+              </div>
+              <div className="mt-1 text-sm text-fg-muted">v3 / Jun 20</div>
+            </div>
+            <div className="flex items-center gap-2">
+              {['Guided', 'Review', 'Detail'].map((mode, index) => (
+                <span
+                  key={mode}
+                  className={
+                    index === 1
+                      ? 'rounded bg-brand px-3 py-1.5 text-xs font-medium text-white'
+                      : 'rounded border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg-muted'
+                  }
+                >
+                  {mode}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="grid gap-4 p-5 md:grid-cols-[0.9fr_1.1fr]">
-            <div className="space-y-3">
-              <PreviewField label="Customer" value="Business" />
-              <PreviewField label="Amount" value="¥7,200,000" />
-              <PreviewField label="KYC" value="Verified" />
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(180px,0.9fr)_minmax(220px,1.2fr)_minmax(180px,0.9fr)]">
+            <section className="rounded border border-line bg-surface p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-fg">Case Facts</h2>
+                <span className="text-xs text-fg-faint">
+                  3 known / 1 needed
+                </span>
+              </div>
+              <div className="mt-4 space-y-3">
+                <FactRowPreview
+                  label="Customer tier"
+                  value="Gold"
+                  source="API"
+                />
+                <FactRowPreview
+                  label="Order amount"
+                  value="7200000"
+                  source="From table"
+                />
+              </div>
+              <div className="mt-4 border-t border-line pt-3">
+                <div className="text-xs font-medium text-fg-subtle">
+                  Still needed
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="rounded border border-line bg-surface-muted px-2 py-1 text-xs text-fg-muted">
+                    Opened
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded border border-line bg-surface p-4 shadow-sm">
+              <h2 className="text-sm font-semibold text-fg">Current Check</h2>
+              <p className="mt-1 text-xs leading-5 text-fg-muted">
+                Answer the remaining fact to choose between refund outcomes.
+              </p>
+              <div className="mt-4">
+                <div className="block text-base font-semibold text-fg">
+                  Was the item opened?
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <span className="min-w-0 rounded border border-line bg-surface px-3 py-2 text-center text-sm font-medium text-fg-muted">
+                    Yes
+                  </span>
+                  <span className="min-w-0 rounded bg-brand px-3 py-2 text-center text-sm font-medium text-white">
+                    No
+                  </span>
+                  <span className="col-span-2 min-w-0 rounded border border-line bg-surface px-3 py-2 text-center text-sm font-medium text-fg-muted">
+                    Unknown
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded border border-line bg-surface p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-fg">
+                  Decision Status
+                </h2>
+                <span className="rounded bg-success-bg px-2 py-1 text-xs font-medium text-success-fg">
+                  Decision ready
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-fg-muted">
+                The current facts reach one matching rule.
+              </p>
+              <div className="mt-4 border-t border-line pt-3">
+                <div className="text-xs font-medium text-fg-subtle">
+                  Possible outcomes
+                </div>
+                <div className="mt-2 rounded border border-line bg-surface-muted p-2 text-xs text-fg-muted">
+                  <div className="font-medium text-fg">
+                    Full refund approved
+                  </div>
+                  <div className="mt-0.5 text-fg-faint">certain</div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <section className="rounded border border-brand-border bg-surface p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-fg">
+                  Full refund approved
+                </h2>
+                <p className="mt-1 text-sm text-fg-muted">
+                  Matched Refund policy row 2.
+                </p>
+              </div>
               <button
                 type="button"
-                className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-brand text-sm font-semibold text-white"
+                className="rounded border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg-muted"
               >
-                <Play className="h-4 w-4" />
-                Run decision
+                Copy result
               </button>
             </div>
-            <div className="rounded-md border border-brand-border bg-brand-subtle p-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-fg">
-                Result
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-brand-fg-strong">
-                Manager review
-              </p>
-              <div className="mt-5 rounded-md bg-surface p-3 text-sm leading-6 text-fg-muted">
-                Matched Intake decision row 1 because customer is Business and
-                amount is at least ¥5M.
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
       </div>
       <div className="grid content-center gap-3 p-6">
@@ -679,146 +936,299 @@ function RunnerReviewPreview() {
   );
 }
 
-function PreviewField({ label, value }: { label: string; value: string }) {
+function FactRowPreview({
+  label,
+  value,
+  source,
+}: {
+  label: string;
+  value: string;
+  source: string;
+}) {
   return (
-    <div>
-      <span className="text-xs font-semibold text-fg-subtle">{label}</span>
-      <span className="mt-1 block rounded-md border border-brand-border bg-surface px-3 py-2 text-sm font-semibold text-fg">
+    <div className="rounded border border-line bg-surface-muted p-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-xs font-medium text-fg-muted">
+          {label}
+        </span>
+        <span className="shrink-0 rounded bg-surface px-1.5 py-0.5 text-[11px] text-fg-faint">
+          {source}
+        </span>
+      </div>
+      <span className="mt-1 block rounded border border-line bg-surface px-2 py-1 text-xs text-fg">
         {value}
       </span>
     </div>
   );
 }
 
-function DecisionWorkspacePreview() {
+function PreviewIconButton({
+  children,
+  tone = 'default',
+}: {
+  children: ReactNode;
+  tone?: 'default' | 'drag' | 'danger';
+}) {
+  const toneClass =
+    tone === 'danger'
+      ? 'text-danger-fg'
+      : tone === 'drag'
+        ? 'text-fg-faint'
+        : 'text-fg-subtle';
+  return (
+    <span
+      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-line bg-surface ${toneClass}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function TraceCard({
+  title,
+  skipped,
+  matched,
+}: {
+  title: string;
+  skipped: string[];
+  matched: string;
+}) {
+  return (
+    <div className="mb-2 rounded border bg-surface p-3">
+      <div className="mb-1 text-sm font-medium">{title}</div>
+      {skipped.map((item) => (
+        <div key={item} className="py-0.5 pl-4 text-xs text-fg-subtle">
+          {item}
+        </div>
+      ))}
+      <div className="py-0.5 pl-4 text-xs text-success-fg">{matched}</div>
+    </div>
+  );
+}
+
+function DecisionWorkspacePreview({ compact = false }: { compact?: boolean }) {
   const previewColumns = [
-    { key: 'id', label: '#' },
     { key: 'customer', label: 'Customer' },
     { key: 'amount', label: 'Amount' },
     { key: 'verification', label: 'KYC' },
-    { key: 'result', label: 'Outcome' },
   ] as const;
   const previewRows = [
     {
-      id: '1',
+      id: 'business-manager-review',
       customer: 'Business',
       amount: '>= ¥5M',
       verification: 'Verified',
       result: 'Manager review',
+      warning: 'error',
     },
     {
-      id: '2',
+      id: 'individual-auto-approve',
       customer: 'Individual',
       amount: '< ¥500K',
       verification: 'Verified',
       result: 'Auto-approve',
+      warning: null,
     },
     {
-      id: '3',
+      id: 'pending-follow-up',
       customer: 'Any',
       amount: '>= ¥500K',
       verification: 'Pending',
       result: 'Send to follow-up',
+      warning: 'warning',
     },
     {
-      id: '4',
+      id: 'default-manual-review',
       customer: 'Any',
       amount: 'Any',
       verification: 'Any',
       result: 'Manual review',
+      warning: null,
     },
   ];
 
   return (
-    <div className="bg-brand-subtle p-4 text-left">
-      <div className="mb-4 flex items-center justify-between border-b border-brand-border pb-3">
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-brand" />
-          <span className="h-3 w-3 rounded-full bg-brand" />
-          <span className="h-3 w-3 rounded-full bg-brand-strong" />
-        </div>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-fg">
-          Review Rules v3
-        </span>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[11rem_1fr]">
-        <div className="hidden rounded-md border border-brand-border bg-surface p-3 lg:block">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-fg-faint">
-            Tables
-          </p>
-          {['Intake', 'Identity', 'Follow-up'].map((item, index) => (
-            <div
-              key={item}
-              className={`mb-2 rounded-md px-3 py-2 text-sm font-semibold ${
-                index === 0
-                  ? 'bg-brand text-white'
-                  : 'bg-brand-subtle text-fg-muted'
-              }`}
-            >
-              {item}
-            </div>
-          ))}
-          <div className="mt-5 rounded-md bg-brand-soft p-3 text-xs leading-5 text-brand-fg-strong">
-            2 uncovered patterns detected
-          </div>
-        </div>
-        <div className="overflow-hidden rounded-md border border-brand-border bg-surface">
-          <div className="flex items-center justify-between border-b border-brand-border bg-brand-subtle px-4 py-3">
-            <div>
-              <p className="text-sm font-bold text-fg">Intake decision</p>
-              <p className="text-xs text-fg-subtle">First matching row wins</p>
-            </div>
-            <span className="rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-white">
-              Tests passing
-            </span>
-          </div>
-          <div className="min-w-[560px]">
-            <div className="grid grid-cols-[3rem_1.1fr_1fr_1fr_1.2fr] bg-brand-soft text-xs font-bold text-brand-fg-strong">
-              {previewColumns.map((column) => (
-                <div
-                  key={column.key}
-                  className="border-r border-brand-border px-3 py-3"
-                >
-                  {column.label}
-                </div>
-              ))}
-            </div>
-            {previewRows.map((row, rowIndex) => (
-              <div
-                key={row.id}
-                className={`grid grid-cols-[3rem_1.1fr_1fr_1fr_1.2fr] text-sm ${
-                  rowIndex === 1 ? 'bg-brand-subtle' : 'bg-surface'
+    <div className="min-w-0 bg-surface text-left">
+      <div className="flex min-h-11 min-w-0 items-stretch justify-between gap-3 border-b border-brand-border-subtle bg-surface">
+        <div className="flex min-w-0 items-end overflow-x-auto px-2 pt-2">
+          {['Intake decision', 'Identity check', 'Follow-up'].map(
+            (name, index) => (
+              <span
+                key={name}
+                className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-t-md border border-b-0 px-3 text-xs font-medium ${
+                  index === 0
+                    ? 'border-brand-border bg-surface text-brand-fg-strong'
+                    : 'border-transparent text-fg-subtle'
                 }`}
               >
-                {previewColumns.map((column) => (
-                  <div
-                    key={column.key}
-                    className="border-r border-t border-brand-border-subtle px-3 py-3 text-fg-secondary"
-                  >
-                    {row[column.key]}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-          <div className="grid gap-3 border-t border-brand-border bg-brand-subtle p-4 md:grid-cols-3">
-            <PreviewMetric label="Matched row" value="Row 2" />
-            <PreviewMetric label="Output" value="Auto-approve" />
-            <PreviewMetric label="Reasoning" value="View conditions" />
-          </div>
+                {index === 0 ? <Table2 className="h-3.5 w-3.5" /> : null}
+                {name}
+              </span>
+            ),
+          )}
         </div>
+        <div className="flex shrink-0 items-center gap-2 py-1.5 pr-3 pl-1">
+          <div className="flex h-8 items-center gap-0.5 rounded border border-line bg-surface-muted p-0.5">
+            <span className="flex h-7 items-center gap-1.5 rounded bg-surface px-2.5 text-xs font-medium text-brand-fg-strong shadow-sm">
+              <Table2 className="h-3 w-3" /> Table
+            </span>
+            <span className="flex h-7 items-center gap-1.5 rounded px-2.5 text-xs font-medium text-fg-subtle">
+              <GitBranch className="h-3 w-3" /> Flowchart
+              <span className="rounded bg-warning-bg px-1 text-[10px] font-semibold leading-tight text-warning-fg">
+                2
+              </span>
+            </span>
+          </div>
+          <PreviewIconButton>
+            <MoreHorizontal className="h-4 w-4" />
+          </PreviewIconButton>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto pb-3">
+        <table
+          className="min-w-full border-collapse text-sm"
+          style={{ tableLayout: 'fixed' }}
+        >
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-10 w-14 border-b border-r border-line bg-surface-subtle" />
+              <th className="w-10 border-b border-r border-line bg-surface-subtle px-2 text-xs text-fg-subtle">
+                #
+              </th>
+              {previewColumns.map((column) => (
+                <th
+                  key={column.key}
+                  className="min-w-40 border-b border-r border-line bg-surface-subtle px-2 py-1 text-xs font-medium"
+                  style={{ width: compact ? 132 : 160 }}
+                >
+                  <div className="flex items-center gap-1">
+                    <PreviewIconButton tone="drag">
+                      <GripHorizontal className="h-3.5 w-3.5" />
+                    </PreviewIconButton>
+                    <span className="min-w-0 flex-1 rounded border border-line bg-surface px-1 py-0.5 text-left text-xs font-normal text-fg-secondary">
+                      {column.label}
+                    </span>
+                    <PreviewIconButton tone="danger">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </PreviewIconButton>
+                  </div>
+                </th>
+              ))}
+              <th
+                className="border-b border-r border-line bg-surface-subtle p-0"
+                style={{ width: 32, minWidth: 32, maxWidth: 32 }}
+              >
+                <span className="flex h-8 items-center justify-center text-fg-faint">
+                  +
+                </span>
+              </th>
+              <th
+                className="relative border-b border-r border-line bg-surface-subtle px-2 py-1 text-xs font-medium text-fg-secondary"
+                style={{ minWidth: compact ? 190 : 240 }}
+              >
+                <div className="flex items-center justify-between">
+                  <span>Conclusion</span>
+                  <PreviewIconButton>
+                    <Settings className="h-3.5 w-3.5" />
+                  </PreviewIconButton>
+                </div>
+              </th>
+              <th className="sticky right-0 z-10 w-16 border-b border-l border-line bg-surface-subtle" />
+            </tr>
+          </thead>
+          <tbody>
+            {previewRows.map((row, rowIndex) => (
+              <tr key={row.id} className="group">
+                <td className="sticky left-0 z-10 w-14 border-b border-r bg-surface py-0.5">
+                  {row.warning ? (
+                    <span
+                      className={`pointer-events-none absolute bottom-0 left-0 top-0 w-1 ${
+                        row.warning === 'error' ? 'bg-danger' : 'bg-warning'
+                      }`}
+                    />
+                  ) : null}
+                  <div className="flex flex-row items-center justify-center gap-1 pl-1">
+                    <span className="flex h-7 w-5 items-center justify-center text-danger-fg">
+                      {row.warning === 'error' ? '!' : ''}
+                    </span>
+                    <PreviewIconButton tone="drag">
+                      <GripVertical className="h-3.5 w-3.5" />
+                    </PreviewIconButton>
+                  </div>
+                </td>
+                <td className="w-10 border-b border-r px-2 py-0.5 text-center text-xs text-fg-faint">
+                  {rowIndex + 1}
+                </td>
+                {previewColumns.map((column) => (
+                  <td
+                    key={column.key}
+                    className="h-8 border-b border-r p-0"
+                    style={{ width: compact ? 132 : 160 }}
+                  >
+                    <PreviewCell>{row[column.key]}</PreviewCell>
+                  </td>
+                ))}
+                <td
+                  className="border-b border-r"
+                  style={{ width: 32, minWidth: 32, maxWidth: 32 }}
+                />
+                <td
+                  className="h-8 border-b border-r p-0"
+                  style={{ minWidth: compact ? 190 : 240 }}
+                >
+                  <button
+                    type="button"
+                    className="h-full w-full px-2 py-1 text-left text-xs text-fg-secondary"
+                  >
+                    <span className="inline-flex max-w-full items-baseline gap-1 rounded border border-line bg-surface-muted px-1.5 py-0.5 leading-tight">
+                      <span className="text-[10px] text-fg-faint">
+                        Decision
+                      </span>
+                      <span className="truncate font-medium text-fg-secondary">
+                        {row.result}
+                      </span>
+                    </span>
+                  </button>
+                </td>
+                <td className="sticky right-0 z-10 w-16 border-b border-l bg-surface px-1 py-0.5 text-center">
+                  <div className="flex flex-row items-center justify-center gap-0.5 opacity-50">
+                    <PreviewIconButton>
+                      <Copy className="h-3.5 w-3.5" />
+                    </PreviewIconButton>
+                    <PreviewIconButton tone="danger">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </PreviewIconButton>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <td colSpan={5 + previewColumns.length} className="border-b p-0">
+                <span className="flex w-full items-center justify-center py-1 text-fg-faint">
+                  +
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        {!compact ? (
+          <div className="border-t border-line bg-surface-muted px-4 py-2 text-xs text-fg-subtle">
+            Flowchart shows 2 coverage gaps for enum and boolean branches.
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function PreviewMetric({ label, value }: { label: string; value: string }) {
+function PreviewCell({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-md border border-brand-border bg-surface px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-faint">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-bold text-brand-fg-strong">{value}</p>
-    </div>
+    <button
+      type="button"
+      className="h-full w-full px-2 py-1 text-left text-xs text-fg-secondary"
+    >
+      {children}
+    </button>
   );
 }

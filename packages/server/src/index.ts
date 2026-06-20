@@ -9,10 +9,17 @@ import type { Env } from './env.js';
 import { buildOpenApiDocument } from './openapi.js';
 import { getAllowedOrigins, resolveCorsOrigin } from './origins.js';
 import { apiKeyRoutes } from './routes/apiKeys.js';
+import { connectorRoutes } from './routes/connectors.js';
+import { decisionSessionRoutes } from './routes/decisionSessions.js';
 import { evaluateRoutes } from './routes/evaluate.js';
+import { factBindingRoutes } from './routes/factBindings.js';
+import { factRoutes } from './routes/facts.js';
 import { logicRoutes } from './routes/logics.js';
 import { mcpRoutes } from './routes/mcp.js';
 import { orgRoutes } from './routes/orgs.js';
+import { referenceTableRoutes } from './routes/referenceTables.js';
+import { resolverRoutes } from './routes/resolvers.js';
+import { runnerDataRoutes } from './routes/runnerData.js';
 import { workspaceRoutes } from './routes/workspaces.js';
 import {
   createKvSecondaryStorage,
@@ -97,6 +104,14 @@ const DEFAULT_EDITOR_PATHS = [
 function isJsonContentType(value: string | null) {
   if (!value) return false;
   return value.toLowerCase().split(';', 1)[0]?.trim() === 'application/json';
+}
+
+// File uploads (reference-table CSV import) are multipart, not JSON. They are
+// still origin/CSRF-protected by the check above, so the body content-type gate
+// must accept multipart/form-data in addition to JSON.
+function isMultipartFormData(value: string | null) {
+  if (!value) return false;
+  return value.toLowerCase().split(';', 1)[0]?.trim() === 'multipart/form-data';
 }
 
 function hasRequestBody(request: Request) {
@@ -221,9 +236,11 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
       );
     }
 
+    const contentType = c.req.header('content-type') ?? null;
     if (
       hasRequestBody(c.req.raw) &&
-      !isJsonContentType(c.req.header('content-type') ?? null)
+      !isJsonContentType(contentType) &&
+      !isMultipartFormData(contentType)
     ) {
       return c.json(
         {
@@ -344,6 +361,13 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
   app.route('/', orgRoutes);
   app.route('/', workspaceRoutes);
   app.route('/', logicRoutes);
+  app.route('/', factRoutes);
+  app.route('/', factBindingRoutes);
+  app.route('/', referenceTableRoutes);
+  app.route('/', resolverRoutes);
+  app.route('/', connectorRoutes);
+  app.route('/', runnerDataRoutes);
+  app.route('/', decisionSessionRoutes);
   app.route('/', apiKeyRoutes);
 
   // /v1/* — external public API surface (Bearer auth, no cookies, permissive
@@ -446,5 +470,14 @@ export async function runScheduledMaintenance(env: Env) {
         OR revoked_at < now() - interval '30 days'
       )
       AND accepted_at IS NULL
+  `);
+  // Sweep expired case contexts (data-connected intake, §3.8). These hold only
+  // extracted key candidates, but they carry an expires_at and must not linger
+  // past it; decision_session.case_context_id is ON DELETE SET NULL, so a
+  // completed session survives its context being swept.
+  await db.execute(sql`
+    DELETE FROM case_context
+    WHERE expires_at IS NOT NULL
+      AND expires_at < now()
   `);
 }

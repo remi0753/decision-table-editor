@@ -186,6 +186,15 @@ export type TranslationSet = {
   fieldTypeLabel: string;
   enumValuesLabel: string;
   fieldNameRequired: string;
+  workspaceDisplayTitle: string;
+  workspaceDisplayDescription: string;
+  workspaceQuestionLabel: string;
+  workspaceHelpLabel: string;
+  workspaceHelpPlaceholder: string;
+  workspaceDefaultValueLabel: string;
+  workspaceAskOrderLabel: string;
+  workspaceHideFieldLabel: string;
+  workspaceOrderNumberError: string;
   fieldTypes: {
     string: string;
     number: string;
@@ -611,6 +620,16 @@ export const translations: Record<Lang, TranslationSet> = {
     fieldTypeLabel: 'Field type',
     enumValuesLabel: 'Enum values',
     fieldNameRequired: 'Please enter a field name.',
+    workspaceDisplayTitle: 'Workspace display',
+    workspaceDisplayDescription:
+      'These settings shape the published LEVERIE workspace without changing rule evaluation.',
+    workspaceQuestionLabel: 'Question',
+    workspaceHelpLabel: 'Help text',
+    workspaceHelpPlaceholder: 'Clarify what the operator should check.',
+    workspaceDefaultValueLabel: 'Default value',
+    workspaceAskOrderLabel: 'Ask order',
+    workspaceHideFieldLabel: 'Hide this field in the workspace',
+    workspaceOrderNumberError: 'Workspace order must be a number.',
     fieldTypes: {
       string: 'Text',
       number: 'Number',
@@ -1052,6 +1071,16 @@ export const translations: Record<Lang, TranslationSet> = {
     fieldTypeLabel: 'フィールド型',
     enumValuesLabel: '選択肢',
     fieldNameRequired: 'フィールド名を入力してください。',
+    workspaceDisplayTitle: 'Workspace表示',
+    workspaceDisplayDescription:
+      '評価ロジックを変えずに、公開されるLEVERIE workspaceでの見え方を調整します。',
+    workspaceQuestionLabel: '質問文',
+    workspaceHelpLabel: '補足説明',
+    workspaceHelpPlaceholder: '現場の人が何を確認すべきかを補足します。',
+    workspaceDefaultValueLabel: '初期値',
+    workspaceAskOrderLabel: '質問順',
+    workspaceHideFieldLabel: 'workspaceでこのフィールドを非表示にする',
+    workspaceOrderNumberError: '質問順は数値で入力してください。',
     fieldTypes: {
       string: 'テキスト',
       number: '数値',

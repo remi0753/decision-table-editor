@@ -1,6 +1,6 @@
 {
   "name": "@leverie/server",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Self-hostable LEVERIE API server with the built editor management UI bundled.",
   "license": "FSL-1.1-ALv2",
   "type": "module",

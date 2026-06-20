@@ -1,4 +1,20 @@
 import type { Logic } from '@leverie/engine';
+import type {
+  FactDefinition,
+  FactKind,
+  FactLoggingPolicy,
+  FactStatus,
+  FactType,
+  WorkspaceConfig,
+} from '@leverie/ui-runtime';
+
+export type {
+  FactDefinition,
+  FactKind,
+  FactLoggingPolicy,
+  FactStatus,
+  FactType,
+} from '@leverie/ui-runtime';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -43,6 +59,7 @@ export type CloudLogic = {
   name: string;
   description?: string | null;
   draftData: Logic;
+  draftWorkspaceConfig?: WorkspaceConfig | null;
   draftRevision: number;
   productionVersionId?: string | null;
   productionVersionNumber?: number | null;
@@ -172,6 +189,7 @@ export type RunnerVersion = CloudVersion & {
   schemaVersion: string;
   releaseNotes?: string | null;
   data: Logic;
+  workspaceConfig?: WorkspaceConfig | null;
 };
 
 export type RunnerLogicResponse = {
@@ -182,7 +200,135 @@ export type RunnerLogicResponse = {
     role: CloudRole;
     canEdit: boolean;
   };
+  // Data-connected payload, present when the version has a published snapshot.
+  dataConnected?: boolean;
+  factDefinitions?: FactDefinition[] | null;
+  factBindings?: LogicFactBinding[] | null;
+  dataSnapshot?: { id: string; snapshotHash: string } | null;
 };
+
+export type ExtractedKey = {
+  factId: string;
+  label: string;
+  value: string;
+  confidence: number;
+  source: string;
+};
+
+export type ResolvedFactValue = {
+  factId: string;
+  fieldId?: string;
+  value?: string;
+  maskedValue?: string;
+  state: string;
+  sourceKind: string;
+  provenance: Record<string, unknown>;
+  dataSourceId?: string;
+  resolverRecipeId?: string;
+  referenceTableId?: string;
+  referenceTableVersion?: number;
+};
+
+export type DecisionSession = {
+  id: string;
+  workspaceId: string;
+  logicId: string;
+  logicVersionId: string;
+  status: string;
+  result:
+    | { status: 'ok'; outputs: Record<string, string> }
+    | { status: string }
+    | null;
+  createdAt: string;
+  completedAt?: string | null;
+};
+
+export type DecisionResult =
+  | { status: 'ok'; outputs: Record<string, string> }
+  | { status: 'no_match' };
+
+export type DecisionReportKind =
+  | 'no_match'
+  | 'wrong_fact'
+  | 'missing_source'
+  | 'confusing_question'
+  | 'wrong_result_text'
+  | 'exception_required';
+
+// Runner ref is a bare logicId (production) or logicId@vN (exact version).
+export async function getRunner(workspaceId: string, logicRef: string) {
+  return api<RunnerLogicResponse>(`/api/run/${workspaceId}/${logicRef}`);
+}
+
+export async function createCaseContext(
+  workspaceId: string,
+  logicRef: string,
+  text: string,
+  sourceKind = 'manual_paste',
+) {
+  return api<{
+    caseContext: {
+      id: string;
+      sourceKind: string;
+      extractedKeys: ExtractedKey[];
+    };
+  }>(`/api/run/${workspaceId}/${logicRef}/case-contexts`, {
+    method: 'POST',
+    body: { sourceKind, text },
+  });
+}
+
+export async function resolveFacts(
+  workspaceId: string,
+  logicRef: string,
+  input: {
+    caseContextId?: string | null;
+    facts: { factId: string; value: string; sourceKind?: string }[];
+  },
+) {
+  return api<{
+    values: ResolvedFactValue[];
+    unavailable: { factId: string; reason: string }[];
+    blocked: { resolverId: string; reason: string; factIds: string[] }[];
+  }>(`/api/run/${workspaceId}/${logicRef}/resolve`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function startDecisionSession(
+  workspaceId: string,
+  logicRef: string,
+  input: { caseContextId?: string | null },
+) {
+  return api<{ session: DecisionSession }>(
+    `/api/run/${workspaceId}/${logicRef}/sessions`,
+    { method: 'POST', body: input },
+  );
+}
+
+export async function completeDecisionSession(
+  sessionId: string,
+  input: {
+    factValues: ResolvedFactValue[];
+    result?: DecisionResult;
+  },
+) {
+  return api<{ session: DecisionSession; result: DecisionResult }>(
+    `/api/decision-sessions/${sessionId}/complete`,
+    { method: 'POST', body: input },
+  );
+}
+
+export async function createDecisionReport(
+  sessionId: string,
+  input: { kind: DecisionReportKind; note?: string },
+) {
+  return api<{ report: { id: string; kind: string; status: string } }>(
+    `/api/decision-sessions/${sessionId}/reports`,
+    { method: 'POST', body: input },
+  );
+}
 
 export type RunnerShareRole = Extract<CloudRole, 'viewer' | 'runner'>;
 
@@ -221,6 +367,33 @@ async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   if (!res.ok) {
     // Our routes nest the error as { error: { code, message } }; Better Auth's
     // handler returns { code, message } at the top level. Try both shapes.
+    const code = data?.error?.code ?? data?.code ?? 'request_failed';
+    const message =
+      data?.error?.message ??
+      data?.message ??
+      `Request failed with ${res.status}`;
+    throw new CloudApiError(res.status, code, message);
+  }
+  if (data === null) {
+    throw new CloudApiError(
+      res.status,
+      'invalid_response',
+      'Invalid API response.',
+    );
+  }
+  return data as T;
+}
+
+// Multipart variant for file uploads. Mirrors `api`'s error handling but lets
+// the browser set the multipart boundary Content-Type itself.
+async function apiForm<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
     const code = data?.error?.code ?? data?.code ?? 'request_failed';
     const message =
       data?.error?.message ??
@@ -352,6 +525,361 @@ export async function listLogics(workspaceId: string) {
   return api<{ logics: CloudLogic[] }>(`/api/workspaces/${workspaceId}/logics`);
 }
 
+export type CloudFact = FactDefinition & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FactInput = {
+  name: string;
+  description?: string | null;
+  type: FactType;
+  kind: FactKind;
+  enumValues?: string[] | null;
+  aliases?: string[];
+  question?: string | null;
+  sensitive?: boolean;
+  loggingPolicy?: FactLoggingPolicy;
+  status?: FactStatus;
+};
+
+export async function listFacts(workspaceId: string) {
+  return api<{ facts: CloudFact[] }>(`/api/workspaces/${workspaceId}/facts`);
+}
+
+export async function createFact(workspaceId: string, input: FactInput) {
+  return api<{ fact: CloudFact }>(`/api/workspaces/${workspaceId}/facts`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function updateFact(factId: string, input: Partial<FactInput>) {
+  return api<{ fact: CloudFact }>(`/api/facts/${factId}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export async function deprecateFact(factId: string) {
+  return api<{ fact: CloudFact }>(`/api/facts/${factId}/deprecate`, {
+    method: 'POST',
+    body: {},
+  });
+}
+
+export type ReferenceColumnDef = {
+  name: string;
+  factId?: string;
+  normalizer?: { kind?: string; format?: string };
+};
+
+export type ReferenceTableVersionSummary = {
+  referenceTableId: string;
+  version: number;
+  rowCount: number;
+  columns: ReferenceColumnDef[];
+  keyColumns: string[];
+  status: string;
+  updatedAt: string;
+};
+
+export type CloudReferenceTable = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  kind: string;
+  status: string;
+  ownerUserId: string;
+  activeVersion: ReferenceTableVersionSummary | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReferenceColumnMappingInput = {
+  columnName: string;
+  factId: string;
+};
+
+export type ReferenceUploadMetadata = {
+  name: string;
+  headerRowIndex?: number;
+  keyColumns: string[];
+  columnMappings: ReferenceColumnMappingInput[];
+};
+
+export type ReferenceLookupValue = {
+  factId: string;
+  value?: string;
+  state: string;
+  sourceKind: string;
+  provenance: Record<string, unknown>;
+};
+
+export async function listReferenceTables(workspaceId: string) {
+  return api<{ referenceTables: CloudReferenceTable[] }>(
+    `/api/workspaces/${workspaceId}/reference-tables`,
+  );
+}
+
+export async function createReferenceTable(
+  workspaceId: string,
+  file: File,
+  metadata: ReferenceUploadMetadata,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('metadata', JSON.stringify(metadata));
+  return apiForm<{ referenceTable: CloudReferenceTable }>(
+    `/api/workspaces/${workspaceId}/reference-tables`,
+    form,
+  );
+}
+
+export async function replaceReferenceTable(
+  referenceTableId: string,
+  file: File,
+  metadata: ReferenceUploadMetadata,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('metadata', JSON.stringify(metadata));
+  return apiForm<{ referenceTable: CloudReferenceTable }>(
+    `/api/reference-tables/${referenceTableId}/replace`,
+    form,
+  );
+}
+
+export async function appendReferenceTable(
+  referenceTableId: string,
+  file: File,
+  metadata: ReferenceUploadMetadata,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('metadata', JSON.stringify(metadata));
+  return apiForm<{ referenceTable: CloudReferenceTable }>(
+    `/api/reference-tables/${referenceTableId}/append`,
+    form,
+  );
+}
+
+export async function getReferenceTable(referenceTableId: string) {
+  return api<{
+    referenceTable: CloudReferenceTable;
+    versions: {
+      referenceTableId: string;
+      version: number;
+      status: string;
+      rowCount: number;
+      columns: ReferenceColumnDef[];
+      keyColumns: string[];
+      createdAt: string;
+    }[];
+  }>(`/api/reference-tables/${referenceTableId}`);
+}
+
+export async function testReferenceLookup(
+  referenceTableId: string,
+  input: {
+    key?: string;
+    keys?: Record<string, string>;
+    referenceTableVersionId?: string;
+  },
+) {
+  return api<{ matched: boolean; values: ReferenceLookupValue[] }>(
+    `/api/reference-tables/${referenceTableId}/test-lookup`,
+    { method: 'POST', body: input },
+  );
+}
+
+export async function disableReferenceTable(referenceTableId: string) {
+  return api<{ referenceTable: CloudReferenceTable }>(
+    `/api/reference-tables/${referenceTableId}/disable`,
+    { method: 'POST', body: {} },
+  );
+}
+
+export type ResolverKeyColumnMapping = {
+  columnName: string;
+  factId: string;
+};
+
+export type ResolverOutputMapping = {
+  columnName: string;
+  factId: string;
+  normalizer?: { kind?: string; format?: string };
+};
+
+export type CloudResolver = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  inputFactIds: string[];
+  dataSourceId: string;
+  operationRef: { kind: string };
+  parameterMappings: { keyColumns: ResolverKeyColumnMapping[] };
+  outputMappings: ResolverOutputMapping[];
+  normalizers: Record<string, unknown>;
+  fallbackPolicy: string;
+  status: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ResolverParameterBinding = { name: string; factId: string };
+
+// Operation refs by data-source kind. Reference tables copy data into LEVERIE;
+// database / http operations read one record live at decision time.
+export type ResolverOperationRef =
+  | { kind: 'reference_table_lookup' }
+  | { kind: 'db_query'; query: string; params: ResolverParameterBinding[] }
+  | {
+      kind: 'http_operation';
+      method: 'GET';
+      urlTemplate: string;
+      params: ResolverParameterBinding[];
+      recordPath?: string;
+    };
+
+export type ResolverInput = {
+  name: string;
+  dataSourceId: string;
+  inputFactIds: string[];
+  operationRef?: ResolverOperationRef;
+  parameterMappings?: { keyColumns: ResolverKeyColumnMapping[] };
+  outputMappings: ResolverOutputMapping[];
+  fallbackPolicy?: string;
+};
+
+export async function listResolvers(workspaceId: string) {
+  return api<{ resolvers: CloudResolver[] }>(
+    `/api/workspaces/${workspaceId}/resolvers`,
+  );
+}
+
+export async function createResolver(
+  workspaceId: string,
+  input: ResolverInput,
+) {
+  return api<{ resolver: CloudResolver }>(
+    `/api/workspaces/${workspaceId}/resolvers`,
+    {
+      method: 'POST',
+      body: {
+        ...input,
+        operationRef: input.operationRef ?? { kind: 'reference_table_lookup' },
+        parameterMappings: input.parameterMappings ?? { keyColumns: [] },
+      },
+    },
+  );
+}
+
+// ── Live data-source connectors (database / HTTP) ─────────────────────────────
+
+export type CloudDataSource = {
+  id: string;
+  name: string;
+  kind: string;
+  authType: string;
+  allowedDomains: string[];
+  status: string;
+  createdAt: string;
+};
+
+export type DataSourceInput = {
+  name: string;
+  kind: 'database' | 'openapi_http';
+  allowedDomains?: string[];
+  auth?: { type: string; value: Record<string, string> };
+};
+
+export async function listDataSources(workspaceId: string) {
+  return api<{ dataSources: CloudDataSource[] }>(
+    `/api/workspaces/${workspaceId}/data-sources`,
+  );
+}
+
+export async function createDataSource(
+  workspaceId: string,
+  input: DataSourceInput,
+) {
+  return api<{ dataSource: CloudDataSource }>(
+    `/api/workspaces/${workspaceId}/data-sources`,
+    { method: 'POST', body: input },
+  );
+}
+
+export async function disableDataSource(dataSourceId: string) {
+  return api<{ dataSource: CloudDataSource }>(
+    `/api/data-sources/${dataSourceId}/disable`,
+    { method: 'POST', body: {} },
+  );
+}
+
+export async function testResolver(
+  resolverId: string,
+  facts: { factId: string; value: string }[],
+) {
+  return api<{
+    matched: boolean;
+    values: ReferenceLookupValue[];
+    missingKeys: string[];
+  }>(`/api/resolvers/${resolverId}/test`, {
+    method: 'POST',
+    body: { facts },
+  });
+}
+
+export async function disableResolver(resolverId: string) {
+  return api<{ resolver: CloudResolver }>(
+    `/api/resolvers/${resolverId}/disable`,
+    { method: 'POST', body: {} },
+  );
+}
+
+export type LogicFactBinding = {
+  fieldId: string;
+  factId: string;
+};
+
+export type DataReadinessIssue = {
+  code: string;
+  severity: 'block' | 'warn';
+  message: string;
+  fieldId?: string;
+  factId?: string;
+};
+
+export type DataReadinessResult = {
+  ok: boolean;
+  dataConnected: boolean;
+  issues: DataReadinessIssue[];
+};
+
+export async function getFactBindings(logicId: string) {
+  return api<{ bindings: LogicFactBinding[] }>(
+    `/api/logics/${logicId}/fact-bindings`,
+  );
+}
+
+export async function putFactBindings(
+  logicId: string,
+  bindings: LogicFactBinding[],
+) {
+  return api<{ bindings: LogicFactBinding[] }>(
+    `/api/logics/${logicId}/fact-bindings`,
+    { method: 'PUT', body: { bindings } },
+  );
+}
+
+export async function getDataReadiness(logicId: string) {
+  return api<{ readiness: DataReadinessResult }>(
+    `/api/logics/${logicId}/data-readiness`,
+  );
+}
+
 export async function listApiKeys(workspaceId: string) {
   return api<{ apiKeys: CloudApiKey[] }>(
     `/api/workspaces/${workspaceId}/api-keys`,
@@ -389,7 +917,7 @@ export async function revokeApiKey(apiKeyId: string) {
 export async function createLogic(
   workspaceId: string,
   logic: Logic,
-  options: { slug?: string } = {},
+  options: { slug?: string; workspaceConfig?: WorkspaceConfig | null } = {},
 ) {
   return api<{ logic: CloudLogic }>(`/api/workspaces/${workspaceId}/logics`, {
     method: 'POST',
@@ -398,6 +926,9 @@ export async function createLogic(
       slug: options.slug,
       description: logic.description,
       data: logic,
+      ...(options.workspaceConfig === undefined
+        ? {}
+        : { workspaceConfig: options.workspaceConfig }),
     },
   });
 }
@@ -444,6 +975,7 @@ export async function saveDraft(input: {
   logicId: string;
   logic: Logic;
   draftRevision: number;
+  workspaceConfig?: WorkspaceConfig | null;
 }) {
   return api<{ logic: CloudLogic }>(`/api/logics/${input.logicId}`, {
     method: 'PATCH',
@@ -452,6 +984,9 @@ export async function saveDraft(input: {
       description: input.logic.description,
       data: input.logic,
       draftRevision: input.draftRevision,
+      ...(input.workspaceConfig === undefined
+        ? {}
+        : { workspaceConfig: input.workspaceConfig }),
     },
   });
 }

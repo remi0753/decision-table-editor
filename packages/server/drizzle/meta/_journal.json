@@ -22,6 +22,55 @@
       "when": 1779609170311,
       "tag": "0002_old_champions",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780928636980,
+      "tag": "0003_stiff_proudstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781424095879,
+      "tag": "0004_tidy_grandmaster",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781431019934,
+      "tag": "0005_odd_rockslide",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781432137986,
+      "tag": "0006_premium_talisman",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781432725592,
+      "tag": "0007_bent_rafael_vega",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781441612087,
+      "tag": "0008_happy_grey_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781626576329,
+      "tag": "0009_data_connectors",
+      "breakpoints": true
     }
   ]
 }

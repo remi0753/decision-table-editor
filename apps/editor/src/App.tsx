@@ -31,6 +31,31 @@ const WorkspaceSettingsPage = lazy(() =>
     default: m.WorkspaceSettingsPage,
   })),
 );
+const FactCatalogPage = lazy(() =>
+  import('@/components/data/FactCatalogPage').then((m) => ({
+    default: m.FactCatalogPage,
+  })),
+);
+const ReferenceTablesPage = lazy(() =>
+  import('@/components/data/ReferenceTablesPage').then((m) => ({
+    default: m.ReferenceTablesPage,
+  })),
+);
+const ResolverRecipePage = lazy(() =>
+  import('@/components/data/ResolverRecipePage').then((m) => ({
+    default: m.ResolverRecipePage,
+  })),
+);
+const ConnectorsPage = lazy(() =>
+  import('@/components/data/ConnectorsPage').then((m) => ({
+    default: m.ConnectorsPage,
+  })),
+);
+const LogicBindingsPage = lazy(() =>
+  import('@/components/data/LogicBindingsPage').then((m) => ({
+    default: m.LogicBindingsPage,
+  })),
+);
 const AuthPage = lazy(() =>
   import('@/components/auth/AuthPage').then((m) => ({ default: m.AuthPage })),
 );
@@ -50,6 +75,11 @@ function route() {
   if (path === '/invite') return <InvitePage />;
   if (path === '/settings/org') return <OrgSettingsPage />;
   if (path === '/settings/workspace') return <WorkspaceSettingsPage />;
+  if (path === '/settings/data') return <FactCatalogPage />;
+  if (path === '/settings/data/tables') return <ReferenceTablesPage />;
+  if (path === '/settings/data/connectors') return <ConnectorsPage />;
+  if (path === '/settings/data/resolvers') return <ResolverRecipePage />;
+  if (path === '/settings/data/bindings') return <LogicBindingsPage />;
   if (path === '/edit') return <EditorRoute />;
   // `/local` opens the editor in local mode regardless of any existing cloud
   // session: a stable, shareable/bookmarkable entry point that never depends on

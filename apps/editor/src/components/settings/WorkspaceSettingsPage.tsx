@@ -6,6 +6,7 @@ import {
   Check,
   Clipboard,
   Copy,
+  Database,
   KeyRound,
   Loader2,
   Save,
@@ -323,6 +324,17 @@ export function WorkspaceSettingsPage() {
         </a>
         <div className="inline-flex items-center gap-3">
           <ThemeToggle />
+          <a
+            href={
+              selectedWorkspaceId
+                ? `/settings/data?workspaceId=${selectedWorkspaceId}`
+                : '/settings/data'
+            }
+            className="inline-flex h-8 items-center gap-2 rounded border border-line px-3 text-sm font-medium text-fg-secondary hover:bg-surface-muted"
+          >
+            <Database className="h-4 w-4" />
+            Fact catalog
+          </a>
           <a
             href={
               selectedOrgId

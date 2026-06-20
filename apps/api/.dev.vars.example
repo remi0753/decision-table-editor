@@ -33,3 +33,10 @@ GOOGLE_CLIENT_SECRET=""
 # emails are printed to the Wrangler console instead of being sent.
 RESEND_API_KEY=""
 EMAIL_FROM="LEVERIE <auth@leverie.dev>"
+
+# Base64-encoded 32-byte key that encrypts live data-connector credentials
+# (database URLs, API tokens) at rest with AES-256-GCM. Required only when you
+# create credentialed database/HTTP connectors; when empty, those connectors
+# cannot store or decrypt secrets and their resolvers fall back per policy.
+# Generate with: openssl rand -base64 32
+CONNECTOR_SECRET_KEY=""

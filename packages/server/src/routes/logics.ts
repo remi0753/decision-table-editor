@@ -2,13 +2,25 @@ import type { Logic } from '@leverie/engine';
 import { validateLogicForSave } from '@leverie/engine';
 import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
+import {
+  checkDataReadiness,
+  type ReadinessFact,
+  type ReadinessResolver,
+} from '../dataWorkspace/dataReadiness.js';
+import { buildDataSnapshot } from '../dataWorkspace/snapshot.js';
 import { createDb, type Database } from '../db/client.js';
 import {
+  dataSource,
+  factDefinition,
   invitation,
   logic,
+  logicFactBinding,
   logicVersion,
+  logicVersionDataSnapshot,
   membership,
   org,
+  referenceTable,
+  resolverRecipe,
   workspace,
 } from '../db/schema.js';
 import { sendInvitationEmail } from '../email.js';
@@ -74,6 +86,7 @@ type WorkspaceRow = typeof workspace.$inferSelect;
 type WorkspaceAccess = MembershipAccess & { workspace: WorkspaceRow };
 type LogicAccess = WorkspaceAccess & { logic: LogicRow };
 type RunnerVersionRow = typeof logicVersion.$inferSelect;
+type WorkspaceConfigJson = Record<string, unknown>;
 type SerializedLogicInput = Pick<
   LogicRow,
   | 'id'
@@ -82,6 +95,7 @@ type SerializedLogicInput = Pick<
   | 'name'
   | 'description'
   | 'draftData'
+  | 'draftWorkspaceConfig'
   | 'draftSchemaVersion'
   | 'draftRevision'
   | 'productionVersionId'
@@ -116,6 +130,7 @@ type PublishRow = {
   logic_name: string;
   logic_description: string | null;
   logic_draft_data: Logic;
+  logic_draft_workspace_config: WorkspaceConfigJson | null;
   logic_draft_schema_version: string;
   logic_draft_revision: number;
   logic_production_version_id: string | null;
@@ -147,6 +162,38 @@ function validateLogicBody(c: AppContext, data: unknown) {
       400,
     ),
   };
+}
+
+function parseWorkspaceConfigBody(c: AppContext, body: unknown) {
+  if (!body || typeof body !== 'object' || !('workspaceConfig' in body)) {
+    return { value: undefined as WorkspaceConfigJson | null | undefined };
+  }
+
+  const value = (body as Record<string, unknown>).workspaceConfig;
+  if (value === null) return { value: null };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {
+      error: jsonError(
+        c,
+        400,
+        'invalid_workspace_config',
+        'Workspace config must be an object or null.',
+      ),
+    };
+  }
+
+  const config = value as WorkspaceConfigJson;
+  if (config.version !== '1') {
+    return {
+      error: jsonError(
+        c,
+        400,
+        'invalid_workspace_config',
+        'Workspace config version must be "1".',
+      ),
+    };
+  }
+  return { value: config };
 }
 
 async function loadWorkspaceAccess(
@@ -200,6 +247,156 @@ async function loadLogicAccess(
   return { logic: row.logic, workspace: row.workspace, ...access };
 }
 
+// Gather the data-connected layer for a logic and run publish readiness. Shared
+// by the readiness endpoint and the publish route. A logic with no bindings is
+// treated as not data-connected (readiness passes, no snapshot is written),
+// preserving existing publish behavior (§15).
+type FactRow = typeof factDefinition.$inferSelect;
+type ResolverRow = typeof resolverRecipe.$inferSelect;
+type DataSourceRow = typeof dataSource.$inferSelect;
+type ActiveTableRow = {
+  dataSourceId: string;
+  referenceTableId: string;
+  version: number;
+  rowCount: number;
+  status: string;
+};
+
+interface LogicDataLayer {
+  bindings: { fieldId: string; factId: string }[];
+  facts: FactRow[];
+  resolvers: ResolverRow[];
+  dataSources: DataSourceRow[];
+  activeTables: ActiveTableRow[];
+}
+
+function resolverOutputFactIds(resolver: ResolverRow): string[] {
+  const mappings = (resolver.outputMappings as { factId?: string }[]) ?? [];
+  return mappings
+    .map((m) => m.factId)
+    .filter((id): id is string => typeof id === 'string');
+}
+
+async function loadLogicDataLayer(
+  db: Database,
+  logicRow: { id: string; workspaceId: string },
+): Promise<LogicDataLayer> {
+  const [bindings, facts, resolvers, dataSources, tables] = await Promise.all([
+    db
+      .select({
+        fieldId: logicFactBinding.fieldId,
+        factId: logicFactBinding.factId,
+      })
+      .from(logicFactBinding)
+      .where(eq(logicFactBinding.logicId, logicRow.id)),
+    db
+      .select()
+      .from(factDefinition)
+      .where(eq(factDefinition.workspaceId, logicRow.workspaceId)),
+    db
+      .select()
+      .from(resolverRecipe)
+      .where(eq(resolverRecipe.workspaceId, logicRow.workspaceId)),
+    db
+      .select()
+      .from(dataSource)
+      .where(eq(dataSource.workspaceId, logicRow.workspaceId)),
+    db
+      .select({
+        dataSourceId: referenceTable.dataSourceId,
+        referenceTableId: referenceTable.id,
+        version: referenceTable.version,
+        rowCount: referenceTable.rowCount,
+        status: referenceTable.status,
+      })
+      .from(referenceTable)
+      .where(
+        and(
+          eq(referenceTable.workspaceId, logicRow.workspaceId),
+          eq(referenceTable.status, 'active'),
+        ),
+      ),
+  ]);
+  return { bindings, facts, resolvers, dataSources, activeTables: tables };
+}
+
+function runReadiness(logicData: Logic, layer: LogicDataLayer) {
+  const facts: ReadinessFact[] = layer.facts.map((f) => ({
+    id: f.id,
+    name: f.name,
+    type: f.type,
+    kind: f.kind,
+    status: f.status,
+    enumValues: (f.enumValues as string[] | null) ?? null,
+    question: f.question,
+    sensitive: f.sensitive,
+    loggingPolicy: f.loggingPolicy,
+  }));
+  const resolvers: ReadinessResolver[] = layer.resolvers.map((r) => ({
+    id: r.id,
+    status: r.status,
+    dataSourceId: r.dataSourceId,
+    inputFactIds: (r.inputFactIds as string[]) ?? [],
+    outputFactIds: resolverOutputFactIds(r),
+  }));
+  return checkDataReadiness({
+    fieldDefs: logicData.fieldDefs ?? {},
+    bindings: layer.bindings,
+    facts,
+    resolvers,
+    dataSources: layer.dataSources.map((s) => ({
+      id: s.id,
+      status: s.status,
+      kind: s.kind,
+    })),
+    referenceTables: layer.activeTables.map((t) => ({
+      dataSourceId: t.dataSourceId,
+      status: t.status,
+      rowCount: t.rowCount,
+    })),
+  });
+}
+
+// Assemble the publish-time data snapshot from the gathered layer, restricting
+// to the facts / resolvers / sources relevant to this logic's bindings.
+async function buildLogicDataSnapshot(layer: LogicDataLayer) {
+  const boundFactIds = new Set(layer.bindings.map((b) => b.factId));
+  const relevantResolvers = layer.resolvers.filter(
+    (r) =>
+      r.status === 'active' &&
+      resolverOutputFactIds(r).some((fid) => boundFactIds.has(fid)),
+  );
+  const relevantSourceIds = new Set(
+    relevantResolvers.map((r) => r.dataSourceId),
+  );
+  // Facts to snapshot: those bound, plus any referenced by the relevant
+  // resolvers (inputs/outputs), so historical sessions can render them.
+  const neededFactIds = new Set(boundFactIds);
+  for (const r of relevantResolvers) {
+    for (const id of (r.inputFactIds as string[]) ?? []) neededFactIds.add(id);
+    for (const id of resolverOutputFactIds(r)) neededFactIds.add(id);
+  }
+  const factDefinitions = layer.facts.filter((f) => neededFactIds.has(f.id));
+  const dataSources = layer.dataSources.filter((s) =>
+    relevantSourceIds.has(s.id),
+  );
+  const referenceTables = layer.activeTables
+    .filter((t) => relevantSourceIds.has(t.dataSourceId))
+    .map((t) => ({
+      dataSourceId: t.dataSourceId,
+      referenceTableId: t.referenceTableId,
+      version: t.version,
+    }));
+
+  return buildDataSnapshot({
+    bindings: layer.bindings,
+    factDefinitions,
+    resolverRecipes: relevantResolvers,
+    dataSources,
+    referenceTables,
+  });
+}
+
 function serializeLogic(row: SerializedLogicInput) {
   return {
     id: row.id,
@@ -208,6 +405,7 @@ function serializeLogic(row: SerializedLogicInput) {
     name: row.name,
     description: row.description,
     draftData: row.draftData,
+    draftWorkspaceConfig: row.draftWorkspaceConfig,
     draftSchemaVersion: row.draftSchemaVersion,
     draftRevision: row.draftRevision,
     productionVersionId: row.productionVersionId,
@@ -243,6 +441,7 @@ function serializeRunnerVersion(row: RunnerVersionRow) {
     publishedActorType: row.publishedActorType,
     publishedActorId: row.publishedActorId,
     data: row.data,
+    workspaceConfig: row.workspaceConfig,
   };
 }
 
@@ -545,56 +744,98 @@ logicRoutes.get('/api/me/logics', async (c) => {
   });
 });
 
+// Runner load. Accepts /run/<workspaceId>/<logicId> (production) and
+// /run/<workspaceId>/<logicId>@vN (exact version) (§5.5). When the resolved
+// version has a published data snapshot, the data-connected payload
+// (factDefinitions, factBindings, dataSnapshot) is included; otherwise the
+// response is the existing non-data-connected shape (§15).
 logicRoutes.get('/api/run/:workspaceId/:logicRef', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const workspaceId = c.req.param('workspaceId');
   const logicRef = c.req.param('logicRef');
   const match = logicRef.match(
-    /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})@v([1-9][0-9]*)$/i,
+    /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:@v([1-9][0-9]*))?$/i,
   );
-  if (!match) {
+  if (!match?.[1]) {
     return jsonError(
       c,
       400,
       'invalid_runner_ref',
-      'Use /run/<workspaceId>/<logicId>@vN.',
+      'Use /run/<workspaceId>/<logicId> or /run/<workspaceId>/<logicId>@vN.',
     );
   }
 
-  const logicId = match[1] as string;
-  const versionNumber = Number(match[2]);
+  const logicId = match[1];
+  const versionNumber = match[2] ? Number(match[2]) : null;
   const access = await loadWorkspaceAccess(c, db, workspaceId);
   if ('error' in access) return access.error;
 
-  const [row] = await db
-    .select({
-      logic,
-      version: logicVersion,
-    })
-    .from(logicVersion)
-    .innerJoin(logic, eq(logicVersion.logicId, logic.id))
+  const [logicRow] = await db
+    .select()
+    .from(logic)
     .where(
       and(
         eq(logic.workspaceId, workspaceId),
         eq(logic.id, logicId),
-        eq(logicVersion.versionNumber, versionNumber),
         isNull(logic.deletedAt),
       ),
     )
     .limit(1);
+  if (!logicRow) {
+    return jsonError(c, 404, 'not_found', 'Logic not found.');
+  }
 
-  if (!row) {
+  let version: RunnerVersionRow | undefined;
+  if (versionNumber === null) {
+    if (!logicRow.productionVersionId) {
+      return jsonError(
+        c,
+        404,
+        'no_production',
+        'This logic has no production version yet.',
+      );
+    }
+    [version] = await db
+      .select()
+      .from(logicVersion)
+      .where(eq(logicVersion.id, logicRow.productionVersionId))
+      .limit(1);
+  } else {
+    [version] = await db
+      .select()
+      .from(logicVersion)
+      .where(
+        and(
+          eq(logicVersion.logicId, logicId),
+          eq(logicVersion.versionNumber, versionNumber),
+        ),
+      )
+      .limit(1);
+  }
+  if (!version) {
     return jsonError(c, 404, 'not_found', 'Runner version not found.');
   }
 
+  const [snapshot] = await db
+    .select()
+    .from(logicVersionDataSnapshot)
+    .where(eq(logicVersionDataSnapshot.logicVersionId, version.id))
+    .limit(1);
+
   return c.json({
     workspace: access.workspace,
-    logic: serializeLogic(row.logic),
-    version: serializeRunnerVersion(row.version),
+    logic: serializeLogic(logicRow),
+    version: serializeRunnerVersion(version),
     runner: {
       role: access.member.role,
       canEdit: canEditLogics(access.member.role),
     },
+    dataConnected: Boolean(snapshot),
+    factDefinitions: snapshot ? snapshot.factDefinitions : null,
+    factBindings: snapshot ? snapshot.bindings : null,
+    dataSnapshot: snapshot
+      ? { id: snapshot.id, snapshotHash: snapshot.snapshotHash }
+      : null,
   });
 });
 
@@ -636,6 +877,8 @@ logicRoutes.post('/api/workspaces/:workspaceId/logics', async (c) => {
 
   const validation = validateLogicBody(c, data);
   if ('error' in validation) return validation.error;
+  const workspaceConfig = parseWorkspaceConfigBody(c, body);
+  if ('error' in workspaceConfig) return workspaceConfig.error;
 
   const requestedSlug = parseBodyString(body, 'slug', { max: 63 });
   const baseSlug = requestedSlug
@@ -663,6 +906,7 @@ logicRoutes.post('/api/workspaces/:workspaceId/logics', async (c) => {
         name,
         description,
         draftData: validation.logic,
+        draftWorkspaceConfig: workspaceConfig.value ?? null,
         draftSchemaVersion: validation.logic.version,
         draftRevision: 1,
         draftUpdatedActorType: 'user',
@@ -938,6 +1182,10 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
   const slugInput = parseBodyString(body, 'slug', { max: 63 });
   const description = parseBodyString(body, 'description', { max: 500 });
   const draftData = parseBodyObject(body, 'data');
+  const workspaceConfig = parseWorkspaceConfigBody(c, body);
+  if ('error' in workspaceConfig) return workspaceConfig.error;
+  const hasWorkspaceConfigUpdate = workspaceConfig.value !== undefined;
+  const hasDraftUpdate = draftData !== undefined || hasWorkspaceConfigUpdate;
 
   if (name) update.name = name;
   if (description !== undefined) update.description = description ?? null;
@@ -961,6 +1209,14 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
     update.draftUpdatedActorType = 'user';
     update.draftUpdatedActorId = access.user.id;
   }
+  if (hasWorkspaceConfigUpdate) {
+    update.draftWorkspaceConfig = workspaceConfig.value;
+    update.draftRevision =
+      update.draftRevision ?? access.logic.draftRevision + 1;
+    update.draftUpdatedAt = new Date();
+    update.draftUpdatedActorType = 'user';
+    update.draftUpdatedActorId = access.user.id;
+  }
 
   const [updated] = await db
     .update(logic)
@@ -977,7 +1233,7 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
     .returning();
 
   if (!updated) {
-    if (expectedDraftRevision !== undefined && draftData !== undefined) {
+    if (expectedDraftRevision !== undefined && hasDraftUpdate) {
       return jsonError(
         c,
         409,
@@ -993,7 +1249,7 @@ logicRoutes.patch('/api/logics/:logicId', async (c) => {
     workspaceId: access.logic.workspaceId,
     actorUserId: access.user.id,
     actorPersona: rolePersona[access.member.role],
-    action: draftData === undefined ? 'logic.updated' : 'logic.draft_saved',
+    action: hasDraftUpdate ? 'logic.draft_saved' : 'logic.updated',
     targetType: 'logic',
     targetId: logicId,
     metadata: { draftRevision: updated.draftRevision },
@@ -1083,6 +1339,20 @@ logicRoutes.get('/api/logics/:logicId/versions/:versionNumber', async (c) => {
   return c.json({ version });
 });
 
+// GET /api/logics/:logicId/data-readiness — publish readiness checklist for the
+// data-connected layer (viewer+). The publish route enforces the same checks
+// server-side; this endpoint is for the editor checklist (§7.6).
+logicRoutes.get('/api/logics/:logicId/data-readiness', async (c) => {
+  const db = createDb(c.env.DATABASE_URL);
+  const logicId = c.req.param('logicId');
+  const access = await loadLogicAccess(c, db, logicId);
+  if ('error' in access) return access.error;
+
+  const layer = await loadLogicDataLayer(db, access.logic);
+  const readiness = runReadiness(access.logic.draftData as Logic, layer);
+  return c.json({ readiness });
+});
+
 logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
   const db = createDb(c.env.DATABASE_URL);
   const logicId = c.req.param('logicId');
@@ -1110,6 +1380,32 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
   const pinProduction = parseBodyBoolean(body, 'pinProduction', true);
   const validation = validateLogicBody(c, access.logic.draftData);
   if ('error' in validation) return validation.error;
+  const draftWorkspaceConfigJson =
+    access.logic.draftWorkspaceConfig == null
+      ? null
+      : JSON.stringify(access.logic.draftWorkspaceConfig);
+
+  // Data-connected publish readiness (§7.6). Enforced server-side: blocking
+  // issues stop the publish. A logic with no fact bindings is not data-connected
+  // and skips both the checks and the snapshot, preserving existing behavior.
+  const dataLayer = await loadLogicDataLayer(db, access.logic);
+  const readiness = runReadiness(validation.logic, dataLayer);
+  if (readiness.dataConnected && !readiness.ok) {
+    return c.json(
+      {
+        error: {
+          code: 'data_readiness_failed',
+          message:
+            'Resolve the blocking data readiness issues before publishing.',
+          issues: readiness.issues,
+        },
+      },
+      422,
+    );
+  }
+  const dataSnapshot = readiness.dataConnected
+    ? await buildLogicDataSnapshot(dataLayer)
+    : null;
 
   let created: SerializedVersion | undefined;
   let updatedLogic: SerializedLogicInput = access.logic;
@@ -1130,6 +1426,7 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
           version_number,
           schema_version,
           data,
+          workspace_config,
           release_notes,
           published_actor_type,
           published_actor_id
@@ -1140,6 +1437,7 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
           next_version.version_number,
           ${validation.logic.version},
           ${JSON.stringify(validation.logic)}::jsonb,
+          ${draftWorkspaceConfigJson}::jsonb,
           ${releaseNotes ?? null},
           'user',
           ${access.user.id}::uuid
@@ -1181,6 +1479,7 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
         logic_result.name AS logic_name,
         logic_result.description AS logic_description,
         logic_result.draft_data AS logic_draft_data,
+        logic_result.draft_workspace_config AS logic_draft_workspace_config,
         logic_result.draft_schema_version AS logic_draft_schema_version,
         logic_result.draft_revision AS logic_draft_revision,
         logic_result.production_version_id AS logic_production_version_id,
@@ -1213,6 +1512,7 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
       name: row.logic_name,
       description: row.logic_description,
       draftData: row.logic_draft_data,
+      draftWorkspaceConfig: row.logic_draft_workspace_config,
       draftSchemaVersion: row.logic_draft_schema_version,
       draftRevision: row.logic_draft_revision,
       productionVersionId: row.logic_production_version_id,
@@ -1239,6 +1539,23 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
     return jsonError(c, 500, 'publish_failed', 'Could not publish version.');
   }
 
+  // Pin the data-layer snapshot for this published version (§3.7). Only for
+  // data-connected logics; others have no snapshot and the runner falls back to
+  // its existing non-data-connected behavior.
+  if (dataSnapshot) {
+    await db.insert(logicVersionDataSnapshot).values({
+      workspaceId: created.workspaceId,
+      logicId: created.logicId,
+      logicVersionId: created.id,
+      bindings: dataSnapshot.bindings,
+      factDefinitions: dataSnapshot.factDefinitions,
+      resolverRecipes: dataSnapshot.resolverRecipes,
+      dataSources: dataSnapshot.dataSources,
+      referenceTables: dataSnapshot.referenceTables,
+      snapshotHash: dataSnapshot.snapshotHash,
+    });
+  }
+
   await writeAudit(db, {
     orgId: access.workspace.orgId,
     workspaceId: access.logic.workspaceId,
@@ -1247,7 +1564,11 @@ logicRoutes.post('/api/logics/:logicId/publish', async (c) => {
     action: pinProduction ? 'logic.published_to_production' : 'logic.published',
     targetType: 'logic_version',
     targetId: created.id,
-    metadata: { logicId, versionNumber: created.versionNumber },
+    metadata: {
+      logicId,
+      versionNumber: created.versionNumber,
+      dataSnapshotHash: dataSnapshot?.snapshotHash,
+    },
   });
 
   return c.json(
