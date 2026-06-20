@@ -1,7 +1,7 @@
 {
   "name": "@leverie/api",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "LEVERIE Cloud API — Hono on Cloudflare Workers, backed by Neon Postgres via Drizzle. Authentication by Better Auth. Surface: /api/* on leverie.dev (path-based).",
   "license": "FSL-1.1-ALv2",
   "type": "module",
