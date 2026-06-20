@@ -1,6 +1,8 @@
 import { ApiKeysPage } from './ApiKeysPage';
+import { DecisionWorkspacePage } from './DecisionWorkspacePage';
 import { EditorPage } from './EditorPage';
 import { EvaluationPage } from './EvaluationPage';
+import { FactCatalogPage } from './FactCatalogPage';
 import { HostedApiPage } from './HostedApiPage';
 import { HostedMcpPage } from './HostedMcpPage';
 import { IntroductionPage } from './IntroductionPage';
@@ -18,6 +20,10 @@ export function PageContent({ slug }: { slug: string }) {
       return <TablesPage />;
     case 'evaluation':
       return <EvaluationPage />;
+    case 'decision-workspace':
+      return <DecisionWorkspacePage />;
+    case 'fact-catalog':
+      return <FactCatalogPage />;
     case 'publishing':
       return <PublishingPage />;
     case 'sharing':

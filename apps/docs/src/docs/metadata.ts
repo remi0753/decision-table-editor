@@ -1,6 +1,7 @@
 import {
   BookOpen,
   Bot,
+  Database,
   GitBranch,
   KeyRound,
   type LucideIcon,
@@ -11,6 +12,7 @@ import {
   Table2,
   TerminalSquare,
   Users,
+  Workflow,
 } from 'lucide-react';
 
 export type Page = {
@@ -84,6 +86,41 @@ export const pages: Page[] = [
       'Batch testing',
       'Sample templates',
       'Importing and exporting',
+    ],
+  },
+  {
+    slug: 'decision-workspace',
+    title: 'Decision workspace',
+    description:
+      'Run a published, data-connected logic on a real case: start from a key, let LEVERIE resolve known facts, answer only what systems cannot know, and act on the result.',
+    group: 'Data workspace',
+    icon: Workflow,
+    sections: [
+      'What the decision workspace is',
+      'How to reach it',
+      'Start a case from a key',
+      'Resolved facts',
+      'Guided questions',
+      'Decision and next action',
+      'No match and reporting',
+    ],
+  },
+  {
+    slug: 'fact-catalog',
+    title: 'Fact catalog',
+    description:
+      'Define the business facts your rules use — keys, system facts, manual facts, and internal facts — then bind them to logic fields so a case key can resolve them automatically.',
+    group: 'Data workspace',
+    icon: Database,
+    sections: [
+      'What a fact is',
+      'How to reach the fact catalog',
+      'Fact kinds',
+      'Creating a fact',
+      'Aliases and key extraction',
+      'Sensitive facts and logging',
+      'Binding facts to logic',
+      'From fact to running decision',
     ],
   },
   {
