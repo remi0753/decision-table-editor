@@ -181,11 +181,14 @@ export function ReferenceTableWizard({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const lockedVersion = mode.kind === 'create' ? null : mode.table.activeVersion;
+  const lockedVersion =
+    mode.kind === 'create' ? null : mode.table.activeVersion;
   const [file, setFile] = useState<File | null>(null);
   const [fileText, setFileText] = useState('');
   const [headerRowIndex, setHeaderRowIndex] = useState(0);
-  const [name, setName] = useState(mode.kind === 'create' ? '' : mode.table.name);
+  const [name, setName] = useState(
+    mode.kind === 'create' ? '' : mode.table.name,
+  );
   const [preview, setPreview] = useState<Preview | null>(null);
   const [keyColumns, setKeyColumns] = useState<string[]>(
     lockedVersion?.keyColumns ?? [],
@@ -255,7 +258,8 @@ export function ReferenceTableWizard({
       setMapping({});
     }
     if (!next) return;
-    if (mode.kind === 'create' && !name) setName(next.name.replace(/\.[^.]+$/, ''));
+    if (mode.kind === 'create' && !name)
+      setName(next.name.replace(/\.[^.]+$/, ''));
     try {
       const text = await next.text();
       setFileText(text);
