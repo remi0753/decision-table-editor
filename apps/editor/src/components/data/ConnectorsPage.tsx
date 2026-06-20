@@ -454,13 +454,31 @@ function ConnectorDialog({
       if (authType !== 'none') {
         if (!token.trim())
           return toast.error('A credential value is required.');
-        input.auth =
-          authType === 'api_key'
-            ? {
-                type: 'api_key',
-                value: { key: token.trim(), header: apiKeyHeader.trim() },
-              }
-            : { type: authType, value: { token: token.trim() } };
+        if (authType === 'api_key') {
+          input.auth = {
+            type: 'api_key',
+            value: { key: token.trim(), header: apiKeyHeader.trim() },
+          };
+        } else if (authType === 'basic') {
+          // The server expects { username, password }; the operator enters a
+          // single "user:pass" string, so split on the first colon here.
+          const raw = token.trim();
+          const sep = raw.indexOf(':');
+          if (sep === -1) {
+            return toast.error(
+              'Basic auth credential must be in "user:pass" form.',
+            );
+          }
+          input.auth = {
+            type: 'basic',
+            value: {
+              username: raw.slice(0, sep),
+              password: raw.slice(sep + 1),
+            },
+          };
+        } else {
+          input.auth = { type: authType, value: { token: token.trim() } };
+        }
       }
     }
 

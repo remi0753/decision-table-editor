@@ -240,6 +240,45 @@ describe('resolveFactsFromSnapshot', () => {
     expect(result.blocked).toEqual([]);
   });
 
+  it('tags an HTTP live-source failure fallback with sourceKind "api", not "reference_table"', async () => {
+    // The denied allow-list makes httpDriver.resolve throw; the ask_operator
+    // fallback must record the live-source provenance, not reference_table.
+    const liveResolvers: SnapshotResolver[] = [
+      {
+        id: 'r_http',
+        status: 'active',
+        dataSourceId: 's_http',
+        inputFactIds: ['fOrder'],
+        parameterKeyMappings: [],
+        outputMappings: [{ columnName: 'tier', factId: 'fTier' }],
+        operationRef: {
+          kind: 'http_operation',
+          method: 'GET',
+          urlTemplate: 'https://api.example.com/orders/{order_id}',
+          params: [{ name: 'order_id', factId: 'fOrder' }],
+        },
+      },
+    ];
+    const result = await resolveFactsFromSnapshot({
+      resolvers: liveResolvers,
+      tables: [],
+      bindings: [{ fieldId: 'f_tier', factId: 'fTier' }],
+      factsById,
+      availableFacts: new Map([['fOrder', '123']]),
+      fetchRowByHash: async () => null,
+      sources: new Map([
+        [
+          's_http',
+          { id: 's_http', kind: 'http', config: { allowedDomains: [] } },
+        ],
+      ]),
+      now: new Date(),
+    });
+    const tier = result.values.find((v) => v.factId === 'fTier');
+    expect(tier?.state).toBe('needs_confirmation');
+    expect(tier?.sourceKind).toBe('api');
+  });
+
   it('blocks resolution when no row matches and fallback blocks', async () => {
     const result = await resolveFactsFromSnapshot({
       resolvers: resolvers.map((r) => ({ ...r, fallbackPolicy: 'block' })),

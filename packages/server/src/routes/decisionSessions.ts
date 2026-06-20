@@ -14,7 +14,8 @@ import {
   workspace,
 } from '../db/schema.js';
 import type { Env } from '../env.js';
-import { resolveRunnerVersion } from './runnerData.js';
+import type { ResolvedFactValue } from '../resolvers/types.js';
+import { resolveRunnerVersion, resolveSnapshotFacts } from './runnerData.js';
 import {
   type AppContext,
   canEditLogics,
@@ -34,10 +35,19 @@ type ReportRow = typeof decisionReport.$inferSelect;
 
 interface SnapshotFact {
   id: string;
+  kind?: string;
   loggingPolicy?: string;
   retentionPolicy?: string;
   sensitive?: boolean;
 }
+
+// Fact kinds whose values must originate from a resolver (§5.1 / §10.1), never
+// from the client. Only 'key' and 'manual_fact' values may be operator-supplied.
+const RESOLVER_SOURCED_KINDS = new Set([
+  'system_fact',
+  'internal_fact',
+  'derived_fact',
+]);
 
 interface SnapshotBinding {
   fieldId: string;
@@ -421,6 +431,90 @@ decisionSessionRoutes.post(
         );
       }
       byFactId.set(fv.factId, fv);
+    }
+
+    // Re-derive resolver-sourced facts server-side. The client may supply values
+    // only for 'key' and 'manual_fact' facts; values for system / internal /
+    // derived facts MUST come from the resolver, never the client (§10.1). We
+    // re-run resolution over the operator-supplied keys and treat the server's
+    // result as authoritative, so a hand-crafted /complete payload cannot forge
+    // a resolved value or its provenance to flip the decision.
+    const resolverKeys = new Map<string, string>();
+    for (const fv of byFactId.values()) {
+      const kind = snapshotFactById.get(fv.factId as string)?.kind;
+      if (
+        (kind === 'key' || kind === 'manual_fact') &&
+        typeof fv.value === 'string'
+      ) {
+        resolverKeys.set(fv.factId as string, fv.value);
+      }
+    }
+    const resolution = await resolveSnapshotFacts({
+      db,
+      env: c.env,
+      snapshot,
+      availableFacts: resolverKeys,
+    });
+    const serverResolved = new Map<string, ResolvedFactValue>();
+    for (const v of resolution.values) {
+      if (v.state === 'resolved') serverResolved.set(v.factId, v);
+    }
+    const serverBlocked = new Set<string>();
+    for (const b of resolution.blocked)
+      for (const id of b.factIds) serverBlocked.add(id);
+    const serverUnavailable = new Set(
+      resolution.unavailable.map((u) => u.factId),
+    );
+
+    for (const [factId, fv] of byFactId) {
+      const kind = snapshotFactById.get(factId)?.kind;
+      if (!kind || !RESOLVER_SOURCED_KINDS.has(kind)) continue;
+
+      const resolved = serverResolved.get(factId);
+      if (resolved) {
+        // Authoritative resolver value: overwrite whatever the client sent.
+        byFactId.set(factId, {
+          ...fv,
+          value: resolved.value,
+          state: resolved.state,
+          sourceKind: resolved.sourceKind,
+          provenance: resolved.provenance,
+          dataSourceId: resolved.provenance.dataSourceId,
+          resolverRecipeId: resolved.provenance.resolverRecipeId,
+          referenceTableId: resolved.provenance.referenceTableId,
+          referenceTableVersion: resolved.provenance.referenceTableVersion,
+        });
+        continue;
+      }
+      // Server produced no resolved value for this fact. The client may not
+      // assert a resolver-sourced value the resolver never produced.
+      if (fv.state === 'resolved') {
+        return jsonError(
+          c,
+          409,
+          'resolver_value_unverified',
+          `Value for ${factId} claims to be resolver-sourced but the resolver produced no value.`,
+        );
+      }
+      if (serverBlocked.has(factId) && typeof fv.value === 'string') {
+        return jsonError(
+          c,
+          409,
+          'resolver_blocked',
+          `Resolver for ${factId} blocked resolution; a value cannot be supplied.`,
+        );
+      }
+      if (serverUnavailable.has(factId) && typeof fv.value === 'string') {
+        return jsonError(
+          c,
+          409,
+          'resolver_unavailable',
+          `Resolver for ${factId} marked it unavailable; a value cannot be supplied.`,
+        );
+      }
+      // Otherwise this is a legitimate ask_operator fallback: the operator may
+      // confirm a value (state confirmed/manual), recorded with the provenance
+      // they sent. Nothing to override.
     }
 
     // Build field-keyed inputs and re-evaluate server-side.

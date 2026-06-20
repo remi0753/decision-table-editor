@@ -48,6 +48,14 @@ describe('buildAuthHeaders', () => {
     ).toEqual({ 'X-Key': 'k' });
     expect(buildAuthHeaders(null)).toEqual({});
   });
+  it('builds a basic header from username/password', () => {
+    expect(
+      buildAuthHeaders({
+        authType: 'basic',
+        value: { username: 'alice', password: 'hunter2' },
+      }),
+    ).toEqual({ Authorization: `Basic ${btoa('alice:hunter2')}` });
+  });
 });
 
 describe('extractRecord', () => {

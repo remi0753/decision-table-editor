@@ -241,7 +241,7 @@ export async function resolveFactsFromSnapshot(
         const driver = getDriver(opKind);
         const source = input.sources?.get(resolver.dataSourceId);
         if (!driver || !source || !resolver.operationRef) {
-          applyFallback(resolver, 'no_connector');
+          applyFallback(resolver, 'no_connector', driver?.sourceKind ?? 'api');
           continue;
         }
         try {
@@ -261,6 +261,7 @@ export async function resolveFactsFromSnapshot(
           applyFallback(
             resolver,
             error instanceof Error ? error.message : 'connector_error',
+            driver.sourceKind,
           );
           continue;
         }
@@ -279,8 +280,16 @@ export async function resolveFactsFromSnapshot(
           values.push(withField(v));
         }
       } else if (result.missingKeys.length === 0) {
-        // Ran but no row matched: apply the resolver fallback policy.
-        applyFallback(resolver, 'no_match');
+        // Ran but no row matched: apply the resolver fallback policy. Tag the
+        // provenance by operation kind so a live-source miss isn't mislabeled
+        // as a reference-table value.
+        applyFallback(
+          resolver,
+          'no_match',
+          opKind === 'reference_table_lookup'
+            ? 'reference_table'
+            : (getDriver(opKind)?.sourceKind ?? 'api'),
+        );
       }
     }
   }

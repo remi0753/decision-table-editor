@@ -361,7 +361,28 @@ runnerDataRoutes.post('/api/run/:workspaceId/:logicRef/resolve', async (c) => {
     }
   }
 
-  const snapshot = ctx.snapshot;
+  const result = await resolveSnapshotFacts({
+    db,
+    env: c.env,
+    snapshot: ctx.snapshot,
+    availableFacts,
+  });
+
+  return c.json(result);
+});
+
+// Shared snapshot → fact resolution. Builds the resolver-runtime inputs from a
+// published data snapshot and runs them over the supplied keys. Used by the
+// runner /resolve endpoint and by decision-session /complete, which re-derives
+// resolver-sourced facts server-side rather than trusting client-supplied
+// values (see §10.1: internal/system/derived facts are resolver-sourced).
+export async function resolveSnapshotFacts(args: {
+  db: Database;
+  env: Env;
+  snapshot: SnapshotRow;
+  availableFacts: Map<string, string>;
+}) {
+  const { db, env, snapshot, availableFacts } = args;
   const bindings = snapshot.bindings as SnapshotBinding[];
   const factsById = new Map<string, FactView>(
     (snapshot.factDefinitions as SnapshotFact[]).map((f) => [
@@ -411,7 +432,7 @@ runnerDataRoutes.post('/api/run/:workspaceId/:logicRef/resolve', async (c) => {
   const deps: DriverDeps = {
     fetchFn: globalThis.fetch,
     queryExecutor: getDbQueryExecutor(),
-    getSecret: (secretRef) => getConnectorSecret({ db, env: c.env, secretRef }),
+    getSecret: (secretRef) => getConnectorSecret({ db, env, secretRef }),
   };
 
   // Fetch the pinned reference tables' key columns (immutable for the version).
@@ -436,7 +457,7 @@ runnerDataRoutes.post('/api/run/:workspaceId/:logicRef/resolve', async (c) => {
     keyColumns: keyColsById.get(r.referenceTableId) ?? [],
   }));
 
-  const result = await resolveFactsFromSnapshot({
+  return resolveFactsFromSnapshot({
     resolvers,
     tables,
     bindings,
@@ -459,6 +480,4 @@ runnerDataRoutes.post('/api/run/:workspaceId/:logicRef/resolve', async (c) => {
     deps,
     now: new Date(),
   });
-
-  return c.json(result);
-});
+}

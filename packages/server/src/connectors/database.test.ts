@@ -39,6 +39,16 @@ describe('buildPositionalQuery', () => {
   it('throws on an unbound placeholder', () => {
     expect(() => buildPositionalQuery('SELECT :missing', {})).toThrow();
   });
+  it('does not treat PostgreSQL "::type" casts as placeholders', () => {
+    const { sql, params } = buildPositionalQuery(
+      "SELECT id::text, total::numeric, data->>'tier'::text, created::timestamp, ref::jsonb FROM o WHERE id = :id",
+      { id: '12345' },
+    );
+    expect(sql).toBe(
+      "SELECT id::text, total::numeric, data->>'tier'::text, created::timestamp, ref::jsonb FROM o WHERE id = $1",
+    );
+    expect(params).toEqual(['12345']);
+  });
 });
 
 const factsById = new Map<string, FactView>([

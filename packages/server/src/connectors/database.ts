@@ -21,7 +21,9 @@ import { projectRow } from '../resolvers/referenceTable.js';
 export function assertReadOnlyQuery(query: string): void {
   const trimmed = query.trim().replace(/;+\s*$/, '');
   if (trimmed.includes(';')) {
-    throw new Error('Only a single statement is allowed.');
+    throw new Error(
+      'Only a single statement is allowed. Semicolons inside string literals or SQL comments are not supported — remove them or split into separate inputs.',
+    );
   }
   if (!/^(select|with)\b/i.test(trimmed)) {
     throw new Error('Only read-only SELECT/WITH queries are allowed.');
@@ -31,25 +33,30 @@ export function assertReadOnlyQuery(query: string): void {
 // Turn ":name" placeholders into ordered positional ones ($1, $2, …) in first
 // appearance order, returning the rewritten SQL and the value array. Unknown
 // placeholders (no supplied value) throw, so a missing bind can never silently
-// become NULL.
+// become NULL. The negative lookbehind skips PostgreSQL's "::type" cast
+// operator (e.g. `id::text`), which would otherwise be mistaken for a `:type`
+// placeholder.
 export function buildPositionalQuery(
   query: string,
   values: Record<string, string>,
 ): { sql: string; params: unknown[] } {
   const params: unknown[] = [];
   const indexByName = new Map<string, number>();
-  const sql = query.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, name: string) => {
-    if (!(name in values)) {
-      throw new Error(`Query parameter ":${name}" has no bound value.`);
-    }
-    let idx = indexByName.get(name);
-    if (idx === undefined) {
-      params.push(values[name]);
-      idx = params.length;
-      indexByName.set(name, idx);
-    }
-    return `$${idx}`;
-  });
+  const sql = query.replace(
+    /(?<!:):([a-zA-Z_][a-zA-Z0-9_]*)/g,
+    (_, name: string) => {
+      if (!(name in values)) {
+        throw new Error(`Query parameter ":${name}" has no bound value.`);
+      }
+      let idx = indexByName.get(name);
+      if (idx === undefined) {
+        params.push(values[name]);
+        idx = params.length;
+        indexByName.set(name, idx);
+      }
+      return `$${idx}`;
+    },
+  );
   return { sql, params };
 }
 
