@@ -99,6 +99,7 @@ function FactSheetTableRow({
                 if (event.key === 'Escape') setEditing(false);
               }}
               className="h-8 min-w-0 flex-1 rounded border border-line px-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
+              // biome-ignore lint/a11y/noAutofocus: intentional — focus the inline edit field the user just opened
               autoFocus
             />
             <button

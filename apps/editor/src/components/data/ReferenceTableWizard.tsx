@@ -485,6 +485,7 @@ export function ReferenceTableWizard({
                   className="h-10 w-full rounded border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-ring"
                 >
                   {preview.headerCandidates.map((row, index) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static parsed preview; index is also the selectable value
                     <option key={index} value={index}>
                       Row {index + 1}: {row.slice(0, 4).join(', ')}
                     </option>
@@ -508,6 +509,7 @@ export function ReferenceTableWizard({
                     <tbody>
                       {preview.headers.map((header, index) => (
                         <tr
+                          // biome-ignore lint/suspicious/noArrayIndexKey: static parsed preview; index disambiguates duplicate header names
                           key={`${index}:${header}`}
                           className="border-b border-line-subtle last:border-0"
                         >
@@ -563,6 +565,7 @@ export function ReferenceTableWizard({
                         <tr className="border-b border-line-subtle bg-surface-muted text-left text-fg-subtle">
                           {preview.headers.map((h, col) => (
                             <th
+                              // biome-ignore lint/suspicious/noArrayIndexKey: static parsed preview; col disambiguates duplicate header names
                               key={`${col}:${h}`}
                               className="px-3 py-1.5 font-medium"
                             >
@@ -574,11 +577,13 @@ export function ReferenceTableWizard({
                       <tbody>
                         {preview.rows.map((row, index) => (
                           <tr
+                            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed preview; index disambiguates duplicate data rows
                             key={`${index}:${row.join('\u0001')}`}
                             className="border-b border-line-subtle last:border-0"
                           >
                             {preview.headers.map((h, col) => (
                               <td
+                                // biome-ignore lint/suspicious/noArrayIndexKey: static parsed preview; col disambiguates duplicate header names
                                 key={`${col}:${h}`}
                                 className="px-3 py-1.5 text-fg-muted"
                               >
