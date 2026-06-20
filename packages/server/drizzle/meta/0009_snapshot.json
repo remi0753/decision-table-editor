@@ -95,12 +95,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -260,12 +256,8 @@
           "name": "api_key_workspace_id_workspace_id_fk",
           "tableFrom": "api_key",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -275,10 +267,7 @@
         "api_key_workspace_id_id_uniq": {
           "name": "api_key_workspace_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -372,14 +361,8 @@
           "name": "api_key_logic_scope_api_key_fk",
           "tableFrom": "api_key_logic_scope",
           "tableTo": "api_key",
-          "columnsFrom": [
-            "workspace_id",
-            "api_key_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "api_key_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -387,14 +370,8 @@
           "name": "api_key_logic_scope_logic_fk",
           "tableFrom": "api_key_logic_scope",
           "tableTo": "logic",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -402,11 +379,7 @@
       "compositePrimaryKeys": {
         "api_key_logic_scope_workspace_id_api_key_id_logic_id_pk": {
           "name": "api_key_logic_scope_workspace_id_api_key_id_logic_id_pk",
-          "columns": [
-            "workspace_id",
-            "api_key_id",
-            "logic_id"
-          ]
+          "columns": ["workspace_id", "api_key_id", "logic_id"]
         }
       },
       "uniqueConstraints": {},
@@ -653,12 +626,8 @@
           "name": "audit_event_org_id_org_id_fk",
           "tableFrom": "audit_event",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -666,12 +635,8 @@
           "name": "audit_event_actor_user_id_user_id_fk",
           "tableFrom": "audit_event",
           "tableTo": "user",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -679,14 +644,8 @@
           "name": "audit_event_org_workspace_fk",
           "tableFrom": "audit_event",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "org_id",
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "workspace_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -694,14 +653,8 @@
           "name": "audit_event_actor_api_key_fk",
           "tableFrom": "audit_event",
           "tableTo": "api_key",
-          "columnsFrom": [
-            "workspace_id",
-            "actor_api_key_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "actor_api_key_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -855,12 +808,8 @@
           "name": "case_context_workspace_id_workspace_id_fk",
           "tableFrom": "case_context",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -868,12 +817,8 @@
           "name": "case_context_created_by_user_id_fk",
           "tableFrom": "case_context",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -995,12 +940,8 @@
           "name": "connector_secret_workspace_id_workspace_id_fk",
           "tableFrom": "connector_secret",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1174,12 +1115,8 @@
           "name": "data_source_workspace_id_workspace_id_fk",
           "tableFrom": "data_source",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1187,12 +1124,8 @@
           "name": "data_source_owner_user_id_user_id_fk",
           "tableFrom": "data_source",
           "tableTo": "user",
-          "columnsFrom": [
-            "owner_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1202,10 +1135,7 @@
         "data_source_workspace_id_id_uniq": {
           "name": "data_source_workspace_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -1350,12 +1280,8 @@
           "name": "decision_fact_value_decision_session_id_decision_session_id_fk",
           "tableFrom": "decision_fact_value",
           "tableTo": "decision_session",
-          "columnsFrom": [
-            "decision_session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["decision_session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1363,12 +1289,8 @@
           "name": "decision_fact_value_confirmed_by_user_id_fk",
           "tableFrom": "decision_fact_value",
           "tableTo": "user",
-          "columnsFrom": [
-            "confirmed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["confirmed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1376,10 +1298,7 @@
       "compositePrimaryKeys": {
         "decision_fact_value_decision_session_id_fact_id_pk": {
           "name": "decision_fact_value_decision_session_id_fact_id_pk",
-          "columns": [
-            "decision_session_id",
-            "fact_id"
-          ]
+          "columns": ["decision_session_id", "fact_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1535,12 +1454,8 @@
           "name": "decision_report_decision_session_id_decision_session_id_fk",
           "tableFrom": "decision_report",
           "tableTo": "decision_session",
-          "columnsFrom": [
-            "decision_session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["decision_session_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1548,12 +1463,8 @@
           "name": "decision_report_created_by_user_id_fk",
           "tableFrom": "decision_report",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1561,12 +1472,8 @@
           "name": "decision_report_resolved_by_user_id_fk",
           "tableFrom": "decision_report",
           "tableTo": "user",
-          "columnsFrom": [
-            "resolved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1574,14 +1481,8 @@
           "name": "decision_report_workspace_logic_fk",
           "tableFrom": "decision_report",
           "tableTo": "logic",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1589,16 +1490,8 @@
           "name": "decision_report_version_fk",
           "tableFrom": "decision_report",
           "tableTo": "logic_version",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id",
-            "logic_version_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "logic_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id", "logic_version_id"],
+          "columnsTo": ["workspace_id", "logic_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1805,12 +1698,8 @@
           "name": "decision_session_data_snapshot_id_logic_version_data_snapshot_id_fk",
           "tableFrom": "decision_session",
           "tableTo": "logic_version_data_snapshot",
-          "columnsFrom": [
-            "data_snapshot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["data_snapshot_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1818,12 +1707,8 @@
           "name": "decision_session_case_context_id_case_context_id_fk",
           "tableFrom": "decision_session",
           "tableTo": "case_context",
-          "columnsFrom": [
-            "case_context_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["case_context_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1831,12 +1716,8 @@
           "name": "decision_session_created_by_user_id_fk",
           "tableFrom": "decision_session",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1844,14 +1725,8 @@
           "name": "decision_session_workspace_logic_fk",
           "tableFrom": "decision_session",
           "tableTo": "logic",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1859,16 +1734,8 @@
           "name": "decision_session_version_fk",
           "tableFrom": "decision_session",
           "tableTo": "logic_version",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id",
-            "logic_version_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "logic_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id", "logic_version_id"],
+          "columnsTo": ["workspace_id", "logic_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2171,12 +2038,8 @@
           "name": "execution_log_caller_user_id_user_id_fk",
           "tableFrom": "execution_log",
           "tableTo": "user",
-          "columnsFrom": [
-            "caller_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["caller_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2184,14 +2047,8 @@
           "name": "execution_log_workspace_logic_fk",
           "tableFrom": "execution_log",
           "tableTo": "logic",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2204,11 +2061,7 @@
             "logic_version_id",
             "resolved_version_number"
           ],
-          "columnsTo": [
-            "logic_id",
-            "id",
-            "version_number"
-          ],
+          "columnsTo": ["logic_id", "id", "version_number"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2216,14 +2069,8 @@
           "name": "execution_log_caller_api_key_fk",
           "tableFrom": "execution_log",
           "tableTo": "api_key",
-          "columnsFrom": [
-            "workspace_id",
-            "caller_api_key_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "caller_api_key_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2504,12 +2351,8 @@
           "name": "fact_definition_workspace_id_workspace_id_fk",
           "tableFrom": "fact_definition",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2519,10 +2362,7 @@
         "fact_definition_workspace_id_id_uniq": {
           "name": "fact_definition_workspace_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -2731,12 +2571,8 @@
           "name": "invitation_org_id_org_id_fk",
           "tableFrom": "invitation",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2966,12 +2802,8 @@
           "name": "logic_workspace_id_workspace_id_fk",
           "tableFrom": "logic",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2981,10 +2813,7 @@
         "logic_workspace_id_id_uniq": {
           "name": "logic_workspace_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -3129,14 +2958,8 @@
           "name": "logic_fact_binding_workspace_logic_fk",
           "tableFrom": "logic_fact_binding",
           "tableTo": "logic",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3144,14 +2967,8 @@
           "name": "logic_fact_binding_workspace_fact_fk",
           "tableFrom": "logic_fact_binding",
           "tableTo": "fact_definition",
-          "columnsFrom": [
-            "workspace_id",
-            "fact_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "fact_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -3161,18 +2978,12 @@
         "logic_fact_binding_logic_field_uniq": {
           "name": "logic_fact_binding_logic_field_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "logic_id",
-            "field_id"
-          ]
+          "columns": ["logic_id", "field_id"]
         },
         "logic_fact_binding_logic_fact_uniq": {
           "name": "logic_fact_binding_logic_fact_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "logic_id",
-            "fact_id"
-          ]
+          "columns": ["logic_id", "fact_id"]
         }
       },
       "policies": {},
@@ -3286,14 +3097,8 @@
           "name": "logic_version_workspace_logic_fk",
           "tableFrom": "logic_version",
           "tableTo": "logic",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3303,44 +3108,27 @@
         "logic_version_logic_number_uniq": {
           "name": "logic_version_logic_number_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "logic_id",
-            "version_number"
-          ]
+          "columns": ["logic_id", "version_number"]
         },
         "logic_version_workspace_id_id_uniq": {
           "name": "logic_version_workspace_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         },
         "logic_version_logic_id_id_uniq": {
           "name": "logic_version_logic_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "logic_id",
-            "id"
-          ]
+          "columns": ["logic_id", "id"]
         },
         "logic_version_logic_id_id_number_uniq": {
           "name": "logic_version_logic_id_id_number_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "logic_id",
-            "id",
-            "version_number"
-          ]
+          "columns": ["logic_id", "id", "version_number"]
         },
         "logic_version_workspace_logic_id_uniq": {
           "name": "logic_version_workspace_logic_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "logic_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "logic_id", "id"]
         }
       },
       "policies": {},
@@ -3451,16 +3239,8 @@
           "name": "lv_data_snapshot_version_fk",
           "tableFrom": "logic_version_data_snapshot",
           "tableTo": "logic_version",
-          "columnsFrom": [
-            "workspace_id",
-            "logic_id",
-            "logic_version_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "logic_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "logic_id", "logic_version_id"],
+          "columnsTo": ["workspace_id", "logic_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3470,9 +3250,7 @@
         "lv_data_snapshot_logic_version_id_uniq": {
           "name": "lv_data_snapshot_logic_version_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "logic_version_id"
-          ]
+          "columns": ["logic_version_id"]
         }
       },
       "policies": {},
@@ -3607,12 +3385,8 @@
           "name": "membership_org_id_org_id_fk",
           "tableFrom": "membership",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3620,12 +3394,8 @@
           "name": "membership_user_id_user_id_fk",
           "tableFrom": "membership",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3966,12 +3736,8 @@
           "name": "org_deletion_job_org_id_org_id_fk",
           "tableFrom": "org_deletion_job",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4144,12 +3910,8 @@
           "name": "reference_table_workspace_id_workspace_id_fk",
           "tableFrom": "reference_table",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4157,14 +3919,8 @@
           "name": "reference_table_workspace_source_fk",
           "tableFrom": "reference_table",
           "tableTo": "data_source",
-          "columnsFrom": [
-            "workspace_id",
-            "data_source_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "data_source_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4174,18 +3930,12 @@
         "reference_table_source_version_uniq": {
           "name": "reference_table_source_version_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "data_source_id",
-            "version"
-          ]
+          "columns": ["data_source_id", "version"]
         },
         "reference_table_workspace_id_id_uniq": {
           "name": "reference_table_workspace_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -4312,12 +4062,8 @@
           "name": "reference_table_row_reference_table_id_reference_table_id_fk",
           "tableFrom": "reference_table_row",
           "tableTo": "reference_table",
-          "columnsFrom": [
-            "reference_table_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reference_table_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4494,12 +4240,8 @@
           "name": "resolver_recipe_workspace_id_workspace_id_fk",
           "tableFrom": "resolver_recipe",
           "tableTo": "workspace",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4507,14 +4249,8 @@
           "name": "resolver_recipe_workspace_source_fk",
           "tableFrom": "resolver_recipe",
           "tableTo": "data_source",
-          "columnsFrom": [
-            "workspace_id",
-            "data_source_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "data_source_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4524,10 +4260,7 @@
         "resolver_recipe_workspace_id_id_uniq": {
           "name": "resolver_recipe_workspace_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -4644,12 +4377,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4659,9 +4388,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -4949,12 +4676,8 @@
           "name": "workspace_org_id_org_id_fk",
           "tableFrom": "workspace",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4964,10 +4687,7 @@
         "workspace_org_id_id_uniq": {
           "name": "workspace_org_id_id_uniq",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
