@@ -15,16 +15,22 @@ type RunnerState =
   | { status: 'error'; title: string; message: string; actionHref?: string };
 
 // Accepts /run/<workspaceId>/<logicId> (production) and
-// /run/<workspaceId>/<logicId>@vN (exact version).
+// /run/<workspaceId>/<logicId>@vN (exact version). The `@` in the version ref
+// is sometimes URL-encoded as `%40` (e.g. when links are shared or rewritten),
+// so each path segment is decoded before validating the logic ref.
 function parseRunnerPath(pathname: string) {
-  const match = pathname.match(
-    /^\/run\/([^/]+)\/([0-9a-f-]{36}(?:@v[1-9][0-9]*)?)$/i,
-  );
+  const match = pathname.match(/^\/run\/([^/]+)\/([^/]+)$/);
   if (!match) return null;
-  return {
-    workspaceId: decodeURIComponent(match[1] ?? ''),
-    logicRef: match[2] ?? '',
-  };
+  let workspaceId: string;
+  let logicRef: string;
+  try {
+    workspaceId = decodeURIComponent(match[1] ?? '');
+    logicRef = decodeURIComponent(match[2] ?? '');
+  } catch {
+    return null;
+  }
+  if (!/^[0-9a-f-]{36}(?:@v[1-9][0-9]*)?$/i.test(logicRef)) return null;
+  return { workspaceId, logicRef };
 }
 
 function formatPublishedAt(value: string) {
