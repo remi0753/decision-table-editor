@@ -106,6 +106,14 @@ function isJsonContentType(value: string | null) {
   return value.toLowerCase().split(';', 1)[0]?.trim() === 'application/json';
 }
 
+// File uploads (reference-table CSV import) are multipart, not JSON. They are
+// still origin/CSRF-protected by the check above, so the body content-type gate
+// must accept multipart/form-data in addition to JSON.
+function isMultipartFormData(value: string | null) {
+  if (!value) return false;
+  return value.toLowerCase().split(';', 1)[0]?.trim() === 'multipart/form-data';
+}
+
 function hasRequestBody(request: Request) {
   return (
     request.body !== null ||
@@ -228,9 +236,11 @@ function createApiApp(options: LeverieServerOptions = {}, basePath = '/') {
       );
     }
 
+    const contentType = c.req.header('content-type') ?? null;
     if (
       hasRequestBody(c.req.raw) &&
-      !isJsonContentType(c.req.header('content-type') ?? null)
+      !isJsonContentType(contentType) &&
+      !isMultipartFormData(contentType)
     ) {
       return c.json(
         {
